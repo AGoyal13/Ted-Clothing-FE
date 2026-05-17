@@ -48,6 +48,7 @@ interface SkuUpdate { skuCode: string; stockQty: number; status: 'found' | 'not_
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
+          <div class="table-wrap">
           <table mat-table [dataSource]="preview()" class="full-width">
             <ng-container matColumnDef="skuCode">
               <th mat-header-cell *matHeaderCellDef>SKU Code</th>
@@ -70,6 +71,7 @@ interface SkuUpdate { skuCode: string; stockQty: number; status: 'found' | 'not_
             <tr mat-header-row *matHeaderRowDef="cols"></tr>
             <tr mat-row *matRowDef="let row; columns: cols;" [class.row-error]="row.status === 'not_found'"></tr>
           </table>
+          </div>
         </mat-card-content>
         <mat-card-actions>
           <button mat-button (click)="reset()">Clear</button>
@@ -95,7 +97,7 @@ interface SkuUpdate { skuCode: string; stockQty: number; status: 'found' | 'not_
     .drop-zone:hover { border-color: #3f51b5; }
     .upload-icon { font-size: 48px; width: 48px; height: 48px; color: #9e9e9e; }
     code { font-size: 12px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
-    .full-width { width: 100%; }
+    .full-width { width: 100%; min-width: 460px; }
     .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
     .badge-found { background: #e8f5e9; color: #2e7d32; }
     .badge-not_found { background: #fce4ec; color: #c62828; }

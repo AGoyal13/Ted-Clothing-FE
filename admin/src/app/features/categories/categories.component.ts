@@ -43,6 +43,7 @@ export interface Category {
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
 
     <mat-card>
+      <div class="table-wrap">
       <table mat-table [dataSource]="categories()" class="full-width">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Name</th>
@@ -81,12 +82,13 @@ export interface Category {
         <tr mat-header-row *matHeaderRowDef="cols"></tr>
         <tr mat-row *matRowDef="let row; columns: cols;"></tr>
       </table>
+      </div>
     </mat-card>
   `,
   styles: [`
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
     h1 { margin: 0; }
-    .full-width { width: 100%; }
+    .full-width { width: 100%; min-width: 580px; }
     .muted { color: #999; font-size: 13px; }
     code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     table { margin-top: 0; }
@@ -112,17 +114,17 @@ export class CategoriesComponent implements OnInit {
   }
 
   openCreate() {
-    this.dialog.open(CategoryDialogComponent, { width: '400px', data: { categories: this.categories() } })
+    this.dialog.open(CategoryDialogComponent, { width: '400px', maxWidth: '95vw', data: { categories: this.categories() } })
       .afterClosed().subscribe(result => { if (result) this.load(); });
   }
 
   openEdit(cat: Category) {
-    this.dialog.open(CategoryDialogComponent, { width: '400px', data: { category: cat, categories: this.categories() } })
+    this.dialog.open(CategoryDialogComponent, { width: '400px', maxWidth: '95vw', data: { category: cat, categories: this.categories() } })
       .afterClosed().subscribe(result => { if (result) this.load(); });
   }
 
   openSizeTemplate(cat: Category) {
-    this.dialog.open(SizeTemplateDialogComponent, { width: '500px', data: { category: cat } })
+    this.dialog.open(SizeTemplateDialogComponent, { width: '500px', maxWidth: '95vw', data: { category: cat } })
       .afterClosed().subscribe(result => { if (result) this.load(); });
   }
 

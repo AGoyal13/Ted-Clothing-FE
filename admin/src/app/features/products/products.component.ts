@@ -18,6 +18,7 @@ import { DecimalPipe } from '@angular/common';
 export interface Product {
   id: string;
   title: string;
+  description: string;
   slug: string;
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   basePrice: number;
@@ -54,6 +55,7 @@ export interface Product {
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
 
     <mat-card>
+      <div class="table-wrap">
       <table mat-table [dataSource]="products()" class="full-width">
         <ng-container matColumnDef="title">
           <th mat-header-cell *matHeaderCellDef>Product</th>
@@ -96,14 +98,15 @@ export interface Product {
         <tr mat-header-row *matHeaderRowDef="cols"></tr>
         <tr mat-row *matRowDef="let row; columns: cols;"></tr>
       </table>
+      </div>
     </mat-card>
   `,
   styles: [`
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
     h1 { margin: 0; }
     .filters { margin-bottom: 12px; }
     .filters mat-select { width: 180px; }
-    .full-width { width: 100%; }
+    .full-width { width: 100%; min-width: 640px; }
     code { font-size: 11px; color: #666; }
     .discount { color: #e53935; font-size: 12px; margin-left: 4px; }
     .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
@@ -138,12 +141,12 @@ export class ProductsComponent implements OnInit {
   go(p: Product) { this.router.navigate(['/products', p.id]); }
 
   openCreate() {
-    this.dialog.open(ProductDialogComponent, { width: '480px', data: {} })
+    this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: {} })
       .afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(p: Product) {
-    this.dialog.open(ProductDialogComponent, { width: '480px', data: { product: p } })
+    this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: { product: p } })
       .afterClosed().subscribe(r => { if (r) this.load(); });
   }
 

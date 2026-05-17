@@ -37,3 +37,19 @@ body {
   height: 100%;
 }
 /* You can add global styles to this file, and also import other style files */
+
+* { box-sizing: border-box; }
+
+/* Make all Material dialogs fit on small screens */
+@media (max-width: 600px) {
+  .cdk-overlay-pane {
+    max-width: 95vw !important;
+    width: 95vw !important;
+  }
+}
+
+/* Horizontal-scrolling table wrapper used across all list views */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

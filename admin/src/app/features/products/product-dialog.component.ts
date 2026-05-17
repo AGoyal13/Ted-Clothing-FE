@@ -98,14 +98,18 @@ export class ProductDialogComponent implements OnInit {
     this.api.get<{ id: string; name: string }[]>('categories').subscribe(c => this.categories.set(c));
     if (this.data.product) {
       const p = this.data.product;
-      this.form.patchValue({ title: p.title, categoryId: p.category.id, basePrice: p.basePrice, discountPercent: p.discountPercent, status: p.status });
+      this.form.patchValue({ title: p.title, description: p.description, categoryId: p.category.id, basePrice: p.basePrice, discountPercent: p.discountPercent, status: p.status });
     }
   }
 
   save() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.snack.open('Please fill in all required fields', '', { duration: 3000 });
+      return;
+    }
     this.loading.set(true);
-    const body = this.form.value;
+    const { status, ...createBody } = this.form.value;
+    const body = this.data.product ? this.form.value : createBody;
     const req = this.data.product
       ? this.api.patch(`products/${this.data.product.id}`, body)
       : this.api.post('products', body);

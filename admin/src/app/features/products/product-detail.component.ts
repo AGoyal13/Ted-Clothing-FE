@@ -84,6 +84,7 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
               </button>
             </div>
             @if (skus().length) {
+              <div class="table-wrap">
               <table mat-table [dataSource]="skus()" class="full-width">
                 <ng-container matColumnDef="skuCode">
                   <th mat-header-cell *matHeaderCellDef>SKU Code</th>
@@ -123,6 +124,7 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
                 <tr mat-header-row *matHeaderRowDef="skuCols"></tr>
                 <tr mat-row *matRowDef="let row; columns: skuCols;"></tr>
               </table>
+              </div>
             } @else {
               <p class="muted">No SKUs yet. Add colors first, then generate SKUs.</p>
             }
@@ -132,9 +134,9 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
     }
   `,
   styles: [`
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .page-header > div { display: flex; align-items: center; gap: 12px; }
-    h1 { margin: 0; font-size: 22px; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+    .page-header > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 20px; }
     .header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .price { font-size: 20px; font-weight: 700; }
     .category { font-size: 13px; color: #666; }
@@ -145,7 +147,7 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
     .color-card { width: 200px; }
     mat-card-header { display: flex; align-items: center; gap: 10px; }
     .color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
-    .full-width { width: 100%; }
+    .full-width { width: 100%; min-width: 580px; }
     code { font-size: 11px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
     .color-inline { display: flex; align-items: center; gap: 6px; }
     .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #ddd; flex-shrink: 0; }
@@ -190,12 +192,12 @@ export class ProductDetailComponent implements OnInit {
   }
 
   openAddColor() {
-    this.dialog.open(ColorDialogComponent, { width: '440px', data: { productId: this.product()!.id } })
+    this.dialog.open(ColorDialogComponent, { width: '440px', maxWidth: '95vw', data: { productId: this.product()!.id } })
       .afterClosed().subscribe(r => { if (r) this.loadProduct(); });
   }
 
   openEditColor(color: ProductColor) {
-    this.dialog.open(ColorDialogComponent, { width: '440px', data: { productId: this.product()!.id, color } })
+    this.dialog.open(ColorDialogComponent, { width: '440px', maxWidth: '95vw', data: { productId: this.product()!.id, color } })
       .afterClosed().subscribe(r => { if (r) this.loadProduct(); });
   }
 
@@ -209,7 +211,7 @@ export class ProductDetailComponent implements OnInit {
 
   openGenerateSkus() {
     this.dialog.open(GenerateSkusDialogComponent, {
-      width: '540px',
+      width: '540px', maxWidth: '95vw',
       data: { product: this.product() },
     }).afterClosed().subscribe(r => { if (r) this.loadSkus(); });
   }

@@ -104,8 +104,8 @@ import { AuthService } from '../../core/services/auth.service';
     </div>
   `,
   styles: [`
-    .login-page { height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; }
-    .login-card { width: 400px; padding: 8px; }
+    .login-page { height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; padding: 16px; }
+    .login-card { width: min(400px, 100%); padding: 8px; }
     mat-card-header { margin-bottom: 8px; }
     .tab-body { padding-top: 20px; }
     .full-width { width: 100%; }
