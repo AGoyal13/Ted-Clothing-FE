@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ColorDialogComponent } from './color-dialog.component';
+import { AddColorVariantDialogComponent } from './add-color-variant-dialog.component';
 
 interface ProductColor { id: string; colorName: string; colorHex: string | null; images: string[]; }
 interface Sku { id: string; skuCode: string; colorId: string; sizeLabel: string; stockQty: number; priceOverride: number | null; }
@@ -374,9 +375,9 @@ export class ProductDetailComponent implements OnInit {
   // ─── Colors ───────────────────────────────────────────────────────────────
 
   openAddColor() {
-    this.dialog.open(ColorDialogComponent, {
-      width: '440px', maxWidth: '95vw',
-      data: { productId: this.product()!.id },
+    this.dialog.open(AddColorVariantDialogComponent, {
+      width: '480px', maxWidth: '95vw',
+      data: { productId: this.product()!.id, suggestedSizes: this.suggestedSizes() },
     }).afterClosed().subscribe(r => { if (r) this.loadProduct(); });
   }
 
