@@ -26,25 +26,26 @@ interface BulkResult {
   results: RowResult[];
 }
 
-const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'GENDER', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
+const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'GENDER', 'STATUS', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
 // SIZE: single value "M" OR comma-separated "S,M,L,XL"
 // STOCK_QTY: single value applied to all sizes, OR comma-separated matching SIZE count
 // GENDER values: MEN | WOMEN | KIDS | UNISEX
+// STATUS values: DRAFT | ACTIVE | ARCHIVED  — leave blank or DRAFT to review before going live
 const TEMPLATE_SAMPLE = [
   // Men's clothing — two colour variants, comma-separated sizes
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    'DRAFT', 1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    'DRAFT', 1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
   // Women's clothing
-  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'women',       'WOMEN',  1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
+  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'women',       'WOMEN',  'DRAFT', 1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
   // Kids
-  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'kids',        'KIDS',    699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
+  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'kids',        'KIDS',   'DRAFT',  699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
   // Bags
-  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'bags',        'UNISEX', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
+  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'bags',        'UNISEX', 'DRAFT', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
   // Accessories — free size, single stock
-  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'accessories', 'UNISEX',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
-  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'accessories', 'MEN',    1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
+  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'accessories', 'UNISEX', 'DRAFT',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
+  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'accessories', 'MEN',    'DRAFT', 1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
   // Beauty
-  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'beauty',      'WOMEN',   899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
+  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'beauty',      'WOMEN',  'DRAFT',  899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
 ];
 
 // All valid category combinations — used to populate the "Categories" reference sheet in the template
@@ -316,12 +317,14 @@ export class ProductImportComponent {
       const stocks = String(r['STOCK_QTY'] ?? '0').split(',').map(s => parseInt(s.trim(), 10) || 0);
       const prices = String(r['PRICE_OVERRIDE'] ?? '').split(',').map(s => s.trim());
 
+      const statusRaw = r['STATUS'] ? String(r['STATUS']).trim().toUpperCase() : '';
       const base = {
         title:              String(r['TITLE'] ?? '').trim(),
         description:        String(r['DESCRIPTION'] ?? '').trim(),
         categorySlug:       String(r['CATEGORY_SLUG'] ?? '').trim(),
         parentCategorySlug: r['PARENT_CATEGORY_SLUG'] ? String(r['PARENT_CATEGORY_SLUG']).trim() : undefined,
         gender:             r['GENDER'] ? String(r['GENDER']).trim().toUpperCase() : undefined,
+        status:             ['DRAFT','ACTIVE','ARCHIVED'].includes(statusRaw) ? statusRaw : 'DRAFT',
         basePrice:          Number(r['BASE_PRICE'] ?? 0),
         discountPercent:    r['DISCOUNT_PCT'] !== '' ? Number(r['DISCOUNT_PCT']) : undefined,
         colorName:          String(r['COLOR_NAME'] ?? '').trim(),
@@ -358,6 +361,7 @@ export class ProductImportComponent {
       ['CATEGORY_SLUG',       'Yes',      'Leaf category slug — copy from the "Categories Reference" sheet.'],
       ['PARENT_CATEGORY_SLUG','Yes',      'Parent slug — copy from the "Categories Reference" sheet (men / women / kids / bags / accessories / beauty).'],
       ['GENDER',              'Yes',      'MEN | WOMEN | KIDS | UNISEX — copy from the "Categories Reference" sheet.'],
+      ['STATUS',              'Optional', 'DRAFT | ACTIVE | ARCHIVED — leave blank or DRAFT to review before going live. Set ACTIVE to publish immediately.'],
       ['BASE_PRICE',          'Yes',      'Selling price in INR (e.g. 1499). No commas or currency symbol.'],
       ['DISCOUNT_PCT',        'Optional', 'Discount percentage 0–100. Leave blank or 0 for no discount.'],
       ['COLOR_NAME',          'Yes',      'Colour variant name (e.g. Navy Blue). One row per colour.'],
