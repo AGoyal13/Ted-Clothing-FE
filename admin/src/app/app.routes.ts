@@ -33,6 +33,10 @@ export const routes: Routes = [
         path: 'inventory',
         loadComponent: () => import('./features/skus/inventory-upload.component').then(m => m.InventoryUploadComponent),
       },
+      {
+        path: 'product-import',
+        loadComponent: () => import('./features/products/product-import.component').then(m => m.ProductImportComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

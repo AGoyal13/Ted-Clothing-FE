@@ -46,6 +46,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>upload_file</mat-icon>
             <span matListItemTitle>Inventory Upload</span>
           </a>
+          <a mat-list-item routerLink="/product-import" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>cloud_upload</mat-icon>
+            <span matListItemTitle>Product Import</span>
+          </a>
         </mat-nav-list>
         <div class="sidenav-footer">
           <button mat-button (click)="auth.logout()">
