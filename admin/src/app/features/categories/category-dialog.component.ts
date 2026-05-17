@@ -7,7 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../core/services/api.service';
-import { Category } from './categories.component';
+import { Category, ProductGender } from './categories.component';
 
 @Component({
   selector: 'app-category-dialog',
@@ -35,6 +35,15 @@ import { Category } from './categories.component';
             }
           </mat-select>
         </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Gender</mat-label>
+          <mat-select formControlName="gender">
+            <mat-option [value]="null">— None —</mat-option>
+            @for (g of genders; track g) {
+              <mat-option [value]="g">{{ g }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -52,19 +61,32 @@ export class CategoryDialogComponent implements OnInit {
   private ref = inject(MatDialogRef<CategoryDialogComponent>);
   data: { category?: Category; categories: Category[] } = inject(MAT_DIALOG_DATA);
 
-  form = this.fb.group({ name: ['', [Validators.required, Validators.minLength(2)]], parentId: [null as string | null] });
+  genders: ProductGender[] = ['MEN', 'WOMEN', 'KIDS', 'UNISEX'];
+  form = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    parentId: [null as string | null],
+    gender: [null as ProductGender | null],
+  });
   loading = signal(false);
 
   ngOnInit() {
     if (this.data.category) {
-      this.form.patchValue({ name: this.data.category.name, parentId: this.data.category.parentId });
+      this.form.patchValue({
+        name: this.data.category.name,
+        parentId: this.data.category.parentId,
+        gender: this.data.category.gender ?? null,
+      });
     }
   }
 
   save() {
     if (this.form.invalid) return;
     this.loading.set(true);
-    const body = { name: this.form.value.name, parentId: this.form.value.parentId || undefined };
+    const body = {
+      name: this.form.value.name,
+      parentId: this.form.value.parentId || undefined,
+      gender: this.form.value.gender || undefined,
+    };
     const req = this.data.category
       ? this.api.patch(`categories/${this.data.category.id}`, body)
       : this.api.post('categories', body);

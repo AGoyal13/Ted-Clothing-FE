@@ -16,11 +16,14 @@ import { ApiService } from '../../core/services/api.service';
 import { CategoryDialogComponent } from './category-dialog.component';
 import { SizeTemplateDialogComponent } from './size-template-dialog.component';
 
+export type ProductGender = 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
+
 export interface Category {
   id: string;
   name: string;
   slug: string;
   parentId: string | null;
+  gender?: ProductGender | null;
   parent?: { id: string; name: string } | null;
   sizeTemplate?: { measurements: string[]; sizes: string[] } | null;
 }
@@ -56,6 +59,10 @@ export interface Category {
         <ng-container matColumnDef="parent">
           <th mat-header-cell *matHeaderCellDef>Parent</th>
           <td mat-cell *matCellDef="let c">{{ c.parent?.name ?? '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="gender">
+          <th mat-header-cell *matHeaderCellDef>Gender</th>
+          <td mat-cell *matCellDef="let c">{{ c.gender ?? '—' }}</td>
         </ng-container>
         <ng-container matColumnDef="sizeTemplate">
           <th mat-header-cell *matHeaderCellDef>Size Template</th>
@@ -99,7 +106,7 @@ export class CategoriesComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
 
-  cols = ['name', 'slug', 'parent', 'sizeTemplate', 'actions'];
+  cols = ['name', 'slug', 'parent', 'gender', 'sizeTemplate', 'actions'];
   categories = signal<Category[]>([]);
   loading = signal(false);
 
