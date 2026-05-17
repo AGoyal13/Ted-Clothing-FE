@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,10 +10,19 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ProductDialogComponent } from './product-dialog.component';
 import { DecimalPipe } from '@angular/common';
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parent: { id: string; name: string } | null;
+  children: { id: string; name: string; slug: string }[];
+}
 
 export interface Product {
   id: string;
@@ -33,7 +42,7 @@ export interface Product {
   imports: [
     MatTableModule, MatButtonModule, MatIconModule, MatDialogModule,
     MatCardModule, MatChipsModule, MatProgressBarModule, MatSnackBarModule,
-    MatBadgeModule, MatSelectModule, FormsModule, DecimalPipe,
+    MatBadgeModule, MatSelectModule, MatPaginatorModule, FormsModule, DecimalPipe,
   ],
   template: `
     <div class="page-header">
@@ -44,12 +53,28 @@ export interface Product {
     </div>
 
     <div class="filters">
-      <mat-select [(ngModel)]="statusFilter" (ngModelChange)="load()" placeholder="All statuses">
-        <mat-option value="">All</mat-option>
+      <mat-select [(ngModel)]="statusFilter" (ngModelChange)="page.set(1); load()" placeholder="All statuses">
+        <mat-option value="">All statuses</mat-option>
         <mat-option value="DRAFT">Draft</mat-option>
         <mat-option value="ACTIVE">Active</mat-option>
         <mat-option value="ARCHIVED">Archived</mat-option>
       </mat-select>
+
+      <mat-select [(ngModel)]="selectedParent" (ngModelChange)="onParentChange()" placeholder="All categories">
+        <mat-option value="">All categories</mat-option>
+        @for (c of parentCategories(); track c.id) {
+          <mat-option [value]="c.slug">{{ c.name }}</mat-option>
+        }
+      </mat-select>
+
+      @if (childCategories().length) {
+        <mat-select [(ngModel)]="selectedChild" (ngModelChange)="page.set(1); load()" placeholder="All sub-categories">
+          <mat-option value="">All sub-categories</mat-option>
+          @for (c of childCategories(); track c.id) {
+            <mat-option [value]="c.slug">{{ c.name }}</mat-option>
+          }
+        </mat-select>
+      }
     </div>
 
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
@@ -99,12 +124,20 @@ export interface Product {
         <tr mat-row *matRowDef="let row; columns: cols;"></tr>
       </table>
       </div>
+      <mat-paginator
+        [length]="total()"
+        [pageSize]="pageSize"
+        [pageIndex]="page() - 1"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="onPage($event)"
+        showFirstLastButtons>
+      </mat-paginator>
     </mat-card>
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
     h1 { margin: 0; }
-    .filters { margin-bottom: 12px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; align-items: center; }
     .filters mat-select { width: 180px; }
     .full-width { width: 100%; min-width: 640px; }
     code { font-size: 11px; color: #666; }
@@ -124,18 +157,59 @@ export class ProductsComponent implements OnInit {
   cols = ['title', 'category', 'price', 'status', 'skus', 'actions'];
   products = signal<Product[]>([]);
   loading = signal(false);
+  total = signal(0);
+  page = signal(1);
+  pageSize = 20;
   statusFilter = '';
+  selectedParent = '';
+  selectedChild = '';
 
-  ngOnInit() { this.load(); }
+  allCategories = signal<Category[]>([]);
+  parentCategories = computed(() => this.allCategories().filter(c => !c.parent));
+  childCategories = computed(() => {
+    if (!this.selectedParent) return [];
+    const parent = this.allCategories().find(c => c.slug === this.selectedParent);
+    return parent?.children ?? [];
+  });
+
+  ngOnInit() {
+    this.loadCategories();
+    this.load();
+  }
+
+  loadCategories() {
+    this.api.get<Category[]>('categories').subscribe({
+      next: (cats) => this.allCategories.set(cats),
+    });
+  }
+
+  onParentChange() {
+    this.selectedChild = '';
+    this.page.set(1);
+    this.load();
+  }
 
   load() {
     this.loading.set(true);
-    const params: Record<string, string> = {};
+    const params: Record<string, string> = {
+      page: String(this.page()),
+      limit: String(this.pageSize),
+    };
     if (this.statusFilter) params['status'] = this.statusFilter;
-    this.api.get<{ items: Product[] }>('products', params).subscribe({
-      next: (data) => { this.products.set(data.items); this.loading.set(false); },
+    // child takes precedence; fall back to parent slug if no child selected
+    const catSlug = this.selectedChild || this.selectedParent;
+    if (catSlug) params['categorySlug'] = catSlug;
+
+    this.api.get<{ items: Product[]; total: number }>('products', params).subscribe({
+      next: (data) => { this.products.set(data.items); this.total.set(data.total); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
+  }
+
+  onPage(e: PageEvent) {
+    this.pageSize = e.pageSize;
+    this.page.set(e.pageIndex + 1);
+    this.load();
   }
 
   go(p: Product) { this.router.navigate(['/products', p.id]); }

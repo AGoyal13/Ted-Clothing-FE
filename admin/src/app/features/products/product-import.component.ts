@@ -26,11 +26,70 @@ interface BulkResult {
   results: RowResult[];
 }
 
-const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
+const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'GENDER', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
+// SIZE: single value "M" OR comma-separated "S,M,L,XL"
+// STOCK_QTY: single value applied to all sizes, OR comma-separated matching SIZE count
+// GENDER values: MEN | WOMEN | KIDS | UNISEX
 const TEMPLATE_SAMPLE = [
-  ['Slim Fit Oxford Shirt', 'A premium cotton Oxford shirt with a slim fit.', 'shirts', 'mens', 1499, 10, 'Navy Blue', '#1a237e', 'M', 50, ''],
-  ['Slim Fit Oxford Shirt', 'A premium cotton Oxford shirt with a slim fit.', 'shirts', 'mens', 1499, 10, 'Navy Blue', '#1a237e', 'L', 40, ''],
-  ['Slim Fit Oxford Shirt', 'A premium cotton Oxford shirt with a slim fit.', 'shirts', 'mens', 1499, 10, 'Olive Green', '#556B2F', 'M', 35, ''],
+  // Men's clothing — two colour variants, comma-separated sizes
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
+  // Women's clothing
+  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'women',       'WOMEN',  1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
+  // Kids
+  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'kids',        'KIDS',    699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
+  // Bags
+  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'bags',        'UNISEX', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
+  // Accessories — free size, single stock
+  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'accessories', 'UNISEX',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
+  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'accessories', 'MEN',    1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
+  // Beauty
+  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'beauty',      'WOMEN',   899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
+];
+
+// All valid category combinations — used to populate the "Categories" reference sheet in the template
+const CATEGORY_REFERENCE: string[][] = [
+  ['CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'GENDER', 'Display Name'],
+  // ── Men ───────────────────────────────────────────────────────
+  ['men-tshirts',       'men',         'MEN',    'Men — Round Neck T-Shirts'],
+  ['men-polos',         'men',         'MEN',    'Men — Polo Shirts'],
+  ['men-shirts',        'men',         'MEN',    'Men — Shirts'],
+  ['men-hoodies',       'men',         'MEN',    'Men — Hoodies & Sweatshirts'],
+  ['men-jackets',       'men',         'MEN',    'Men — Jackets & Outerwear'],
+  ['men-bottoms',       'men',         'MEN',    'Men — Bottoms (Jeans, Shorts, Trousers)'],
+  ['men-footwear',      'men',         'MEN',    'Men — Footwear'],
+  // ── Women ─────────────────────────────────────────────────────
+  ['women-tshirts',     'women',       'WOMEN',  'Women — Round Neck T-Shirts'],
+  ['women-polos',       'women',       'WOMEN',  'Women — Polo Shirts'],
+  ['women-shirts',      'women',       'WOMEN',  'Women — Shirts & Tops'],
+  ['women-coord-sets',  'women',       'WOMEN',  'Women — Co-ord Sets'],
+  ['women-dresses',     'women',       'WOMEN',  'Women — Dresses'],
+  ['women-hoodies',     'women',       'WOMEN',  'Women — Hoodies & Sweatshirts'],
+  ['women-jackets',     'women',       'WOMEN',  'Women — Jackets & Outerwear'],
+  ['women-bottoms',     'women',       'WOMEN',  'Women — Bottoms (Jeans, Shorts, Trousers)'],
+  ['women-footwear',    'women',       'WOMEN',  'Women — Footwear'],
+  // ── Kids ──────────────────────────────────────────────────────
+  ['kids-tshirts',      'kids',        'KIDS',   'Kids — T-Shirts'],
+  ['kids-coord-sets',   'kids',        'KIDS',   'Kids — Co-ord Sets'],
+  ['kids-dresses',      'kids',        'KIDS',   'Kids — Dresses'],
+  ['kids-winter',       'kids',        'KIDS',   'Kids — Winter Wear'],
+  // ── Bags ──────────────────────────────────────────────────────
+  ['backpacks',         'bags',        'UNISEX', 'Bags — Backpacks'],
+  ['laptop-bags',       'bags',        'UNISEX', 'Bags — Laptop Bags'],
+  ['travel-pouches',    'bags',        'UNISEX', 'Bags — Travel Pouches'],
+  ['women-bags',        'bags',        'WOMEN',  'Bags — Women\'s Handbags'],
+  // ── Accessories ───────────────────────────────────────────────
+  ['belts',             'accessories', 'UNISEX', 'Accessories — Belts'],
+  ['caps',              'accessories', 'UNISEX', 'Accessories — Caps'],
+  ['card-holders',      'accessories', 'MEN',    'Accessories — Card Holders'],
+  ['wallets',           'accessories', 'UNISEX', 'Accessories — Wallets'],
+  ['ties',              'accessories', 'MEN',    'Accessories — Ties'],
+  ['stoles',            'accessories', 'WOMEN',  'Accessories — Stoles'],
+  ['watches',           'accessories', 'UNISEX', 'Accessories — Watches'],
+  ['men-sunglasses',    'accessories', 'MEN',    'Accessories — Men\'s Sunglasses'],
+  ['women-sunglasses',  'accessories', 'WOMEN',  'Accessories — Women\'s Sunglasses'],
+  // ── Beauty ────────────────────────────────────────────────────
+  ['makeup',            'beauty',      'WOMEN',  'Beauty — Makeup'],
 ];
 
 @Component({
@@ -51,7 +110,8 @@ const TEMPLATE_SAMPLE = [
 
     <mat-card class="info-card">
       <mat-card-content>
-        <p class="info">Each row is one SKU. Repeat the product title and description for every color/size combination. If a product already exists (matched by title), it will be updated. New products are created automatically.</p>
+        <p class="info">Each row is one colour variant. Repeat the row for each colour. Use comma-separated sizes in SIZE (e.g. <code>S,M,L,XL</code>) and matching stocks in STOCK_QTY (e.g. <code>20,30,25,15</code>) — or a single stock value for all sizes. Products are matched and upserted by title.</p>
+        <p class="info">Download the template below — it includes a <strong>Categories Reference</strong> sheet with all valid <code>CATEGORY_SLUG</code> / <code>PARENT_CATEGORY_SLUG</code> / <code>GENDER</code> values, and an <strong>Instructions</strong> sheet explaining every column.</p>
         <p class="cols">Columns: <code>{{ HEADERS }}</code></p>
       </mat-card-content>
     </mat-card>
@@ -249,25 +309,72 @@ export class ProductImportComponent {
   }
 
   private toPayload(rows: Record<string, string | number>[]) {
-    return rows.map(r => ({
-      title: String(r['TITLE'] ?? '').trim(),
-      description: String(r['DESCRIPTION'] ?? '').trim(),
-      categorySlug: String(r['CATEGORY_SLUG'] ?? '').trim(),
-      parentCategorySlug: r['PARENT_CATEGORY_SLUG'] ? String(r['PARENT_CATEGORY_SLUG']).trim() : undefined,
-      basePrice: Number(r['BASE_PRICE'] ?? 0),
-      discountPercent: r['DISCOUNT_PCT'] !== '' ? Number(r['DISCOUNT_PCT']) : undefined,
-      colorName: String(r['COLOR_NAME'] ?? '').trim(),
-      colorHex: r['COLOR_HEX'] ? String(r['COLOR_HEX']).trim() : undefined,
-      size: String(r['SIZE'] ?? '').trim(),
-      stockQty: Number(r['STOCK_QTY'] ?? 0),
-      priceOverride: r['PRICE_OVERRIDE'] !== '' ? Number(r['PRICE_OVERRIDE']) : undefined,
-    })).filter(r => r.title && r.colorName && r.size);
+    const result: any[] = [];
+
+    for (const r of rows) {
+      const sizes = String(r['SIZE'] ?? '').split(',').map(s => s.trim()).filter(Boolean);
+      const stocks = String(r['STOCK_QTY'] ?? '0').split(',').map(s => parseInt(s.trim(), 10) || 0);
+      const prices = String(r['PRICE_OVERRIDE'] ?? '').split(',').map(s => s.trim());
+
+      const base = {
+        title:              String(r['TITLE'] ?? '').trim(),
+        description:        String(r['DESCRIPTION'] ?? '').trim(),
+        categorySlug:       String(r['CATEGORY_SLUG'] ?? '').trim(),
+        parentCategorySlug: r['PARENT_CATEGORY_SLUG'] ? String(r['PARENT_CATEGORY_SLUG']).trim() : undefined,
+        gender:             r['GENDER'] ? String(r['GENDER']).trim().toUpperCase() : undefined,
+        basePrice:          Number(r['BASE_PRICE'] ?? 0),
+        discountPercent:    r['DISCOUNT_PCT'] !== '' ? Number(r['DISCOUNT_PCT']) : undefined,
+        colorName:          String(r['COLOR_NAME'] ?? '').trim(),
+        colorHex:           r['COLOR_HEX'] ? String(r['COLOR_HEX']).trim() : undefined,
+      };
+
+      for (let i = 0; i < sizes.length; i++) {
+        // if stocks has only one value, apply it to all sizes; otherwise pair by index
+        const stockQty = stocks.length === 1 ? stocks[0] : (stocks[i] ?? 0);
+        const priceOverride = prices[i] && prices[i] !== '' ? Number(prices[i]) : undefined;
+        result.push({ ...base, size: sizes[i], stockQty, priceOverride });
+      }
+    }
+
+    return result.filter(r => r.title && r.colorName && r.size);
   }
 
   downloadTemplate() {
-    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_SAMPLE]);
     const wb = XLSX.utils.book_new();
+
+    // Sheet 1 — Products (sample rows)
+    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...TEMPLATE_SAMPLE]);
     XLSX.utils.book_append_sheet(wb, ws, 'Products');
+
+    // Sheet 2 — Categories reference
+    const catWs = XLSX.utils.aoa_to_sheet(CATEGORY_REFERENCE);
+    XLSX.utils.book_append_sheet(wb, catWs, 'Categories Reference');
+
+    // Sheet 3 — Instructions
+    const instructions = [
+      ['Column', 'Required?', 'Notes'],
+      ['TITLE',               'Yes',      'Product name. Same title = same product (upserted). Add multiple rows for multiple colours.'],
+      ['DESCRIPTION',         'Yes',      'Short product description.'],
+      ['CATEGORY_SLUG',       'Yes',      'Leaf category slug — copy from the "Categories Reference" sheet.'],
+      ['PARENT_CATEGORY_SLUG','Yes',      'Parent slug — copy from the "Categories Reference" sheet (men / women / kids / bags / accessories / beauty).'],
+      ['GENDER',              'Yes',      'MEN | WOMEN | KIDS | UNISEX — copy from the "Categories Reference" sheet.'],
+      ['BASE_PRICE',          'Yes',      'Selling price in INR (e.g. 1499). No commas or currency symbol.'],
+      ['DISCOUNT_PCT',        'Optional', 'Discount percentage 0–100. Leave blank or 0 for no discount.'],
+      ['COLOR_NAME',          'Yes',      'Colour variant name (e.g. Navy Blue). One row per colour.'],
+      ['COLOR_HEX',           'Optional', 'Hex code for the swatch (e.g. #1a237e).'],
+      ['SIZE',                'Yes',      'Single size (e.g. M) OR comma-separated (e.g. S,M,L,XL). Use "Free Size" for one-size items.'],
+      ['STOCK_QTY',           'Yes',      'Single number applied to all sizes, OR comma-separated matching SIZE count (e.g. 20,30,25,15).'],
+      ['PRICE_OVERRIDE',      'Optional', 'Override price for this colour/size combination if different from BASE_PRICE.'],
+      ['', '', ''],
+      ['Tips', '', ''],
+      ['• One row = one product + one colour. Sizes expand automatically.', '', ''],
+      ['• Repeat the row with the same TITLE for each colour variant.', '', ''],
+      ['• Products are matched by TITLE slug — editing the title creates a new product.', '', ''],
+      ['• CATEGORY_SLUG and PARENT_CATEGORY_SLUG must match the "Categories Reference" sheet exactly.', '', ''],
+    ];
+    const instrWs = XLSX.utils.aoa_to_sheet(instructions);
+    XLSX.utils.book_append_sheet(wb, instrWs, 'Instructions');
+
     XLSX.writeFile(wb, 'ted-product-import-template.xlsx');
   }
 

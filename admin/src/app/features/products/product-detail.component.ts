@@ -1,48 +1,65 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ColorDialogComponent } from './color-dialog.component';
-import { GenerateSkusDialogComponent } from '../skus/generate-skus-dialog.component';
 
 interface ProductColor { id: string; colorName: string; colorHex: string | null; images: string[]; }
-interface Sku { id: string; skuCode: string; sizeLabel: string; stockQty: number; priceOverride: number | null; color: { colorName: string; colorHex: string | null }; }
-interface ProductDetail { id: string; title: string; slug: string; status: string; basePrice: number; discountPercent: number; description: string; category: { name: string }; colors: ProductColor[]; }
+interface Sku { id: string; skuCode: string; colorId: string; sizeLabel: string; stockQty: number; priceOverride: number | null; }
+interface ProductDetail {
+  id: string; title: string; slug: string; status: string; gender: string;
+  basePrice: number; discountPercent: number; description: string;
+  category: { id: string; name: string; slug: string };
+  colors: ProductColor[];
+  skus: Sku[];
+}
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
   imports: [
-    ReactiveFormsModule, FormsModule,
+    FormsModule,
     MatTabsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatFormFieldModule, MatInputModule, MatChipsModule,
-    MatProgressBarModule, MatSnackBarModule, MatSelectModule, MatDialogModule, DecimalPipe,
+    MatFormFieldModule, MatInputModule, MatChipsModule,
+    MatProgressBarModule, MatSnackBarModule, MatDialogModule,
+    MatTooltipModule, DecimalPipe,
   ],
   template: `
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
+
     @if (product()) {
       <div class="page-header">
-        <div>
-          <button mat-icon-button (click)="router.navigate(['/products'])"><mat-icon>arrow_back</mat-icon></button>
-          <h1>{{ product()!.title }}</h1>
-          <span [class]="'status-badge status-' + product()!.status.toLowerCase()">{{ product()!.status }}</span>
-        </div>
-        <div class="header-actions">
-          <span class="price">₹{{ product()!.basePrice | number:'1.0-0' }}</span>
-          <span class="category">{{ product()!.category.name }}</span>
+        <div class="header-left">
+          <button mat-icon-button (click)="router.navigate(['/products'])">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <div>
+            <div class="title-row">
+              <h1>{{ product()!.title }}</h1>
+              <span [class]="'badge status-' + product()!.status.toLowerCase()">{{ product()!.status }}</span>
+              <span class="badge gender-badge">{{ product()!.gender }}</span>
+            </div>
+            <div class="meta-row">
+              <span>{{ product()!.category.name }}</span>
+              <span>·</span>
+              <span>₹{{ product()!.basePrice | number:'1.0-0' }}</span>
+              @if (product()!.discountPercent) {
+                <span class="discount">{{ product()!.discountPercent }}% off</span>
+              }
+            </div>
+          </div>
         </div>
       </div>
 
@@ -61,8 +78,10 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
                 <mat-card class="color-card">
                   <mat-card-header>
                     <div class="color-swatch" [style.background]="color.colorHex || '#ccc'"></div>
-                    <mat-card-title>{{ color.colorName }}</mat-card-title>
-                    <mat-card-subtitle>{{ color.images.length }} image(s)</mat-card-subtitle>
+                    <div>
+                      <mat-card-title>{{ color.colorName }}</mat-card-title>
+                      <mat-card-subtitle>{{ color.images.length }} image(s) · {{ skuCountForColor(color.id) }} size(s)</mat-card-subtitle>
+                    </div>
                   </mat-card-header>
                   <mat-card-actions>
                     <button mat-button (click)="openEditColor(color)"><mat-icon>edit</mat-icon> Edit</button>
@@ -70,63 +89,93 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
                   </mat-card-actions>
                 </mat-card>
               }
+              @if (!product()!.colors.length) {
+                <p class="muted">No colors yet. Add a color to start building SKUs.</p>
+              }
             </div>
           </div>
         </mat-tab>
 
-        <!-- SKUs TAB -->
-        <mat-tab label="SKUs ({{ skus().length }})">
+        <!-- SKU GRID TAB -->
+        <mat-tab [label]="'Sizes & Stock (' + product()!.skus.length + ' SKUs)'">
           <div class="tab-content">
-            <div class="tab-header">
-              <h3>SKUs</h3>
-              <button mat-flat-button color="primary" (click)="openGenerateSkus()" [disabled]="!product()!.colors.length">
-                <mat-icon>auto_awesome</mat-icon> Generate SKUs
-              </button>
-            </div>
-            @if (skus().length) {
-              <div class="table-wrap">
-              <table mat-table [dataSource]="skus()" class="full-width">
-                <ng-container matColumnDef="skuCode">
-                  <th mat-header-cell *matHeaderCellDef>SKU Code</th>
-                  <td mat-cell *matCellDef="let s"><code>{{ s.skuCode }}</code></td>
-                </ng-container>
-                <ng-container matColumnDef="color">
-                  <th mat-header-cell *matHeaderCellDef>Color</th>
-                  <td mat-cell *matCellDef="let s">
-                    <div class="color-inline">
-                      <span class="dot" [style.background]="s.color.colorHex || '#ccc'"></span>
-                      {{ s.color.colorName }}
-                    </div>
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="size">
-                  <th mat-header-cell *matHeaderCellDef>Size</th>
-                  <td mat-cell *matCellDef="let s">{{ s.sizeLabel }}</td>
-                </ng-container>
-                <ng-container matColumnDef="stock">
-                  <th mat-header-cell *matHeaderCellDef>Stock</th>
-                  <td mat-cell *matCellDef="let s; let i = index">
-                    <input class="stock-input" type="number" [(ngModel)]="skuEdits[i].stockQty" min="0" />
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="priceOverride">
-                  <th mat-header-cell *matHeaderCellDef>Price Override</th>
-                  <td mat-cell *matCellDef="let s; let i = index">
-                    <input class="stock-input" type="number" [(ngModel)]="skuEdits[i].priceOverride" min="0" placeholder="—" />
-                  </td>
-                </ng-container>
-                <ng-container matColumnDef="save">
-                  <th mat-header-cell *matHeaderCellDef></th>
-                  <td mat-cell *matCellDef="let s; let i = index">
-                    <button mat-icon-button color="primary" title="Save" (click)="saveSku(s, i)"><mat-icon>save</mat-icon></button>
-                  </td>
-                </ng-container>
-                <tr mat-header-row *matHeaderRowDef="skuCols"></tr>
-                <tr mat-row *matRowDef="let row; columns: skuCols;"></tr>
-              </table>
-              </div>
+            @if (!product()!.colors.length) {
+              <p class="muted">Add at least one color first.</p>
             } @else {
-              <p class="muted">No SKUs yet. Add colors first, then generate SKUs.</p>
+              <!-- Size suggestions from category template -->
+              @if (suggestedSizes().length) {
+                <div class="suggestions-bar">
+                  <span class="suggestions-label">Suggested sizes:</span>
+                  @for (s of suggestedSizes(); track s) {
+                    <button class="chip" (click)="prefillSize(s)">{{ s }}</button>
+                  }
+                </div>
+              }
+
+              <div class="grid-wrap">
+                <table class="sku-grid">
+                  <thead>
+                    <tr>
+                      <th class="color-col">Color</th>
+                      @for (size of allSizes(); track size) {
+                        <th class="size-col">{{ size }}</th>
+                      }
+                      <th class="add-col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (color of product()!.colors; track color.id) {
+                      <tr>
+                        <td class="color-cell">
+                          <span class="dot" [style.background]="color.colorHex || '#ccc'"></span>
+                          <span class="color-name">{{ color.colorName }}</span>
+                        </td>
+                        @for (size of allSizes(); track size) {
+                          <td class="stock-cell">
+                            @if (findSku(color.id, size); as sku) {
+                              <div class="stock-box">
+                                <input class="stock-input" type="number" [value]="sku.stockQty" min="0"
+                                  (blur)="updateStock(sku, $event)" (keydown.enter)="$any($event.target).blur()" />
+                                <button class="del-btn" matTooltip="Remove this size"
+                                  (click)="deleteSku(sku)">✕</button>
+                              </div>
+                            } @else {
+                              <span class="no-variant">—</span>
+                            }
+                          </td>
+                        }
+                        <td class="add-col">
+                          @if (addingForColorId() === color.id) {
+                            <div class="inline-add">
+                              <input class="size-inp" [(ngModel)]="newSizeLabel" placeholder="Size"
+                                (keydown.enter)="saveNewSize(color.id)" #sizeInp />
+                              <input class="qty-inp" type="number" [(ngModel)]="newSizeStock"
+                                placeholder="Qty" min="0" (keydown.enter)="saveNewSize(color.id)" />
+                              <button mat-icon-button color="primary" [disabled]="!newSizeLabel.trim()"
+                                (click)="saveNewSize(color.id)" matTooltip="Save">
+                                <mat-icon>check</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="cancelAdd()" matTooltip="Cancel">
+                                <mat-icon>close</mat-icon>
+                              </button>
+                            </div>
+                          } @else {
+                            <button mat-button class="add-size-btn" (click)="startAdd(color.id)">
+                              <mat-icon>add</mat-icon> Size
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (!allSizes().length) {
+                <p class="muted" style="margin-top:16px">
+                  No sizes yet. Click <strong>+ Size</strong> next to a color to add the first variant.
+                </p>
+              }
             }
           </div>
         </mat-tab>
@@ -134,29 +183,63 @@ interface ProductDetail { id: string; title: string; slug: string; status: strin
     }
   `,
   styles: [`
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
-    .page-header > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .header-left { display: flex; align-items: flex-start; gap: 8px; }
+    .title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     h1 { margin: 0; font-size: 20px; }
-    .header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    .price { font-size: 20px; font-weight: 700; }
-    .category { font-size: 13px; color: #666; }
-    .tab-content { padding: 20px 0; }
-    .tab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .tab-header h3 { margin: 0; }
-    .colors-grid { display: flex; flex-wrap: wrap; gap: 16px; }
-    .color-card { width: 200px; }
-    mat-card-header { display: flex; align-items: center; gap: 10px; }
-    .color-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
-    .full-width { width: 100%; min-width: 580px; }
-    code { font-size: 11px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
-    .color-inline { display: flex; align-items: center; gap: 6px; }
-    .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #ddd; flex-shrink: 0; }
-    .stock-input { width: 80px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-    .muted { color: #999; font-style: italic; }
-    .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .meta-row { font-size: 13px; color: #666; display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+    .discount { color: #2e7d32; font-weight: 600; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
     .status-draft { background: #fff9c4; color: #f57f17; }
     .status-active { background: #e8f5e9; color: #2e7d32; }
     .status-archived { background: #fce4ec; color: #c62828; }
+    .gender-badge { background: #e3f2fd; color: #1565c0; }
+
+    .tab-content { padding: 20px 0; }
+    .tab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .tab-header h3 { margin: 0; }
+
+    /* Colors grid */
+    .colors-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+    .color-card { width: 220px; }
+    mat-card-header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 0; }
+    .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
+
+    /* Size suggestions */
+    .suggestions-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .suggestions-label { font-size: 12px; color: #777; }
+    .chip { padding: 4px 12px; border: 1px solid #1a237e; border-radius: 16px; background: transparent;
+      color: #1a237e; font-size: 12px; cursor: pointer; }
+    .chip:hover { background: #e8eaf6; }
+
+    /* SKU Grid */
+    .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sku-grid { border-collapse: collapse; min-width: 500px; }
+    .sku-grid th, .sku-grid td { border: 1px solid #e0e0e0; padding: 8px 10px; text-align: center; white-space: nowrap; }
+    .sku-grid th { background: #f5f5f5; font-size: 13px; font-weight: 600; color: #333; }
+    .color-col { text-align: left !important; min-width: 160px; }
+    .size-col { min-width: 90px; }
+    .add-col { border: none !important; background: transparent !important; min-width: 160px; text-align: left !important; }
+    .color-cell { text-align: left !important; }
+    .color-cell { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #ddd; flex-shrink: 0; display: inline-block; }
+    .color-name { font-size: 13px; font-weight: 500; }
+
+    .stock-box { display: flex; align-items: center; gap: 4px; justify-content: center; }
+    .stock-input { width: 60px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px;
+      font-size: 13px; text-align: center; }
+    .stock-input:focus { outline: none; border-color: #1a237e; }
+    .del-btn { background: none; border: none; cursor: pointer; color: #bbb; font-size: 12px; padding: 2px 4px; }
+    .del-btn:hover { color: #c62828; }
+    .no-variant { color: #ccc; font-size: 14px; }
+
+    /* Inline add form */
+    .inline-add { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+    .size-inp { width: 70px; padding: 4px 6px; border: 1px solid #1a237e; border-radius: 4px; font-size: 13px; }
+    .qty-inp { width: 60px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+    .add-size-btn { font-size: 12px; color: #1a237e; }
+
+    .muted { color: #999; font-style: italic; }
   `],
 })
 export class ProductDetailComponent implements OnInit {
@@ -167,10 +250,26 @@ export class ProductDetailComponent implements OnInit {
   router = inject(Router);
 
   product = signal<ProductDetail | null>(null);
-  skus = signal<Sku[]>([]);
-  skuEdits: { stockQty: number; priceOverride: number | null }[] = [];
   loading = signal(false);
-  skuCols = ['skuCode', 'color', 'size', 'stock', 'priceOverride', 'save'];
+  suggestedSizes = signal<string[]>([]);
+
+  addingForColorId = signal<string | null>(null);
+  newSizeLabel = '';
+  newSizeStock = 0;
+
+  allSizes = computed(() => {
+    const skus = this.product()?.skus ?? [];
+    const sizes = [...new Set(skus.map(s => s.sizeLabel))];
+    return sizes.sort((a, b) => {
+      const order = ['XXS','XS','S','M','L','XL','XXL','XXXL','2XL','3XL','FREE SIZE','ONE SIZE'];
+      const ai = order.indexOf(a.toUpperCase());
+      const bi = order.indexOf(b.toUpperCase());
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  });
 
   ngOnInit() { this.loadProduct(); }
 
@@ -178,52 +277,131 @@ export class ProductDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loading.set(true);
     this.api.get<ProductDetail>(`products/${id}`).subscribe({
-      next: (p) => { this.product.set(p); this.loading.set(false); this.loadSkus(); },
+      next: (p) => {
+        this.product.set(p);
+        this.loading.set(false);
+        this.loadSizeTemplate(p.category.id);
+      },
       error: () => this.loading.set(false),
     });
   }
 
-  loadSkus() {
-    const id = this.product()!.id;
-    this.api.get<Sku[]>(`products/${id}/skus`).subscribe(skus => {
-      this.skus.set(skus);
-      this.skuEdits = skus.map(s => ({ stockQty: s.stockQty, priceOverride: s.priceOverride }));
+  loadSizeTemplate(categoryId: string) {
+    this.api.get<{ sizes: string[] }>(`categories/${categoryId}/size-template`).subscribe({
+      next: (t) => this.suggestedSizes.set(t.sizes ?? []),
+      error: () => this.suggestedSizes.set([]),
     });
   }
 
+  findSku(colorId: string, size: string): Sku | undefined {
+    return this.product()?.skus.find(s => s.colorId === colorId && s.sizeLabel === size);
+  }
+
+  skuCountForColor(colorId: string): number {
+    return this.product()?.skus.filter(s => s.colorId === colorId).length ?? 0;
+  }
+
+  // ─── Stock inline edit ────────────────────────────────────────────────────
+
+  updateStock(sku: Sku, event: Event) {
+    const qty = Math.max(0, parseInt((event.target as HTMLInputElement).value, 10) || 0);
+    if (qty === sku.stockQty) return;
+    this.api.patch(`skus/${sku.id}`, { stockQty: qty }).subscribe({
+      next: () => {
+        this.patchSkuLocal(sku.id, { stockQty: qty });
+        this.snack.open('Stock updated', '', { duration: 1200 });
+      },
+      error: () => this.snack.open('Failed to update stock', '', { duration: 2500 }),
+    });
+  }
+
+  // ─── Add size ─────────────────────────────────────────────────────────────
+
+  startAdd(colorId: string) {
+    this.addingForColorId.set(colorId);
+    this.newSizeLabel = '';
+    this.newSizeStock = 0;
+  }
+
+  cancelAdd() { this.addingForColorId.set(null); }
+
+  prefillSize(size: string) {
+    if (this.addingForColorId()) {
+      this.newSizeLabel = size;
+    }
+  }
+
+  saveNewSize(colorId: string) {
+    const label = this.newSizeLabel.trim();
+    if (!label) return;
+
+    // Check duplicate
+    if (this.findSku(colorId, label)) {
+      this.snack.open(`Size "${label}" already exists for this color`, '', { duration: 2500 });
+      return;
+    }
+
+    this.api.post('skus', {
+      productId: this.product()!.id,
+      colorId,
+      sizeLabel: label,
+      stockQty: Math.max(0, this.newSizeStock || 0),
+    }).subscribe({
+      next: (sku: any) => {
+        const p = this.product()!;
+        this.product.set({ ...p, skus: [...p.skus, sku] });
+        this.cancelAdd();
+        this.snack.open(`Size "${label}" added`, '', { duration: 1500 });
+      },
+      error: (e) => this.snack.open(e?.error?.error?.message ?? 'Failed to add size', '', { duration: 3000 }),
+    });
+  }
+
+  // ─── Delete SKU ───────────────────────────────────────────────────────────
+
+  deleteSku(sku: Sku) {
+    if (!confirm(`Remove size "${sku.sizeLabel}"? This cannot be undone.`)) return;
+    this.api.delete(`skus/${sku.id}`).subscribe({
+      next: () => {
+        const p = this.product()!;
+        this.product.set({ ...p, skus: p.skus.filter(s => s.id !== sku.id) });
+        this.snack.open('Size removed', '', { duration: 1500 });
+      },
+      error: (e) => this.snack.open(e?.error?.error?.message ?? 'Error', '', { duration: 3000 }),
+    });
+  }
+
+  // ─── Colors ───────────────────────────────────────────────────────────────
+
   openAddColor() {
-    this.dialog.open(ColorDialogComponent, { width: '440px', maxWidth: '95vw', data: { productId: this.product()!.id } })
-      .afterClosed().subscribe(r => { if (r) this.loadProduct(); });
+    this.dialog.open(ColorDialogComponent, {
+      width: '440px', maxWidth: '95vw',
+      data: { productId: this.product()!.id },
+    }).afterClosed().subscribe(r => { if (r) this.loadProduct(); });
   }
 
   openEditColor(color: ProductColor) {
-    this.dialog.open(ColorDialogComponent, { width: '440px', maxWidth: '95vw', data: { productId: this.product()!.id, color } })
-      .afterClosed().subscribe(r => { if (r) this.loadProduct(); });
+    this.dialog.open(ColorDialogComponent, {
+      width: '440px', maxWidth: '95vw',
+      data: { productId: this.product()!.id, color },
+    }).afterClosed().subscribe(r => { if (r) this.loadProduct(); });
   }
 
   deleteColor(color: ProductColor) {
-    if (!confirm(`Remove color "${color.colorName}"? This will also delete its SKUs.`)) return;
+    if (!confirm(`Remove color "${color.colorName}"? All its size variants will also be deleted.`)) return;
     this.api.delete(`products/${this.product()!.id}/colors/${color.id}`).subscribe({
-      next: () => { this.snack.open('Color removed', '', { duration: 2000 }); this.loadProduct(); },
+      next: () => {
+        this.snack.open('Color removed', '', { duration: 2000 });
+        this.loadProduct();
+      },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Error', '', { duration: 3000 }),
     });
   }
 
-  openGenerateSkus() {
-    this.dialog.open(GenerateSkusDialogComponent, {
-      width: '540px', maxWidth: '95vw',
-      data: { product: this.product() },
-    }).afterClosed().subscribe(r => { if (r) this.loadSkus(); });
-  }
+  // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  saveSku(sku: Sku, i: number) {
-    const edit = this.skuEdits[i];
-    this.api.patch(`skus/${sku.id}`, {
-      stockQty: Number(edit.stockQty),
-      priceOverride: edit.priceOverride ? Number(edit.priceOverride) : undefined,
-    }).subscribe({
-      next: () => this.snack.open('Saved', '', { duration: 1500 }),
-      error: (e) => this.snack.open(e?.error?.error?.message ?? 'Error', '', { duration: 3000 }),
-    });
+  private patchSkuLocal(skuId: string, patch: Partial<Sku>) {
+    const p = this.product()!;
+    this.product.set({ ...p, skus: p.skus.map(s => s.id === skuId ? { ...s, ...patch } : s) });
   }
 }
