@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
+import { ImageUploadComponent } from './image-upload.component';
 
 interface SizeRow { sizeLabel: string; stockQty: number; }
 
@@ -17,6 +18,7 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
   imports: [
     FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    ImageUploadComponent,
   ],
   template: `
     <h2 mat-dialog-title>Add Color with Sizes</h2>
@@ -36,6 +38,13 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
             }
           </mat-form-field>
         </div>
+
+        <!-- Image upload -->
+        <app-image-upload
+          [productId]="data.productId"
+          [initialImages]="[]"
+          (imagesChange)="images = $event">
+        </app-image-upload>
 
         <!-- Suggested sizes -->
         @if (data.suggestedSizes.length) {
@@ -77,7 +86,7 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
     </mat-dialog-actions>
   `,
   styles: [`
-    .form { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; min-width: 380px; }
+    .form { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; min-width: 400px; }
     .row { display: flex; gap: 12px; }
     .flex1 { flex: 1; }
     .flex2 { flex: 2; }
@@ -114,6 +123,7 @@ export class AddColorVariantDialogComponent {
 
   colorName = '';
   colorHex = '';
+  images: string[] = [];
   rows = signal<SizeRow[]>([{ sizeLabel: '', stockQty: 0 }]);
   loading = signal(false);
 
@@ -130,7 +140,6 @@ export class AddColorVariantDialogComponent {
   addSuggested(size: string) {
     const already = this.rows().some(r => r.sizeLabel.trim().toUpperCase() === size.toUpperCase());
     if (already) return;
-    // Fill first empty row, otherwise append
     const emptyIdx = this.rows().findIndex(r => !r.sizeLabel.trim());
     if (emptyIdx !== -1) {
       this.rows.update(r => r.map((row, i) => i === emptyIdx ? { ...row, sizeLabel: size } : row));
@@ -145,6 +154,7 @@ export class AddColorVariantDialogComponent {
     const body = {
       colorName: this.colorName.trim(),
       colorHex: this.colorHex.trim() || undefined,
+      images: this.images,
       sizes: this.rows()
         .filter(r => r.sizeLabel.trim())
         .map(r => ({ sizeLabel: r.sizeLabel.trim(), stockQty: Math.max(0, r.stockQty || 0) })),

@@ -81,9 +81,21 @@ interface ProductDetail {
                     <div class="color-swatch" [style.background]="color.colorHex || '#ccc'"></div>
                     <div>
                       <mat-card-title>{{ color.colorName }}</mat-card-title>
-                      <mat-card-subtitle>{{ color.images.length }} image(s) · {{ skuCountForColor(color.id) }} size(s)</mat-card-subtitle>
+                      <mat-card-subtitle>{{ skuCountForColor(color.id) }} size(s)</mat-card-subtitle>
                     </div>
                   </mat-card-header>
+                  @if (color.images.length) {
+                    <div class="img-strip">
+                      @for (img of color.images.slice(0, 4); track img) {
+                        <img class="img-thumb" [src]="img" [alt]="color.colorName" loading="lazy" />
+                      }
+                      @if (color.images.length > 4) {
+                        <div class="img-more">+{{ color.images.length - 4 }}</div>
+                      }
+                    </div>
+                  } @else {
+                    <p class="no-images">No images yet</p>
+                  }
                   <mat-card-actions>
                     <button mat-button (click)="openEditColor(color)"><mat-icon>edit</mat-icon> Edit</button>
                     <button mat-button color="warn" (click)="deleteColor(color)"><mat-icon>delete</mat-icon></button>
@@ -205,6 +217,11 @@ interface ProductDetail {
     .color-card { width: 220px; }
     mat-card-header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 0; }
     .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
+    .img-strip { display: flex; gap: 4px; padding: 8px 12px 0; flex-wrap: wrap; }
+    .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+    .img-more { width: 48px; height: 48px; border-radius: 4px; background: #f5f5f5; border: 1px solid #eee;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #777; font-weight: 600; }
+    .no-images { margin: 8px 12px 0; font-size: 12px; color: #bbb; font-style: italic; }
 
     /* Size suggestions */
     .suggestions-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }

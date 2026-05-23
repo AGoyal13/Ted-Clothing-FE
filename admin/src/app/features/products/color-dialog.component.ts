@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
+import { ImageUploadComponent } from './image-upload.component';
 
 interface Color { id: string; colorName: string; colorHex: string | null; images: string[]; }
 
@@ -17,6 +18,7 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
   imports: [
     ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    ImageUploadComponent,
   ],
   template: `
     <h2 mat-dialog-title>{{ data.color ? 'Edit Color' : 'Add Color' }}</h2>
@@ -26,18 +28,18 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
           <mat-label>Color Name</mat-label>
           <input matInput formControlName="colorName" placeholder="e.g. Navy Blue" />
         </mat-form-field>
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Hex Color</mat-label>
           <input matInput formControlName="colorHex" placeholder="#1a237e" />
           <mat-hint>Optional — for color swatch display</mat-hint>
         </mat-form-field>
 
-        <label class="images-label">Image URLs (one per line, up to 12)</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Images</mat-label>
-          <textarea matInput formControlName="imagesRaw" rows="6" placeholder="https://cdn.example.com/img1.jpg&#10;https://cdn.example.com/img2.jpg"></textarea>
-          <mat-hint>{{ imageCount() }} / 12 images</mat-hint>
-        </mat-form-field>
+        <app-image-upload
+          [productId]="data.productId"
+          [initialImages]="currentImages"
+          (imagesChange)="currentImages = $event">
+        </app-image-upload>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -48,9 +50,8 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
     </mat-dialog-actions>
   `,
   styles: [`
-    .form { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+    .form { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; min-width: 360px; }
     .full-width { width: 100%; }
-    .images-label { font-size: 12px; color: #666; }
     mat-spinner { margin: auto; }
   `],
 })
@@ -64,31 +65,28 @@ export class ColorDialogComponent implements OnInit {
   form = this.fb.group({
     colorName: ['', [Validators.required, Validators.minLength(2)]],
     colorHex: [''],
-    imagesRaw: [''],
   });
   loading = signal(false);
-
-  get imageCount() {
-    return signal(
-      (this.form.value.imagesRaw ?? '').split('\n').map(s => s.trim()).filter(Boolean).length
-    );
-  }
+  currentImages: string[] = [];
 
   ngOnInit() {
     if (this.data.color) {
       this.form.patchValue({
         colorName: this.data.color.colorName,
         colorHex: this.data.color.colorHex ?? '',
-        imagesRaw: this.data.color.images.join('\n'),
       });
+      this.currentImages = [...this.data.color.images];
     }
   }
 
   save() {
     if (this.form.invalid) return;
     this.loading.set(true);
-    const images = (this.form.value.imagesRaw ?? '').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 12);
-    const body = { colorName: this.form.value.colorName!, colorHex: this.form.value.colorHex || undefined, images };
+    const body = {
+      colorName: this.form.value.colorName!,
+      colorHex: this.form.value.colorHex || undefined,
+      images: this.currentImages,
+    };
     const req = this.data.color
       ? this.api.patch(`products/${this.data.productId}/colors/${this.data.color.id}`, body)
       : this.api.post(`products/${this.data.productId}/colors`, body);

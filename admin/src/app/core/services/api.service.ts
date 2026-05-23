@@ -41,4 +41,10 @@ export class ApiService {
       .delete<ApiResponse<T>>(`${this.base}/${path}`)
       .pipe(map((r) => r.data));
   }
+
+  uploadFiles<T>(path: string, formData: FormData) {
+    return this.http
+      .post<ApiResponse<T>>(`${this.base}/${path}`, formData)
+      .pipe(map((r) => r.data));
+  }
 }
