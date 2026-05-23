@@ -134,7 +134,7 @@ interface ProductDetail {
                         @for (size of allSizes(); track size) {
                           <td class="stock-cell">
                             @if (findSku(color.id, size); as sku) {
-                              <div class="stock-box">
+                              <div class="stock-box" [class.oos]="sku.stockQty === 0">
                                 <input class="stock-input" type="number" [value]="sku.stockQty" min="0"
                                   (blur)="updateStock(sku, $event)" (keydown.enter)="$any($event.target).blur()" />
                                 <button class="del-btn" matTooltip="Remove this size"
@@ -227,9 +227,11 @@ interface ProductDetail {
     .color-name { font-size: 13px; font-weight: 500; }
 
     .stock-box { display: flex; align-items: center; gap: 4px; justify-content: center; }
+    .stock-box.oos { background: #fff3e0; border-radius: 4px; padding: 2px; }
     .stock-input { width: 60px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px;
       font-size: 13px; text-align: center; }
     .stock-input:focus { outline: none; border-color: #1a237e; }
+    .stock-box.oos .stock-input { border-color: #ffb74d; color: #e65100; font-weight: 600; }
     .del-btn { background: none; border: none; cursor: pointer; color: #bbb; font-size: 12px; padding: 2px 4px; }
     .del-btn:hover { color: #c62828; }
     .no-variant { color: #ccc; font-size: 14px; }

@@ -14,6 +14,7 @@ import * as XLSX from 'xlsx';
 type Mode = 'set' | 'add';
 
 interface StockRow { skuCode: string; qty: number; status?: string; oldStock?: number; newStock?: number; }
+interface ExportRow { skuCode: string; productTitle: string; category: string; colorName: string; size: string; stockQty: number; priceOverride: number | null; }
 
 const TEMPLATES: Record<Mode, { headers: string[]; sample: (string | number)[][] }> = {
   set: { headers: ['SKU_CODE', 'STOCK_QTY'], sample: [['TED-SLIM-NAVY-M', 50], ['TED-SLIM-OLIV-L', 30]] },
@@ -125,11 +126,24 @@ const TEMPLATES: Record<Mode, { headers: string[]; sample: (string | number)[][]
         </mat-card-actions>
       </mat-card>
     }
+
+    <mat-card class="export-card">
+      <mat-card-header>
+        <mat-card-title>Export Inventory</mat-card-title>
+        <mat-card-subtitle>Download current stock for all SKUs as an Excel file</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-actions>
+        <button mat-flat-button color="accent" [disabled]="exporting()" (click)="exportInventory()">
+          <mat-icon>download</mat-icon> {{ exporting() ? 'Exporting…' : 'Download Inventory (.xlsx)' }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     h1 { margin: 0; }
     .mode-card, .upload-card { margin-bottom: 16px; }
+    .export-card { margin-top: 32px; }
     .mode-label { margin: 0 0 10px; font-size: 13px; color: #555; font-weight: 500; }
     .mode-desc { margin: 10px 0 0; font-size: 13px; color: #777; }
     .upload-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -163,6 +177,7 @@ export class InventoryUploadComponent {
   previewReady = signal(false);
   committed = signal(false);
   committedCount = signal(0);
+  exporting = signal(false);
 
   modeDesc() {
     return this.mode === 'set'
@@ -248,6 +263,26 @@ export class InventoryUploadComponent {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
     XLSX.writeFile(wb, `ted-${this.mode}-stock-template.xlsx`);
+  }
+
+  async exportInventory() {
+    this.exporting.set(true);
+    try {
+      const data = await this.api.get<ExportRow[]>('skus/export').toPromise();
+      if (!data?.length) { this.snack.open('No SKUs to export', '', { duration: 3000 }); return; }
+
+      const rows = [
+        ['SKU_CODE', 'PRODUCT_TITLE', 'CATEGORY', 'COLOR_NAME', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'],
+        ...data.map(r => [r.skuCode, r.productTitle, r.category, r.colorName, r.size, r.stockQty, r.priceOverride ?? '']),
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+      XLSX.writeFile(wb, `ted-inventory-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      this.snack.open('Export failed', '', { duration: 3000 });
+    }
+    this.exporting.set(false);
   }
 
   reset() {
