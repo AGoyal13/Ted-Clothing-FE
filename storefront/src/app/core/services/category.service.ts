@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Category, NavTree } from '../models/category.model';
+import { Category, GenderNavTree } from '../models/category.model';
 
 @Injectable({ providedIn: 'root' })
 export class CategoryService {
@@ -11,9 +11,11 @@ export class CategoryService {
     return this.api.get<Category[]>('/categories');
   }
 
-  getNavTree(gender?: 'MEN' | 'WOMEN' | 'KIDS'): Observable<NavTree> {
-    const params: Record<string, string> = {};
-    if (gender) params['gender'] = gender;
-    return this.api.get<NavTree>('/categories/nav/tree', params);
+  getBySlug(slug: string): Observable<Category> {
+    return this.api.get<Category>(`/categories/by-slug/${slug}`);
+  }
+
+  getNavTreeByGender(gender: 'MEN' | 'WOMEN' | 'KIDS'): Observable<GenderNavTree> {
+    return this.api.get<GenderNavTree>('/categories/nav/tree', { gender });
   }
 }

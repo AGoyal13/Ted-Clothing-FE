@@ -9,13 +9,49 @@
   --gold: #c9a84c;
   --gold-light: #e8d08a;
   --cream: #f5f0e8;
-  --muted: #6b6560;
+  --muted: rgba(245, 240, 232, 0.82);
   --brown: #8b5e3c;
+  --navbar-scrolled-bg: rgba(26, 23, 20, 0.92);
   --font-display: 'Bebas Neue', sans-serif;
   --font-serif: 'Cormorant Garamond', serif;
   --font-sans: 'DM Sans', sans-serif;
   --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --section-pad: clamp(4rem, 8vw, 6rem) 5%;
+}
+
+/* --- Theme: Ivory (Light) --- */
+[data-theme="ivory"] {
+  --bg: #f5f0e8;
+  --surface: #ede8df;
+  --gold: #9a7520;
+  --gold-light: #c9a84c;
+  --cream: #1a1714;
+  --muted: rgba(26, 23, 20, 0.65);
+  --brown: #6b3f1e;
+  --navbar-scrolled-bg: rgba(240, 234, 224, 0.95);
+}
+
+/* --- Theme: Parchment (Warm Dark) --- */
+[data-theme="parchment"] {
+  --bg: #231d15;
+  --surface: #2e2518;
+  --gold: #d4a843;
+  --gold-light: #e8c87a;
+  --cream: #f0e6d4;
+  --muted: rgba(240, 230, 212, 0.72);
+  --brown: #a07048;
+  --navbar-scrolled-bg: rgba(30, 25, 18, 0.95);
+}
+
+/* --- Theme transition --- */
+html {
+  transition: background-color 0.35s ease;
+}
+
+body,
+.navbar,
+.navbar--scrolled {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
 }
 
 /* --- Reset --- */
@@ -58,6 +94,35 @@ button,
 textarea,
 select {
   font: inherit;
+}
+
+/* --- Form element baseline --- */
+input,
+select,
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+/* Autofill — keeps theme background instead of browser yellow/blue */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 50px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--cream) !important;
+  caret-color: var(--cream);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Hide browser password reveal / contacts autofill chrome */
+input::-ms-reveal,
+input::-ms-clear,
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
 }
 
 p,
@@ -310,6 +375,15 @@ button {
 
   &:active {
     transform: scale(0.98);
+  }
+
+  @media (hover: none) {
+    background: #c9a84c;
+    color: var(--bg);
+
+    &::after {
+      transform: translateX(0);
+    }
   }
 }
 

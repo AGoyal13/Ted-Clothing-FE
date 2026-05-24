@@ -67,7 +67,7 @@ import { FormsModule } from '@angular/forms';
 
     .nl__eyebrow {
       font-family: var(--font-display);
-      font-size: 0.7rem;
+      font-size: 0.84rem;
       letter-spacing: 0.4em;
       color: var(--gold);
       margin-bottom: 0.75rem;
@@ -94,6 +94,10 @@ import { FormsModule } from '@angular/forms';
 
     .nl__form {
       width: 100%;
+
+      @media (max-width: 500px) {
+        padding: 0 1.25rem;
+      }
     }
 
     .nl__input-group {
@@ -110,14 +114,18 @@ import { FormsModule } from '@angular/forms';
 
     .nl__input {
       flex: 1;
-      background: rgba(13, 13, 13, 0.6);
-      border: 1px solid rgba(245, 240, 232, 0.15);
+      height: 52px;
+      background: var(--bg);
+      border: 1px solid rgba(201, 168, 76, 0.2);
       border-right: none;
       color: var(--cream);
       padding: 0 1.25rem;
       font-family: var(--font-sans);
       font-size: 0.875rem;
       outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 0;
       transition: border-color 0.2s ease;
 
       &::placeholder {
@@ -129,9 +137,11 @@ import { FormsModule } from '@angular/forms';
       }
 
       @media (max-width: 500px) {
-        border-right: 1px solid rgba(245, 240, 232, 0.15);
-        border-bottom: none;
-        height: 52px;
+        border-right: 1px solid rgba(201, 168, 76, 0.2);
+        width: 100%;
+        height: 64px;
+        font-size: 1rem;
+        padding: 1rem 1.5rem;
       }
     }
 
@@ -146,7 +156,8 @@ import { FormsModule } from '@angular/forms';
       }
 
       @media (max-width: 500px) {
-        height: 52px;
+        height: 64px;
+        width: 100%;
       }
     }
 

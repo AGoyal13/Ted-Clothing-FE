@@ -1,18 +1,24 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './shared/navbar/navbar.component';
 import { FooterComponent } from './shared/footer/footer.component';
 import { CursorComponent } from './shared/cursor/cursor.component';
+import { AuthModalComponent } from './shared/auth-modal/auth-modal.component';
+import { AuthService } from './core/services/auth.service';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, FooterComponent, CursorComponent],
+  imports: [RouterOutlet, NavbarComponent, FooterComponent, CursorComponent, AuthModalComponent],
   template: `
     <app-cursor />
     <app-navbar />
     <router-outlet />
     <app-footer />
+    @if (authService.modalOpen()) {
+      <app-auth-modal />
+    }
   `,
   styles: [`
     :host {
@@ -22,4 +28,7 @@ import { CursorComponent } from './shared/cursor/cursor.component';
     }
   `],
 })
-export class App {}
+export class App {
+  readonly authService = inject(AuthService);
+  readonly themeService = inject(ThemeService);
+}

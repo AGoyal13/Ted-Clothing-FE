@@ -17,6 +17,7 @@ export interface ProductSku {
 }
 
 export interface ProductSkuList {
+  id: string;
   colorId: string;
   sizeLabel: string;
   stockQty: number;

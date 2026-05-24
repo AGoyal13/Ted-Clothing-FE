@@ -10,6 +10,8 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 
 interface NavItem {
   label: string;
@@ -19,7 +21,7 @@ interface NavItem {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, ThemeSwitcherComponent],
   template: `
     <header class="navbar" [class.navbar--scrolled]="scrolled()">
       <div class="navbar__inner">
@@ -43,16 +45,34 @@ interface NavItem {
 
         <!-- Right Actions -->
         <div class="navbar__actions">
-          <a routerLink="/cart" class="navbar__cart" aria-label="Shopping cart">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <a routerLink="/cart" class="navbar__cart-btn" aria-label="Shopping cart">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 0 1-8 0"/>
             </svg>
-            @if (cartCount() > 0) {
-              <span class="navbar__cart-badge">{{ cartCount() }}</span>
-            }
+            <span class="navbar__cart-label">CART ({{ cartCount() }})</span>
           </a>
+
+          <!-- Account -->
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/account" class="navbar__account" aria-label="My account">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </a>
+          } @else {
+            <button class="navbar__login" (click)="authService.openModal()" aria-label="Sign in">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </button>
+          }
+
+          <!-- Theme Switcher -->
+          <app-theme-switcher />
 
           <!-- Hamburger (mobile) -->
           <button
@@ -113,7 +133,7 @@ interface NavItem {
     }
 
     .navbar--scrolled {
-      background: rgba(26, 23, 20, 0.92);
+      background: var(--navbar-scrolled-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-bottom-color: rgba(201, 168, 76, 0.12);
@@ -145,10 +165,11 @@ interface NavItem {
 
     .navbar__logo-clothing {
       font-family: var(--font-sans);
-      font-size: 0.5rem;
-      font-weight: 500;
+      font-size: 0.55rem;
+      font-weight: 600;
       letter-spacing: 0.35em;
-      color: var(--muted);
+      color: var(--cream);
+      opacity: 0.5;
       text-transform: uppercase;
     }
 
@@ -160,7 +181,7 @@ interface NavItem {
 
     .navbar__link {
       font-family: var(--font-display);
-      font-size: 0.9rem;
+      font-size: 1.25rem;
       letter-spacing: 0.2em;
       color: var(--cream);
       text-decoration: none;
@@ -196,34 +217,40 @@ interface NavItem {
       gap: 1.25rem;
     }
 
-    .navbar__cart {
+    .navbar__cart-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.1rem;
+      border: 1px solid var(--gold);
+      background: #c9a84c;
+      color: var(--bg);
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .navbar__cart-label {
+      position: relative;
+    }
+
+    .navbar__account,
+    .navbar__login {
       position: relative;
       display: flex;
       align-items: center;
       color: var(--cream);
       transition: color 0.2s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
 
       &:hover {
         color: var(--gold);
       }
-    }
-
-    .navbar__cart-badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: var(--gold);
-      color: var(--bg);
-      font-family: var(--font-sans);
-      font-size: 0.6rem;
-      font-weight: 500;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
     }
 
     .navbar__hamburger {
@@ -344,12 +371,14 @@ interface NavItem {
       .navbar__hamburger {
         display: flex;
       }
+
     }
   `],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly cartService = inject(CartService);
+  readonly authService = inject(AuthService);
 
   readonly scrolled = signal(false);
   readonly mobileOpen = signal(false);

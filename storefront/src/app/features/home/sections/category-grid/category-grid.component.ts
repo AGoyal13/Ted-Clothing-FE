@@ -36,21 +36,21 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
 
       <div class="cat-grid">
         @if (loading()) {
-          @for (i of [1,2,3,4,5]; track i) {
-            <div class="cat-card skeleton" [class.cat-card--featured]="i === 1"></div>
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="cat-card skeleton"></div>
           }
         } @else {
           @for (cat of categories(); track cat.id; let i = $index) {
             <a
               [routerLink]="['/category', cat.slug]"
               class="cat-card"
-              [class.cat-card--featured]="i === 0"
+              [class.cat-card--featured]="i === 0 && categories().length >= 3"
               [style.--accent]="cat.accent"
               [attr.aria-label]="'Shop ' + cat.name"
             >
               <div class="cat-card__bg"></div>
               <div class="cat-card__content">
-                <span class="cat-card__number">0{{ i + 1 }}</span>
+                <span class="cat-card__number">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
                 <h3 class="cat-card__name">{{ cat.name }}</h3>
                 <div class="cat-card__arrow">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -93,18 +93,9 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
 
     .cat-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 220px);
+      grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+      grid-auto-rows: 220px;
       gap: 1rem;
-
-      @media (max-width: 900px) {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: auto;
-      }
-
-      @media (max-width: 500px) {
-        grid-template-columns: 1fr;
-      }
     }
 
     .cat-card {
@@ -122,7 +113,7 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
       &--featured {
         grid-row: span 2;
 
-        @media (max-width: 900px) {
+        @media (max-width: 600px) {
           grid-row: span 1;
         }
 
@@ -164,7 +155,8 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
       font-family: var(--font-display);
       font-size: 0.65rem;
       letter-spacing: 0.3em;
-      color: var(--muted);
+      color: var(--cream);
+      opacity: 0.45;
       margin-bottom: 0.375rem;
     }
 
@@ -174,6 +166,7 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
       letter-spacing: 0.05em;
       color: var(--cream);
       line-height: 1;
+      white-space: nowrap;
       transition: color 0.2s ease;
     }
 
@@ -222,16 +215,21 @@ export class CategoryGridComponent implements OnInit {
             'rgba(107, 101, 96, 0.2)',
             'rgba(201, 168, 76, 0.1)',
             'rgba(139, 94, 60, 0.15)',
+            'rgba(107, 101, 96, 0.15)',
+            'rgba(139, 94, 60, 0.2)',
+            'rgba(201, 168, 76, 0.12)',
           ];
+          const flat = Array.isArray(cats)
+            ? cats
+            : (cats as { items?: Category[] }).items ?? [];
+          const roots = flat.filter(c => c.parentId === null);
           this.categories.set(
-            (Array.isArray(cats) ? cats : (cats as { items?: Category[] }).items ?? [])
-              .slice(0, 5)
-              .map((c, i) => ({
-                id: c.id,
-                name: c.name,
-                slug: c.slug,
-                accent: accents[i % accents.length],
-              }))
+            (roots.length > 0 ? roots : flat).map((c, i) => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              accent: accents[i % accents.length],
+            }))
           );
         } else {
           this.categories.set(FALLBACK_CATEGORIES);

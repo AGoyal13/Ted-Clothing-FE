@@ -45,7 +45,7 @@ interface Testimonial {
   styles: [`
     .testi {
       padding: var(--section-pad);
-      background: rgba(26, 23, 20, 0.5);
+      background: var(--surface);
     }
 
     .testi__inner {
@@ -59,7 +59,7 @@ interface Testimonial {
 
     .testi__eyebrow {
       font-family: var(--font-display);
-      font-size: 0.7rem;
+      font-size: 0.84rem;
       letter-spacing: 0.4em;
       color: var(--gold);
       margin-bottom: 0.375rem;
@@ -85,7 +85,7 @@ interface Testimonial {
 
     .testi__card {
       background: var(--surface);
-      border: 1px solid rgba(245, 240, 232, 0.06);
+      border: 1px solid rgba(201, 168, 76, 0.12);
       padding: 2rem;
       display: flex;
       flex-direction: column;
@@ -107,7 +107,7 @@ interface Testimonial {
       font-family: var(--font-serif);
       font-style: italic;
       font-size: 1rem;
-      color: rgba(245, 240, 232, 0.8);
+      color: var(--muted);
       line-height: 1.7;
       flex: 1;
 

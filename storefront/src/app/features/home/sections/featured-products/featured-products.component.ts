@@ -69,7 +69,7 @@ import { AnimateOnScrollDirective } from '../../../../core/directives/animate-on
 
     .featured__eyebrow {
       font-family: var(--font-display);
-      font-size: 0.7rem;
+      font-size: 0.84rem;
       letter-spacing: 0.4em;
       color: var(--gold);
       margin-bottom: 0.375rem;

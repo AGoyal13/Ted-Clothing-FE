@@ -116,13 +116,13 @@ import { RouterLink } from '@angular/router';
 
     .promo__eyebrow {
       font-family: var(--font-display);
-      font-size: 0.65rem;
+      font-size: 0.78rem;
       letter-spacing: 0.4em;
       color: var(--gold);
       margin-bottom: 0.375rem;
 
       &--dark {
-        color: rgba(13, 13, 13, 0.6);
+        color: rgba(13, 13, 13, 0.88);
       }
     }
 
@@ -147,7 +147,7 @@ import { RouterLink } from '@angular/router';
       margin-bottom: 1rem;
 
       &--dark {
-        color: rgba(13, 13, 13, 0.65);
+        color: rgba(13, 13, 13, 0.82);
       }
     }
 
@@ -176,7 +176,7 @@ import { RouterLink } from '@angular/router';
       transition: width 0.3s ease, height 0.3s ease;
 
       &--dark {
-        border-color: rgba(13, 13, 13, 0.4);
+        border-color: rgba(13, 13, 13, 0.65);
       }
 
       &--tl {

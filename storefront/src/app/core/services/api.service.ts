@@ -22,4 +22,16 @@ export class ApiService {
       .get<ApiResponse<T>>(`${this.baseUrl}${path}`, { params: httpParams })
       .pipe(map(response => response.data));
   }
+
+  post<T>(path: string, body: unknown): Observable<T> {
+    return this.http
+      .post<ApiResponse<T>>(`${this.baseUrl}${path}`, body)
+      .pipe(map(response => response.data));
+  }
+
+  delete<T = void>(path: string): Observable<T> {
+    return this.http
+      .delete<ApiResponse<T>>(`${this.baseUrl}${path}`)
+      .pipe(map(response => response.data));
+  }
 }

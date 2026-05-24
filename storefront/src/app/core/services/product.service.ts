@@ -9,6 +9,7 @@ export interface ProductQueryParams {
   page?: number;
   categorySlug?: string;
   gender?: 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
+  sort?: 'newest' | 'price-asc' | 'price-desc';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -22,6 +23,7 @@ export class ProductService {
     if (params.page) queryParams['page'] = params.page;
     if (params.categorySlug) queryParams['categorySlug'] = params.categorySlug;
     if (params.gender) queryParams['gender'] = params.gender;
+    if (params.sort) queryParams['sort'] = params.sort;
     return this.api.get<ProductListResponse>('/products', queryParams);
   }
 

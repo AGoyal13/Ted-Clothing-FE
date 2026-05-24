@@ -37,6 +37,23 @@ import { RouterLink } from '@angular/router';
             <a routerLink="/category/men" class="btn-primary">Shop Collection</a>
             <a routerLink="/category/women" class="btn-ghost">Explore Women</a>
           </div>
+
+          <div class="hero__stats">
+            <div class="hero__stat">
+              <span class="hero__stat-number">12K+</span>
+              <span class="hero__stat-label">Happy Clients</span>
+            </div>
+            <div class="hero__stat-divider" aria-hidden="true"></div>
+            <div class="hero__stat">
+              <span class="hero__stat-number">340+</span>
+              <span class="hero__stat-label">Unique Pieces</span>
+            </div>
+            <div class="hero__stat-divider" aria-hidden="true"></div>
+            <div class="hero__stat">
+              <span class="hero__stat-number">98%</span>
+              <span class="hero__stat-label">Satisfaction</span>
+            </div>
+          </div>
         </div>
 
         <!-- Right: Editorial Card Placeholder -->
@@ -117,7 +134,7 @@ import { RouterLink } from '@angular/router';
 
     .hero__eyebrow {
       font-family: var(--font-display);
-      font-size: 0.75rem;
+      font-size: 0.9rem;
       letter-spacing: 0.4em;
       color: var(--gold);
       display: flex;
@@ -161,6 +178,47 @@ import { RouterLink } from '@angular/router';
       flex-wrap: wrap;
       gap: 1rem;
       margin-top: 0.5rem;
+    }
+
+    .hero__stats {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding-top: 1.75rem;
+      border-top: 1px solid rgba(245, 240, 232, 0.1);
+      margin-top: 0.5rem;
+    }
+
+    .hero__stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      flex: 1;
+    }
+
+    .hero__stat-number {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.5vw, 2rem);
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    .hero__stat-label {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .hero__stat-divider {
+      width: 1px;
+      height: 36px;
+      background: rgba(201, 168, 76, 0.25);
+      flex-shrink: 0;
+      margin: 0 1.5rem;
     }
 
     /* Editorial Visual Card */

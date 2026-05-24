@@ -11,6 +11,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ProductDialogComponent } from './product-dialog.component';
@@ -42,7 +44,8 @@ export interface Product {
   imports: [
     MatTableModule, MatButtonModule, MatIconModule, MatDialogModule,
     MatCardModule, MatChipsModule, MatProgressBarModule, MatSnackBarModule,
-    MatBadgeModule, MatSelectModule, MatPaginatorModule, FormsModule, DecimalPipe,
+    MatBadgeModule, MatSelectModule, MatPaginatorModule, MatCheckboxModule,
+    MatTooltipModule, FormsModule, DecimalPipe,
   ],
   template: `
     <div class="page-header">
@@ -77,11 +80,45 @@ export interface Product {
       }
     </div>
 
+    <!-- Bulk action bar -->
+    @if (selectedIds().size > 0) {
+      <div class="bulk-bar">
+        <span class="bulk-bar__count">{{ selectedIds().size }} selected</span>
+        <button mat-flat-button color="primary" (click)="bulkSetStatus('ACTIVE')" [disabled]="bulkLoading()">
+          <mat-icon>check_circle</mat-icon> Set Active
+        </button>
+        <button mat-flat-button (click)="bulkSetStatus('DRAFT')" [disabled]="bulkLoading()">
+          <mat-icon>edit_note</mat-icon> Set Draft
+        </button>
+        <button mat-icon-button matTooltip="Clear selection" (click)="clearSelection()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
 
     <mat-card>
       <div class="table-wrap">
       <table mat-table [dataSource]="products()" class="full-width">
+
+        <!-- Checkbox column -->
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef>
+            <mat-checkbox
+              [checked]="allSelected()"
+              [indeterminate]="someSelected()"
+              (change)="toggleAll($event.checked)"
+            />
+          </th>
+          <td mat-cell *matCellDef="let p" (click)="$event.stopPropagation()">
+            <mat-checkbox
+              [checked]="selectedIds().has(p.id)"
+              (change)="toggleOne(p.id)"
+            />
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="title">
           <th mat-header-cell *matHeaderCellDef>Product</th>
           <td mat-cell *matCellDef="let p">
@@ -121,7 +158,10 @@ export interface Product {
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="cols"></tr>
-        <tr mat-row *matRowDef="let row; columns: cols;"></tr>
+        <tr mat-row *matRowDef="let row; columns: cols;"
+            [class.row-selected]="selectedIds().has(row.id)"
+            (click)="toggleOne(row.id)">
+        </tr>
       </table>
       </div>
       <mat-paginator
@@ -146,6 +186,14 @@ export interface Product {
     .status-draft { background: #fff9c4; color: #f57f17; }
     .status-active { background: #e8f5e9; color: #2e7d32; }
     .status-archived { background: #fce4ec; color: #c62828; }
+    .bulk-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px;
+      padding: 8px 12px; margin-bottom: 12px;
+    }
+    .bulk-bar__count { font-weight: 600; font-size: 13px; margin-right: 4px; flex: 1; }
+    .row-selected { background: #f3f8ff; }
+    mat-row { cursor: pointer; }
   `],
 })
 export class ProductsComponent implements OnInit {
@@ -154,15 +202,30 @@ export class ProductsComponent implements OnInit {
   private router = inject(Router);
   private snack = inject(MatSnackBar);
 
-  cols = ['title', 'category', 'price', 'status', 'skus', 'actions'];
+  cols = ['select', 'title', 'category', 'price', 'status', 'skus', 'actions'];
   products = signal<Product[]>([]);
   loading = signal(false);
+  bulkLoading = signal(false);
   total = signal(0);
   page = signal(1);
   pageSize = 20;
   statusFilter = '';
   selectedParent = '';
   selectedChild = '';
+
+  selectedIds = signal<Set<string>>(new Set());
+
+  allSelected = computed(() => {
+    const ids = this.selectedIds();
+    const prods = this.products();
+    return prods.length > 0 && prods.every(p => ids.has(p.id));
+  });
+
+  someSelected = computed(() => {
+    const ids = this.selectedIds();
+    const prods = this.products();
+    return prods.some(p => ids.has(p.id)) && !this.allSelected();
+  });
 
   allCategories = signal<Category[]>([]);
   parentCategories = computed(() => this.allCategories().filter(c => !c.parent));
@@ -191,18 +254,51 @@ export class ProductsComponent implements OnInit {
 
   load() {
     this.loading.set(true);
+    this.selectedIds.set(new Set());
     const params: Record<string, string> = {
       page: String(this.page()),
       limit: String(this.pageSize),
     };
     if (this.statusFilter) params['status'] = this.statusFilter;
-    // child takes precedence; fall back to parent slug if no child selected
     const catSlug = this.selectedChild || this.selectedParent;
     if (catSlug) params['categorySlug'] = catSlug;
 
     this.api.get<{ items: Product[]; total: number }>('products', params).subscribe({
       next: (data) => { this.products.set(data.items); this.total.set(data.total); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  toggleOne(id: string) {
+    this.selectedIds.update(s => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  toggleAll(checked: boolean) {
+    this.selectedIds.set(checked ? new Set(this.products().map(p => p.id)) : new Set());
+  }
+
+  clearSelection() {
+    this.selectedIds.set(new Set());
+  }
+
+  bulkSetStatus(status: 'ACTIVE' | 'DRAFT') {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    this.bulkLoading.set(true);
+    this.api.patch<{ updated: number }>('products/bulk-status', { ids, status }).subscribe({
+      next: (res) => {
+        this.snack.open(`${res.updated} product${res.updated === 1 ? '' : 's'} set to ${status}`, '', { duration: 3000 });
+        this.bulkLoading.set(false);
+        this.load();
+      },
+      error: (e) => {
+        this.snack.open(e?.error?.error?.message ?? 'Bulk update failed', '', { duration: 3000 });
+        this.bulkLoading.set(false);
+      },
     });
   }
 

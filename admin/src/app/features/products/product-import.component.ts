@@ -26,26 +26,26 @@ interface BulkResult {
   results: RowResult[];
 }
 
-const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'PARENT_CATEGORY_SLUG', 'GENDER', 'STATUS', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
+const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'GENDER', 'STATUS', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
 // SIZE: single value "M" OR comma-separated "S,M,L,XL"
 // STOCK_QTY: single value applied to all sizes, OR comma-separated matching SIZE count
 // GENDER values: MEN | WOMEN | KIDS | UNISEX
 // STATUS values: DRAFT | ACTIVE | ARCHIVED  — leave blank or DRAFT to review before going live
 const TEMPLATE_SAMPLE = [
   // Men's clothing — two colour variants, comma-separated sizes
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    'DRAFT', 1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'men',         'MEN',    'DRAFT', 1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'DRAFT', 1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'DRAFT', 1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
   // Women's clothing
-  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'women',       'WOMEN',  'DRAFT', 1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
+  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'WOMEN',  'DRAFT', 1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
   // Kids
-  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'kids',        'KIDS',   'DRAFT',  699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
+  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'KIDS',   'DRAFT',  699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
   // Bags
-  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'bags',        'UNISEX', 'DRAFT', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
+  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'UNISEX', 'DRAFT', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
   // Accessories — free size, single stock
-  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'accessories', 'UNISEX', 'DRAFT',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
-  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'accessories', 'MEN',    'DRAFT', 1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
+  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'UNISEX', 'DRAFT',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
+  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'MEN',    'DRAFT', 1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
   // Beauty
-  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'beauty',      'WOMEN',  'DRAFT',  899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
+  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'WOMEN',  'DRAFT',  899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
 ];
 
 // All valid category combinations — used to populate the "Categories" reference sheet in the template
@@ -112,7 +112,7 @@ const CATEGORY_REFERENCE: string[][] = [
     <mat-card class="info-card">
       <mat-card-content>
         <p class="info">Each row is one colour variant. Repeat the row for each colour. Use comma-separated sizes in SIZE (e.g. <code>S,M,L,XL</code>) and matching stocks in STOCK_QTY (e.g. <code>20,30,25,15</code>) — or a single stock value for all sizes. Products are matched and upserted by title.</p>
-        <p class="info">Download the template below — it includes a <strong>Categories Reference</strong> sheet with all valid <code>CATEGORY_SLUG</code> / <code>PARENT_CATEGORY_SLUG</code> / <code>GENDER</code> values, and an <strong>Instructions</strong> sheet explaining every column.</p>
+        <p class="info">Download the template below — it includes a <strong>Categories Reference</strong> sheet with all valid <code>CATEGORY_SLUG</code> / <code>GENDER</code> values, and an <strong>Instructions</strong> sheet explaining every column.</p>
         <p class="cols">Columns: <code>{{ HEADERS }}</code></p>
       </mat-card-content>
     </mat-card>
@@ -283,14 +283,20 @@ export class ProductImportComponent {
         const rows: Record<string, string | number>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
         if (!rows.length) { this.snack.open('File is empty', '', { duration: 3000 }); this.loading.set(false); return; }
-        if (rows.length > 500) { this.snack.open('Max 500 rows allowed', '', { duration: 3000 }); this.loading.set(false); return; }
+        if (rows.length > 2000) { this.snack.open('Max 2000 rows allowed', '', { duration: 3000 }); this.loading.set(false); return; }
 
         this.parsedRows = rows;
         const payload = this.toPayload(rows);
         const res = await this.api.post<BulkResult>('products/bulk-upsert', { dryRun: true, rows: payload }).toPromise();
         this.preview.set(res ?? null);
       } catch (err: any) {
-        this.snack.open(err?.error?.error?.message ?? 'Failed to parse or preview file', '', { duration: 4000 });
+        console.error('[ProductImport] preview error', err);
+        const body = err?.error;
+        const msg = body?.error?.message
+          ?? (Array.isArray(body?.message) ? body.message[0] : body?.message)
+          ?? err?.message
+          ?? 'Failed to preview file';
+        this.snack.open(String(msg), 'Close', { duration: 6000 });
       }
       this.loading.set(false);
     };
@@ -304,7 +310,13 @@ export class ProductImportComponent {
       const res = await this.api.post<BulkResult>('products/bulk-upsert', { dryRun: false, rows: payload }).toPromise();
       this.committed.set(res ?? null);
     } catch (err: any) {
-      this.snack.open(err?.error?.error?.message ?? 'Import failed', '', { duration: 4000 });
+      console.error('[ProductImport] commit error', err);
+      const body = err?.error;
+      const msg = body?.error?.message
+        ?? (Array.isArray(body?.message) ? body.message[0] : body?.message)
+        ?? err?.message
+        ?? 'Import failed';
+      this.snack.open(String(msg), 'Close', { duration: 6000 });
     }
     this.committing.set(false);
   }
@@ -322,7 +334,6 @@ export class ProductImportComponent {
         title:              String(r['TITLE'] ?? '').trim(),
         description:        String(r['DESCRIPTION'] ?? '').trim(),
         categorySlug:       String(r['CATEGORY_SLUG'] ?? '').trim(),
-        parentCategorySlug: r['PARENT_CATEGORY_SLUG'] ? String(r['PARENT_CATEGORY_SLUG']).trim() : undefined,
         gender:             r['GENDER'] ? String(r['GENDER']).trim().toUpperCase() : undefined,
         status:             ['DRAFT','ACTIVE','ARCHIVED'].includes(statusRaw) ? statusRaw : 'DRAFT',
         basePrice:          Number(r['BASE_PRICE'] ?? 0),
@@ -359,7 +370,6 @@ export class ProductImportComponent {
       ['TITLE',               'Yes',      'Product name. Same title = same product (upserted). Add multiple rows for multiple colours.'],
       ['DESCRIPTION',         'Yes',      'Short product description.'],
       ['CATEGORY_SLUG',       'Yes',      'Leaf category slug — copy from the "Categories Reference" sheet.'],
-      ['PARENT_CATEGORY_SLUG','Yes',      'Parent slug — copy from the "Categories Reference" sheet (men / women / kids / bags / accessories / beauty).'],
       ['GENDER',              'Yes',      'MEN | WOMEN | KIDS | UNISEX — copy from the "Categories Reference" sheet.'],
       ['STATUS',              'Optional', 'DRAFT | ACTIVE | ARCHIVED — leave blank or DRAFT to review before going live. Set ACTIVE to publish immediately.'],
       ['BASE_PRICE',          'Yes',      'Selling price in INR (e.g. 1499). No commas or currency symbol.'],
@@ -374,7 +384,7 @@ export class ProductImportComponent {
       ['• One row = one product + one colour. Sizes expand automatically.', '', ''],
       ['• Repeat the row with the same TITLE for each colour variant.', '', ''],
       ['• Products are matched by TITLE slug — editing the title creates a new product.', '', ''],
-      ['• CATEGORY_SLUG and PARENT_CATEGORY_SLUG must match the "Categories Reference" sheet exactly.', '', ''],
+      ['• CATEGORY_SLUG must match the "Categories Reference" sheet exactly.', '', ''],
     ];
     const instrWs = XLSX.utils.aoa_to_sheet(instructions);
     XLSX.utils.book_append_sheet(wb, instrWs, 'Instructions');

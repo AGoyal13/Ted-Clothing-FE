@@ -1,6 +1,7 @@
 import {
   Component,
   input,
+  inject,
   signal,
   computed,
 } from '@angular/core';
@@ -14,6 +15,8 @@ import {
   isNewArrival,
   getImagesForColor,
 } from '../../core/models/product.model';
+import { AuthService } from '../../core/services/auth.service';
+import { WishlistService } from '../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-product-card',
@@ -33,9 +36,15 @@ import {
           }
         </div>
 
-        <!-- Wishlist (Phase 3 placeholder) -->
-        <button class="card__wishlist" aria-label="Add to wishlist" (click)="$event.preventDefault()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <!-- Wishlist -->
+        <button
+          class="card__wishlist"
+          [class.card__wishlist--active]="wishlisted()"
+          [attr.aria-label]="wishlisted() ? 'Remove from wishlist' : 'Add to wishlist'"
+          (click)="toggleWishlist($event)"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+            [attr.fill]="wishlisted() ? 'currentColor' : 'none'">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </button>
@@ -228,6 +237,11 @@ import {
         color: var(--gold);
         background: rgba(13, 13, 13, 0.8);
       }
+
+      &.card__wishlist--active {
+        opacity: 1;
+        color: var(--gold);
+      }
     }
 
     .card:hover .card__wishlist {
@@ -375,10 +389,17 @@ import {
   `],
 })
 export class ProductCardComponent {
+  private readonly authService = inject(AuthService);
+  private readonly wishlistService = inject(WishlistService);
+
   readonly product = input.required<Product>();
   readonly delay = input<string>('0ms');
 
   readonly selectedColorId = signal<string | null>(null);
+
+  readonly wishlisted = computed(() =>
+    this.wishlistService.isWishlisted(this.product().id)
+  );
 
   readonly currentImage = computed(() => {
     const colorId = this.selectedColorId() || this.product().colors?.[0]?.id;
@@ -404,7 +425,6 @@ export class ProductCardComponent {
       ? skus.filter(s => s.colorId === colorId)
       : skus;
 
-    // Deduplicate by sizeLabel
     const seen = new Set<string>();
     return filtered
       .filter(s => {
@@ -417,5 +437,17 @@ export class ProductCardComponent {
 
   selectColor(colorId: string): void {
     this.selectedColorId.set(colorId);
+  }
+
+  toggleWishlist(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.authService.isLoggedIn()) {
+      this.authService.openModal();
+      return;
+    }
+    const skuId = this.product().skus?.[0]?.id;
+    if (!skuId) return;
+    this.wishlistService.toggle(this.product().id, skuId);
   }
 }
