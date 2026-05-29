@@ -1,11 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-newsletter',
   standalone: true,
   imports: [FormsModule],
   template: `
+    @if (!auth.isLoggedIn()) {
     <section class="nl" aria-labelledby="nl-heading">
       <div class="nl__inner">
         @if (!submitted()) {
@@ -50,6 +52,7 @@ import { FormsModule } from '@angular/forms';
         }
       </div>
     </section>
+    }
   `,
   styles: [`
     .nl {
@@ -219,6 +222,7 @@ import { FormsModule } from '@angular/forms';
   `],
 })
 export class NewsletterComponent {
+  readonly auth = inject(AuthService);
   readonly email = signal('');
   readonly submitted = signal(false);
 
