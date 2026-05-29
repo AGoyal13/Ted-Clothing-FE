@@ -50,6 +50,14 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>cloud_upload</mat-icon>
             <span matListItemTitle>Product Import</span>
           </a>
+          <a mat-list-item routerLink="/feedback" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>rate_review</mat-icon>
+            <span matListItemTitle>Feedback</span>
+          </a>
+          <a mat-list-item routerLink="/settings" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>tune</mat-icon>
+            <span matListItemTitle>Settings</span>
+          </a>
         </mat-nav-list>
         <div class="sidenav-footer">
           <button mat-button (click)="auth.logout()">

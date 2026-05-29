@@ -8,7 +8,8 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
 type Tab = 'login' | 'register';
-type LoginMethod = 'email' | 'otp';
+type LoginMethod = 'password' | 'otp';
+type OtpStep = 'email' | 'verify';
 
 @Component({
   selector: 'app-auth-modal',
@@ -54,17 +55,17 @@ type LoginMethod = 'email' | 'otp';
           <div class="modal__method-switch">
             <button
               class="modal__method-btn"
-              [class.active]="loginMethod() === 'email'"
-              (click)="loginMethod.set('email')"
-            >Email</button>
+              [class.active]="loginMethod() === 'password'"
+              (click)="loginMethod.set('password')"
+            >Password</button>
             <button
               class="modal__method-btn"
               [class.active]="loginMethod() === 'otp'"
               (click)="loginMethod.set('otp')"
-            >Phone OTP</button>
+            >Email OTP</button>
           </div>
 
-          @if (loginMethod() === 'email') {
+          @if (loginMethod() === 'password') {
             <form class="modal__form" (ngSubmit)="submitLogin()" #loginForm="ngForm">
               <div class="modal__field">
                 <label class="modal__label" for="login-email">Email</label>
@@ -99,18 +100,19 @@ type LoginMethod = 'email' | 'otp';
           }
 
           @if (loginMethod() === 'otp') {
-            <form class="modal__form" (ngSubmit)="otpStep() === 'phone' ? submitSendOtp() : submitVerifyOtp()">
+            <form class="modal__form" (ngSubmit)="otpStep() === 'email' ? submitSendOtp() : submitVerifyOtp()">
               <div class="modal__field">
-                <label class="modal__label" for="otp-phone">Phone Number</label>
+                <label class="modal__label" for="otp-email">Email</label>
                 <input
-                  id="otp-phone"
+                  id="otp-email"
                   class="modal__input"
-                  type="tel"
-                  [(ngModel)]="otpPhone"
-                  name="phone"
-                  placeholder="10-digit mobile number"
+                  type="email"
+                  [(ngModel)]="otpEmail"
+                  name="email"
+                  placeholder="your@email.com"
                   [disabled]="otpStep() === 'verify'"
                   required
+                  autocomplete="email"
                 />
               </div>
               @if (otpStep() === 'verify') {
@@ -131,11 +133,11 @@ type LoginMethod = 'email' | 'otp';
               }
               <button class="modal__submit" type="submit" [disabled]="loading()">
                 @if (loading()) { SENDING… }
-                @else if (otpStep() === 'phone') { SEND OTP }
+                @else if (otpStep() === 'email') { SEND OTP }
                 @else { VERIFY OTP }
               </button>
               @if (otpStep() === 'verify') {
-                <button type="button" class="modal__link-btn" (click)="otpStep.set('phone')">Change number</button>
+                <button type="button" class="modal__link-btn" (click)="otpStep.set('email')">Change email</button>
               }
             </form>
           }
@@ -408,14 +410,14 @@ export class AuthModalComponent {
   private readonly authService = inject(AuthService);
 
   readonly tab = signal<Tab>('login');
-  readonly loginMethod = signal<LoginMethod>('email');
-  readonly otpStep = signal<'phone' | 'verify'>('phone');
+  readonly loginMethod = signal<LoginMethod>('password');
+  readonly otpStep = signal<OtpStep>('email');
   readonly loading = signal(false);
   readonly errorMsg = signal('');
 
   loginEmail = '';
   loginPassword = '';
-  otpPhone = '';
+  otpEmail = '';
   otpCode = '';
   regName = '';
   regEmail = '';
@@ -431,6 +433,9 @@ export class AuthModalComponent {
   setTab(tab: Tab): void {
     this.tab.set(tab);
     this.errorMsg.set('');
+    this.otpStep.set('email');
+    this.otpEmail = '';
+    this.otpCode = '';
   }
 
   close(): void {
@@ -454,10 +459,10 @@ export class AuthModalComponent {
   }
 
   submitSendOtp(): void {
-    if (!this.otpPhone) return;
+    if (!this.otpEmail) return;
     this.loading.set(true);
     this.errorMsg.set('');
-    this.authService.sendOtp(this.otpPhone).subscribe({
+    this.authService.sendOtp(this.otpEmail).subscribe({
       next: () => {
         this.loading.set(false);
         this.otpStep.set('verify');
@@ -470,10 +475,10 @@ export class AuthModalComponent {
   }
 
   submitVerifyOtp(): void {
-    if (!this.otpPhone || !this.otpCode) return;
+    if (!this.otpEmail || !this.otpCode) return;
     this.loading.set(true);
     this.errorMsg.set('');
-    this.authService.verifyOtp(this.otpPhone, this.otpCode).subscribe({
+    this.authService.verifyOtp(this.otpEmail, this.otpCode).subscribe({
       next: () => {
         this.loading.set(false);
         this.close();

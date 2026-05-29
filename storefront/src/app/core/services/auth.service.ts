@@ -52,14 +52,14 @@ export class AuthService {
       .pipe(map(r => r.data), tap(d => this.persistSession(d)));
   }
 
-  verifyOtp(phone: string, otp: string) {
+  verifyOtp(email: string, otp: string) {
     return this.http
-      .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/verify-otp`, { phone, otp })
+      .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/verify-otp`, { email, otp })
       .pipe(map(r => r.data), tap(d => this.persistSession(d)));
   }
 
-  sendOtp(phone: string) {
-    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/send-otp`, { phone });
+  sendOtp(email: string) {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/send-otp`, { email });
   }
 
   // ── Profile ────────────────────────────────────────────────────────────────

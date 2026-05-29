@@ -37,6 +37,14 @@ export const routes: Routes = [
         path: 'product-import',
         loadComponent: () => import('./features/products/product-import.component').then(m => m.ProductImportComponent),
       },
+      {
+        path: 'feedback',
+        loadComponent: () => import('./features/feedback/feedback.component').then(m => m.FeedbackComponent),
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

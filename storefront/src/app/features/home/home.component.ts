@@ -6,6 +6,7 @@ import { CategoryGridComponent } from './sections/category-grid/category-grid.co
 import { FeaturedProductsComponent } from './sections/featured-products/featured-products.component';
 import { PromoBannersComponent } from './sections/promo-banners/promo-banners.component';
 import { TestimonialsComponent } from './sections/testimonials/testimonials.component';
+import { FeedbackFormComponent } from './sections/feedback-form/feedback-form.component';
 import { NewsletterComponent } from './sections/newsletter/newsletter.component';
 
 @Component({
@@ -18,6 +19,7 @@ import { NewsletterComponent } from './sections/newsletter/newsletter.component'
     FeaturedProductsComponent,
     PromoBannersComponent,
     TestimonialsComponent,
+    FeedbackFormComponent,
     NewsletterComponent,
   ],
   template: `
@@ -52,6 +54,12 @@ import { NewsletterComponent } from './sections/newsletter/newsletter.component'
         <app-testimonials />
       } @placeholder {
         <div style="height:400px;"></div>
+      }
+
+      @defer (on viewport) {
+        <app-feedback-form />
+      } @placeholder {
+        <div style="height:320px;"></div>
       }
 
       @defer (on viewport) {
