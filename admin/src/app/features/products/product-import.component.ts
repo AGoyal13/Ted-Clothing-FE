@@ -23,6 +23,8 @@ interface BulkResult {
   products: { created: number; updated: number };
   skus: { created: number; updated: number };
   errors: number;
+  autoCreatedCategories: string[];
+  orphanCategories: string[];
   results: RowResult[];
 }
 
@@ -133,6 +135,16 @@ const CATEGORY_REFERENCE: string[][] = [
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
 
     @if (preview() && !committed()) {
+      @if (preview()!.orphanCategories?.length) {
+        <div class="orphan-warning">
+          <mat-icon>warning</mat-icon>
+          <span>
+            {{ preview()!.orphanCategories.length }} unknown categor{{ preview()!.orphanCategories.length === 1 ? 'y' : 'ies' }} will be created without a parent:
+            <strong>{{ preview()!.orphanCategories.join(', ') }}</strong>.
+            You can still import — set the parent in Admin → Categories afterwards.
+          </span>
+        </div>
+      }
       <mat-card class="preview-card">
         <mat-card-header>
           <mat-card-title>Preview — {{ preview()!.results.length }} rows</mat-card-title>
@@ -219,6 +231,20 @@ const CATEGORY_REFERENCE: string[][] = [
     .badge-created { background: #e8f5e9; color: #2e7d32; }
     .badge-updated { background: #e3f2fd; color: #1565c0; }
     .badge-error { background: #fce4ec; color: #c62828; }
+    .orphan-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #fff3e0;
+      border: 1px solid #ffb300;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #e65100;
+      mat-icon { color: #ffb300; flex-shrink: 0; margin-top: 1px; }
+      span { line-height: 1.5; }
+    }
   `],
 })
 export class ProductImportComponent {

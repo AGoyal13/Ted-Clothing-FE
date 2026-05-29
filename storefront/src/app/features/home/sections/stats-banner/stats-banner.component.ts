@@ -1,4 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map, catchError, of } from 'rxjs';
+import { ApiService } from '../../../../core/services/api.service';
+import { ProductListResponse } from '../../../../core/models/product.model';
 
 @Component({
   selector: 'app-stats-banner',
@@ -6,7 +10,7 @@ import { Component } from '@angular/core';
   template: `
     <section class="stats" aria-label="Brand statistics">
       <div class="stats__inner">
-        @for (stat of stats; track stat.label) {
+        @for (stat of stats(); track stat.label) {
           <div class="stats__item">
             <span class="stats__number">{{ stat.number }}</span>
             <span class="stats__label">{{ stat.label }}</span>
@@ -84,9 +88,23 @@ import { Component } from '@angular/core';
   `],
 })
 export class StatsBannerComponent {
-  readonly stats = [
-    { number: '12K+', label: 'Happy Clients' },
-    { number: '340+', label: 'Unique Pieces' },
-    { number: '98%',  label: 'Satisfaction' },
-  ];
+  private api = inject(ApiService);
+
+  private productTotal = toSignal(
+    this.api.get<ProductListResponse>('/products', { status: 'ACTIVE', limit: 1 }).pipe(
+      map(res => res.total),
+      catchError(() => of(null)),
+    ),
+    { initialValue: null }
+  );
+
+  readonly stats = computed(() => {
+    const total = this.productTotal();
+    const uniquePieces = total !== null ? `${total}+` : '—';
+    return [
+      { number: '12K+',        label: 'Happy Clients' },
+      { number: uniquePieces,  label: 'Unique Pieces' },
+      { number: '98%',         label: 'Satisfaction' },
+    ];
+  });
 }

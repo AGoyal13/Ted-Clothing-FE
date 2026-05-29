@@ -5,6 +5,7 @@ import {
 import {
   provideRouter,
   withComponentInputBinding,
+  withInMemoryScrolling,
   withViewTransitions,
 } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
@@ -20,7 +21,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
+    provideRouter(routes, withComponentInputBinding(), withViewTransitions(), withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideClientHydration(withEventReplay()),
     provideAnimationsAsync(),
