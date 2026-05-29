@@ -14,7 +14,6 @@ import { catchError, of, filter } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
-import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 import { NavCategory } from '../../core/models/category.model';
 
 interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBorder: boolean; }
@@ -22,7 +21,7 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, ThemeSwitcherComponent, UpperCasePipe],
+  imports: [RouterLink, UpperCasePipe],
   template: `
     <header class="navbar" [class.navbar--scrolled]="scrolled()">
       <div class="navbar__inner">
@@ -70,23 +69,12 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
               </svg>
             </a>
           } @else {
-            <div class="navbar__account-wrap">
-              <button class="navbar__login" (click)="toggleAccountMenu()"
-                      [attr.aria-expanded]="accountMenuOpen()" aria-label="Account options">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-              </button>
-              @if (accountMenuOpen()) {
-                <div class="navbar__account-dd" (click)="$event.stopPropagation()">
-                  <app-theme-switcher />
-                  <button class="navbar__account-signin" (click)="authService.openModal(); closeAccountMenu()">
-                    Sign In
-                  </button>
-                </div>
-              }
-            </div>
+            <button class="navbar__login" (click)="authService.openModal()" aria-label="Sign in">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </button>
           }
 
           <!-- Hamburger -->
@@ -342,38 +330,6 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
 
     .navbar__cart-label {
       position: relative;
-    }
-
-    .navbar__account-wrap {
-      position: relative;
-    }
-    .navbar__account-dd {
-      position: absolute;
-      top: calc(100% + 12px);
-      right: 0;
-      background: var(--surface);
-      border: 1px solid rgba(201, 168, 76, 0.15);
-      padding: .85rem 1rem;
-      min-width: 150px;
-      display: flex;
-      flex-direction: column;
-      gap: .6rem;
-      z-index: 1200;
-      animation: fadeIn 0.15s ease;
-    }
-    .navbar__account-signin {
-      font-family: var(--font-display);
-      font-size: .82rem;
-      letter-spacing: .14em;
-      color: var(--cream);
-      background: none;
-      border: none;
-      border-top: 1px solid rgba(201, 168, 76, 0.1);
-      padding: .5rem 0 0;
-      cursor: pointer;
-      text-align: left;
-      transition: color .2s;
-      &:hover { color: var(--gold); }
     }
 
     .navbar__account,
@@ -764,7 +720,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
   readonly scrolled = signal(false);
   readonly mobileOpen = signal(false);
   readonly activeMega = signal<string | null>(null);
-  readonly accountMenuOpen = signal(false);
   readonly expandedSections = signal<Set<string>>(new Set());
   readonly collapsedDrawerGroups = signal<Set<string>>(new Set());
   readonly cartCount = this.cartService.count;
@@ -801,9 +756,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
   closeMega(): void {
     this.activeMega.set(null);
   }
-
-  toggleAccountMenu(): void { this.accountMenuOpen.update(v => !v); }
-  closeAccountMenu(): void { this.accountMenuOpen.set(false); }
 
   // Collapsible mobile drawer sub-groups
   toggleDrawerGroup(key: string): void {
@@ -876,7 +828,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.router.events.pipe(filter(e => e instanceof NavigationStart)).subscribe(() => {
       this.activeMega.set(null);
       this.closeMobileMenu();
-      this.closeAccountMenu();
     });
   }
 
@@ -887,14 +838,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (this.closeTimer) clearTimeout(this.closeTimer);
   }
 
-  @HostListener('document:click')
-  onDocClick(): void { this.closeAccountMenu(); }
-
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.activeMega.set(null);
     this.closeMobileMenu();
-    this.closeAccountMenu();
   }
 
   toggleMobileMenu(): void {
