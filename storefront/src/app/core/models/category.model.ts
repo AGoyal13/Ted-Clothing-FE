@@ -21,3 +21,13 @@ export interface CategoriesResponse {
   items: Category[];
   total: number;
 }
+
+export interface NavCategory {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string | null;
+  children?: NavCategory[];
+}
+
+export type NavTree = NavCategory[];

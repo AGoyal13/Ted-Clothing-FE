@@ -55,7 +55,7 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
       <div class="cat-page__bar">
         <div class="cat-page__bar-inner">
 
-          <!-- Left: breadcrumb + title + count -->
+          <!-- Left: breadcrumb only -->
           <div class="cat-page__bar-left">
             <nav class="cat-page__bc" aria-label="Breadcrumb">
               <a routerLink="/" class="cat-page__bc-link">Home</a>
@@ -68,11 +68,6 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
                 }
               }
             </nav>
-            <div class="cat-page__bar-meta">
-              <span class="cat-page__bar-title">{{ displayName() }}</span>
-              <span class="cat-page__bar-sep">·</span>
-              <span class="cat-page__bar-count">{{ total() }} products</span>
-            </div>
           </div>
 
           <!-- Right: pills -->
@@ -137,6 +132,14 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
 
       <!-- ── Product grid ────────────────────────────────────────────── -->
       <div class="cat-page__content">
+
+        <!-- Title + count — desktop only (mobile uses cat-page__mobile-hdr) -->
+        <div class="cat-page__content-meta">
+          <span class="cat-page__bar-title">{{ displayName() }}</span>
+          <span class="cat-page__bar-sep">·</span>
+          <span class="cat-page__bar-count">{{ total() }} products</span>
+        </div>
+
         @if (loading()) {
           <div class="cat-page__grid">
             @for (i of skeletons; track i) {
@@ -190,7 +193,7 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/>
             </svg>
-            <span>{{ hasCatFilter() ? mobCatLabel() : 'FILTER' }}</span>
+            <span>{{ hasCatFilter() ? mobCatLabel() : 'CATEGORIES' }}</span>
           </button>
         }
       </div>
@@ -318,15 +321,20 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
       min-width: 0;
     }
 
-    .cat-page__bar-meta {
-      display: flex;
-      align-items: baseline;
-      gap: .5rem;
+    .cat-page__content-meta {
+      display: none;
+
+      @media (min-width: 769px) {
+        display: flex;
+        align-items: baseline;
+        gap: .5rem;
+        margin-bottom: 1.5rem;
+      }
     }
 
     .cat-page__bar-title {
       font-family: var(--font-display);
-      font-size: 1.1rem;
+      font-size: 1.4rem;
       letter-spacing: .1em;
       color: var(--cream);
       text-transform: uppercase;
@@ -732,7 +740,7 @@ export class CategoryComponent implements OnInit {
 
   readonly mobCatLabel = computed(() => {
     const opt = this.categoryOptions().find(o => o.slug === this.activeCat());
-    return opt?.label ?? 'FILTER';
+    return opt?.label ?? 'CATEGORIES';
   });
 
   ngOnInit(): void {
