@@ -1,5 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { map, catchError, of } from 'rxjs';
+import { ApiService } from '../../../../core/services/api.service';
+import { ProductListResponse } from '../../../../core/models/product.model';
 
 @Component({
   selector: 'app-hero',
@@ -45,7 +49,7 @@ import { RouterLink } from '@angular/router';
             </div>
             <div class="hero__stat-divider" aria-hidden="true"></div>
             <div class="hero__stat">
-              <span class="hero__stat-number">340+</span>
+              <span class="hero__stat-number">{{ uniquePieces() }}</span>
               <span class="hero__stat-label">Unique Pieces</span>
             </div>
             <div class="hero__stat-divider" aria-hidden="true"></div>
@@ -323,4 +327,19 @@ import { RouterLink } from '@angular/router';
     }
   `],
 })
-export class HeroComponent {}
+export class HeroComponent {
+  private api = inject(ApiService);
+
+  private productTotal = toSignal(
+    this.api.get<ProductListResponse>('/products', { status: 'ACTIVE', limit: 1 }).pipe(
+      map(res => res.total),
+      catchError(() => of(null)),
+    ),
+    { initialValue: null },
+  );
+
+  readonly uniquePieces = computed(() => {
+    const total = this.productTotal();
+    return total !== null ? `${total}+` : '—';
+  });
+}
