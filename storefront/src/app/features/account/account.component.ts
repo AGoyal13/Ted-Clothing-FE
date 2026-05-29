@@ -35,21 +35,25 @@ function emptyForm(): AddressFormData {
             <!-- Desktop nav (hidden on mobile) -->
             <nav class="acct__nav">
               <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'profile'" (click)="tab.set('profile')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Profile
               </button>
               <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'wishlist'" (click)="tab.set('wishlist')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 Wishlist
                 @if (wishlistService.count() > 0) {
                   <span class="acct__nav-badge">{{ wishlistService.count() }}</span>
                 }
               </button>
               <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'addresses'" (click)="setTab('addresses')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Addresses
                 @if (addressService.addresses().length > 0) {
                   <span class="acct__nav-badge">{{ addressService.addresses().length }}</span>
                 }
               </button>
               <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'preferences'" (click)="tab.set('preferences')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Preferences
               </button>
             </nav>
@@ -58,7 +62,23 @@ function emptyForm(): AddressFormData {
             <div class="acct__nav-mob" (click)="$event.stopPropagation()">
               <button class="acct__nav-mob-trigger" (click)="navOpen.update(v => !v)"
                       [attr.aria-expanded]="navOpen()">
-                <span>{{ tabLabel() }}</span>
+                <span class="acct__nav-mob-trigger-label">
+                  @switch (tab()) {
+                    @case ('profile') {
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    }
+                    @case ('wishlist') {
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    }
+                    @case ('addresses') {
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    }
+                    @case ('preferences') {
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    }
+                  }
+                  {{ tabLabel() }}
+                </span>
                 <svg class="acct__nav-mob-chevron" [class.acct__nav-mob-chevron--open]="navOpen()"
                      width="14" height="14" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2">
@@ -67,29 +87,36 @@ function emptyForm(): AddressFormData {
               </button>
               @if (navOpen()) {
                 <div class="acct__nav-mob-options">
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'profile'"
-                          (click)="selectMobileTab('profile')">Profile</button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'wishlist'"
-                          (click)="selectMobileTab('wishlist')">
+                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'profile'" (click)="selectMobileTab('profile')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Profile
+                  </button>
+                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'wishlist'" (click)="selectMobileTab('wishlist')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     Wishlist
                     @if (wishlistService.count() > 0) {
                       <span class="acct__nav-badge">{{ wishlistService.count() }}</span>
                     }
                   </button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'addresses'"
-                          (click)="selectMobileTab('addresses')">
+                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'addresses'" (click)="selectMobileTab('addresses')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     Addresses
                     @if (addressService.addresses().length > 0) {
                       <span class="acct__nav-badge">{{ addressService.addresses().length }}</span>
                     }
                   </button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'preferences'"
-                          (click)="selectMobileTab('preferences')">Preferences</button>
+                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'preferences'" (click)="selectMobileTab('preferences')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    Preferences
+                  </button>
                 </div>
               }
             </div>
 
-            <button class="acct__signout" (click)="logout()">Sign Out</button>
+            <button class="acct__signout" (click)="logout()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </button>
           </aside>
 
           <!-- Content -->
@@ -465,8 +492,8 @@ function emptyForm(): AddressFormData {
     .acct__nav-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
+      justify-content: flex-start;
+      gap: 0.6rem;
       width: 100%;
       text-align: left;
       font-family: var(--font-sans);
@@ -482,11 +509,20 @@ function emptyForm(): AddressFormData {
       &:hover { color: var(--cream); background: rgba(245, 240, 232, 0.04); }
     }
 
+    .acct__nav-item svg {
+      flex-shrink: 0;
+      stroke: currentColor;
+    }
+
     .acct__nav-item--active {
       color: var(--cream);
       background: rgba(201, 168, 76, 0.08);
       border-left: 2px solid var(--gold);
       padding-left: calc(0.75rem - 2px);
+    }
+
+    .acct__nav-item--active svg {
+      stroke: var(--gold);
     }
 
     .acct__nav-badge {
@@ -501,6 +537,7 @@ function emptyForm(): AddressFormData {
       align-items: center;
       justify-content: center;
       padding: 0 5px;
+      margin-left: auto;
     }
 
     .acct__signout {
@@ -514,6 +551,10 @@ function emptyForm(): AddressFormData {
       cursor: pointer;
       text-align: left;
       transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      svg { flex-shrink: 0; stroke: currentColor; }
       &:hover { color: var(--cream); }
     }
 
@@ -1162,6 +1203,13 @@ function emptyForm(): AddressFormData {
         &:hover { border-color: rgba(201, 168, 76, 0.35); }
       }
 
+      .acct__nav-mob-trigger-label {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        svg { flex-shrink: 0; stroke: var(--gold); }
+      }
+
       .acct__nav-mob-chevron {
         flex-shrink: 0;
         transition: transform 0.2s ease;
@@ -1185,7 +1233,8 @@ function emptyForm(): AddressFormData {
       .acct__nav-mob-opt {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 0.6rem;
         padding: 0.75rem 0.9rem;
         background: none;
         border: none;
@@ -1200,11 +1249,14 @@ function emptyForm(): AddressFormData {
         &:hover { color: var(--cream); background: rgba(245, 240, 232, 0.03); }
       }
 
+      .acct__nav-mob-opt svg { flex-shrink: 0; stroke: currentColor; }
+
       .acct__nav-mob-opt--active {
         color: var(--cream);
         background: rgba(201, 168, 76, 0.06);
         border-left: 2px solid var(--gold);
         padding-left: calc(0.9rem - 2px);
+        svg { stroke: var(--gold); }
       }
 
       .acct__signout {
