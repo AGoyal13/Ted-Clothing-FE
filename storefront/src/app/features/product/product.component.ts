@@ -9,6 +9,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { ProductService } from '../../core/services/product.service';
 import { CartService } from '../../core/services/cart.service';
+import { AuthService } from '../../core/services/auth.service';
+import { WishlistService } from '../../core/services/wishlist.service';
 import {
   ProductDetail,
   ProductSku,
@@ -176,21 +178,35 @@ import { CartItem } from '../../core/models/cart.model';
               </div>
             }
 
-            <!-- Add to Cart -->
-            <button
-              class="pdp__add-btn btn-primary"
-              (click)="addToCart()"
-              [disabled]="!selectedSkuId() || stockStatus() === 'oos'"
-              [attr.aria-label]="'Add ' + product()!.title + ' to cart'"
-            >
-              @if (!selectedSkuId()) {
-                SELECT A SIZE
-              } @else if (stockStatus() === 'oos') {
-                OUT OF STOCK
-              } @else {
-                ADD TO CART
-              }
-            </button>
+            <!-- Add to Cart + Wishlist -->
+            <div class="pdp__actions-row">
+              <button
+                class="pdp__add-btn btn-primary"
+                (click)="addToCart()"
+                [disabled]="!selectedSkuId() || stockStatus() === 'oos'"
+                [attr.aria-label]="'Add ' + product()!.title + ' to cart'"
+              >
+                @if (!selectedSkuId()) {
+                  SELECT A SIZE
+                } @else if (stockStatus() === 'oos') {
+                  OUT OF STOCK
+                } @else {
+                  ADD TO CART
+                }
+              </button>
+
+              <button
+                class="pdp__wishlist-btn"
+                [class.pdp__wishlist-btn--active]="wishlisted()"
+                (click)="toggleWishlist()"
+                [attr.aria-label]="wishlisted() ? 'Remove from wishlist' : 'Add to wishlist'"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                     [attr.fill]="wishlisted() ? 'currentColor' : 'none'">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
+            </div>
 
             @if (addedToCart()) {
               <p class="pdp__added-msg" role="status">
@@ -589,20 +605,46 @@ import { CartItem } from '../../core/models/cart.model';
       color: var(--muted);
     }
 
+    .pdp__actions-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: stretch;
+      margin-bottom: 0.75rem;
+    }
+
     .pdp__add-btn {
-      width: 100%;
+      flex: 1;
       padding: 1rem;
       font-size: 0.875rem;
       letter-spacing: 0.25em;
-      margin-bottom: 0.75rem;
 
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        &::after { display: none; }
+      }
+    }
 
-        &::after {
-          display: none;
-        }
+    .pdp__wishlist-btn {
+      width: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(245, 240, 232, 0.2);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      &--active {
+        border-color: var(--gold);
+        color: var(--gold);
       }
     }
 
@@ -688,6 +730,8 @@ export class ProductComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly productService = inject(ProductService);
   private readonly cartService = inject(CartService);
+  private readonly authService = inject(AuthService);
+  private readonly wishlistService = inject(WishlistService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
 
@@ -770,6 +814,11 @@ export class ProductComponent implements OnInit {
     return 'In Stock';
   });
 
+  readonly wishlisted = computed(() => {
+    const p = this.product();
+    return p ? this.wishlistService.isWishlisted(p.id) : false;
+  });
+
   readonly hasMeasurements = computed(() => {
     const sku = this.selectedSku();
     if (!sku) return false;
@@ -834,6 +883,18 @@ export class ProductComponent implements OnInit {
 
   toggleMeasurements(): void {
     this.measExpanded.update(v => !v);
+  }
+
+  toggleWishlist(): void {
+    const p = this.product();
+    if (!p) return;
+    if (!this.authService.isLoggedIn()) {
+      this.authService.openModal();
+      return;
+    }
+    const skuId = this.selectedSkuId() ?? this.sizesForColor()[0]?.id ?? p.skus[0]?.id;
+    if (!skuId) return;
+    this.wishlistService.toggle(p.id, skuId);
   }
 
   addToCart(): void {

@@ -252,6 +252,11 @@ function emptyForm(): AddressFormData {
                             <div class="wl-item__img-placeholder"></div>
                           }
                         </a>
+                        <button class="wl-item__remove" (click)="removeWishlist(item.productId, item.skuId)" aria-label="Remove from wishlist">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
                         <div class="wl-item__info">
                           <a [routerLink]="['/product', item.productSlug]" class="wl-item__title">{{ item.productTitle }}</a>
                           <span class="wl-item__meta">{{ item.colorName }} &middot; {{ item.sizeLabel }}</span>
@@ -262,11 +267,6 @@ function emptyForm(): AddressFormData {
                             }
                           </span>
                         </div>
-                        <button class="wl-item__remove" (click)="removeWishlist(item.productId, item.skuId)" aria-label="Remove from wishlist">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                          </svg>
-                        </button>
                       </div>
                     }
                   </div>
@@ -614,38 +614,34 @@ function emptyForm(): AddressFormData {
       &:hover { background: rgba(201, 168, 76, 0.08); border-color: var(--gold); }
     }
 
-    /* ── Wishlist compact list ───────────────────────────────── */
+    /* ── Wishlist 2-col card grid ────────────────────────────── */
     .wl-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem 1rem;
     }
 
     .wl-item {
-      display: grid;
-      grid-template-columns: 72px 1fr auto;
-      gap: 1rem;
-      align-items: center;
-      padding: 1rem 0;
-      border-bottom: 1px solid rgba(245, 240, 232, 0.06);
-      &:last-child { border-bottom: none; }
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
 
     .wl-item__img-wrap {
       display: block;
-      width: 72px;
-      height: 90px;
+      aspect-ratio: 3 / 4;
       overflow: hidden;
-      flex-shrink: 0;
+      background: rgba(245, 240, 232, 0.04);
+      margin-bottom: 0.75rem;
     }
 
     .wl-item__img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.3s ease;
-      &:hover { transform: scale(1.04); }
+      transition: transform 0.4s ease;
     }
+    .wl-item__img-wrap:hover .wl-item__img { transform: scale(1.04); }
 
     .wl-item__img-placeholder {
       width: 100%;
@@ -653,55 +649,65 @@ function emptyForm(): AddressFormData {
       background: rgba(245, 240, 232, 0.06);
     }
 
+    .wl-item__remove {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(13, 13, 13, 0.6);
+      backdrop-filter: blur(4px);
+      border: none;
+      border-radius: 50%;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      &:hover { background: rgba(13, 13, 13, 0.9); color: var(--cream); }
+    }
+
     .wl-item__info {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 0.2rem;
     }
 
     .wl-item__title {
       font-family: var(--font-sans);
-      font-size: 0.875rem;
+      font-size: 0.82rem;
+      font-weight: 500;
       color: var(--cream);
       text-decoration: none;
+      line-height: 1.35;
       transition: color 0.2s;
       &:hover { color: var(--gold); }
     }
 
     .wl-item__meta {
       font-family: var(--font-sans);
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       color: var(--muted);
     }
 
     .wl-item__price {
       font-family: var(--font-sans);
-      font-size: 0.875rem;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--cream);
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      align-items: baseline;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.15rem;
     }
 
     .wl-item__original {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
+      font-weight: 400;
       color: var(--muted);
       text-decoration: line-through;
-    }
-
-    .wl-item__remove {
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: color 0.2s;
-      &:hover { color: var(--cream); }
     }
 
     /* ── Address form ────────────────────────────────────────── */

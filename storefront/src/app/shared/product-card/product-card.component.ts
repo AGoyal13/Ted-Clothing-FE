@@ -13,6 +13,7 @@ import {
   formatINR,
   hasDiscount,
   isNewArrival,
+  isInStock,
   getImagesForColor,
 } from '../../core/models/product.model';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,11 +29,15 @@ import { WishlistService } from '../../core/services/wishlist.service';
 
         <!-- Badges -->
         <div class="card__badges">
-          @if (isNew()) {
-            <span class="badge badge--new">NEW</span>
-          }
-          @if (onSale()) {
-            <span class="badge badge--sale">SALE</span>
+          @if (outOfStock()) {
+            <span class="badge badge--oos">OUT OF STOCK</span>
+          } @else {
+            @if (isNew()) {
+              <span class="badge badge--new">NEW</span>
+            }
+            @if (onSale()) {
+              <span class="badge badge--sale">SALE</span>
+            }
           }
         </div>
 
@@ -70,7 +75,7 @@ import { WishlistService } from '../../core/services/wishlist.service';
 
         <!-- Quick Add Bar (hover) -->
         <div class="card__quick-add">
-          <span class="card__quick-add-label">QUICK ADD</span>
+          <span class="card__quick-add-label">{{ outOfStock() ? 'OUT OF STOCK' : 'QUICK ADD' }}</span>
           <div class="card__sizes">
             @for (size of availableSizes(); track size.label) {
               <button
@@ -213,6 +218,12 @@ import { WishlistService } from '../../core/services/wishlist.service';
     .badge--sale {
       background: #8b1a1a;
       color: #ffcccc;
+    }
+
+    .badge--oos {
+      background: rgba(245, 240, 232, 0.1);
+      color: var(--muted);
+      border: 1px solid rgba(245, 240, 232, 0.15);
     }
 
     .card__wishlist {
@@ -409,6 +420,7 @@ export class ProductCardComponent {
 
   readonly onSale = computed(() => hasDiscount(this.product()));
   readonly isNew = computed(() => isNewArrival(this.product()));
+  readonly outOfStock = computed(() => !isInStock(this.product()));
 
   readonly effectivePriceStr = computed(() =>
     formatINR(getEffectivePrice(this.product()))

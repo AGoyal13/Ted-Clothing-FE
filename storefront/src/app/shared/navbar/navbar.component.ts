@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser, UpperCasePipe } from '@angular/common';
-import { Router, RouterLink, NavigationStart } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, filter } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
@@ -21,7 +21,7 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, UpperCasePipe],
+  imports: [RouterLink, RouterLinkActive, UpperCasePipe],
   template: `
     <header class="navbar" [class.navbar--scrolled]="scrolled()">
       <div class="navbar__inner">
@@ -52,17 +52,39 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
 
         <!-- Right Actions -->
         <div class="navbar__actions">
-          <a routerLink="/cart" class="navbar__cart-btn" aria-label="Shopping cart">
+
+          <!-- Search (placeholder) -->
+          <button class="navbar__icon-btn" aria-label="Search">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 0 1-8 0"/>
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
+          </button>
+
+          <!-- Wishlist (logged-in only) -->
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/wishlist" routerLinkActive="navbar__icon-btn--active" class="navbar__icon-btn" aria-label="Wishlist">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </a>
+          }
+
+          <a routerLink="/cart" class="navbar__cart-btn" aria-label="Shopping cart">
+            <span class="navbar__cart-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              @if (cartCount() > 0) {
+                <span class="navbar__cart-badge">{{ cartCount() }}</span>
+              }
+            </span>
             <span class="navbar__cart-label">CART ({{ cartCount() }})</span>
           </a>
 
           @if (authService.isLoggedIn()) {
-            <a routerLink="/account" class="navbar__account" aria-label="My account">
+            <a routerLink="/account" routerLinkActive="navbar__account--active" class="navbar__account" aria-label="My account">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                 <circle cx="12" cy="7" r="4"/>
@@ -204,7 +226,15 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
               }
             </a>
             @if (authService.isLoggedIn()) {
-              <a routerLink="/account" class="mobile-menu__footer-link" (click)="closeMobileMenu()">Account</a>
+              <a routerLink="/wishlist" class="mobile-menu__footer-link" (click)="closeMobileMenu()">Wishlist</a>
+              <button class="mobile-menu__footer-link mobile-menu__footer-signout" (click)="signOut()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign Out
+              </button>
             } @else {
               <button class="mobile-menu__footer-link" (click)="authService.openModal(); closeMobileMenu()">Sign In</button>
             }
@@ -328,9 +358,44 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
       white-space: nowrap;
     }
 
+    .navbar__cart-icon-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .navbar__cart-badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      color: var(--gold);
+      font-family: var(--font-sans);
+      font-size: 0.6rem;
+      font-weight: 700;
+      line-height: 1;
+      display: none;
+    }
+
     .navbar__cart-label {
       position: relative;
     }
+
+    .navbar__icon-btn {
+      display: flex;
+      align-items: center;
+      color: var(--cream);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      flex-shrink: 0;
+      &:hover { color: var(--gold); }
+      &--active { color: var(--gold); }
+    }
+
+    .navbar__account--active { color: var(--gold); }
 
     .navbar__account,
     .navbar__login {
@@ -422,13 +487,9 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
     }
 
     @media (max-width: 900px) {
-      .navbar__nav {
-        display: none;
-      }
+      .navbar__nav { display: none; }
 
-      .navbar__hamburger {
-        display: flex;
-      }
+      .navbar__hamburger { display: flex; }
 
       .navbar {
         background: var(--navbar-scrolled-bg);
@@ -436,6 +497,19 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
         -webkit-backdrop-filter: blur(10px);
         border-bottom-color: rgba(201, 168, 76, 0.12);
       }
+
+      /* Cart: drop solid gold button, show plain icon + count */
+      .navbar__cart-btn {
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: var(--cream);
+        gap: 0;
+        &:hover { color: var(--gold); }
+      }
+      .navbar__cart-label { display: none; }
+      .navbar__cart-badge { display: block; }
+      .navbar__actions { gap: 1rem; }
     }
 
     /* ── Nav item wrapper for hover zone ──────────────────────── */
@@ -694,6 +768,12 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
       transition: color 0.2s;
       &:hover { color: var(--cream); }
     }
+    .mobile-menu__footer-signout {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      &:hover { color: #f87171; }
+    }
     .mobile-menu__badge {
       background: var(--gold);
       color: var(--bg);
@@ -856,5 +936,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       document.body.style.overflow = '';
     }
+  }
+
+  signOut(): void {
+    this.authService.logout();
+    this.closeMobileMenu();
   }
 }

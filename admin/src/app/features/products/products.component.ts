@@ -147,7 +147,13 @@ export interface Product {
         </ng-container>
         <ng-container matColumnDef="skus">
           <th mat-header-cell *matHeaderCellDef>SKUs</th>
-          <td mat-cell *matCellDef="let p">{{ p._count.skus }}</td>
+          <td mat-cell *matCellDef="let p">
+            @if (p._count.skus === 0) {
+              <span class="badge-no-skus" matTooltip="This product has no SKUs — it will appear on the storefront but cannot be wishlisted or carted">No SKUs</span>
+            } @else {
+              {{ p._count.skus }}
+            }
+          </td>
         </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
@@ -183,6 +189,7 @@ export interface Product {
     code { font-size: 11px; color: #666; }
     .discount { color: #e53935; font-size: 12px; margin-left: 4px; }
     .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-no-skus { background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: default; }
     .status-draft { background: #fff9c4; color: #f57f17; }
     .status-active { background: #e8f5e9; color: #2e7d32; }
     .status-archived { background: #fce4ec; color: #c62828; }

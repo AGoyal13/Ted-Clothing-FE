@@ -314,7 +314,7 @@ export class ProductDetailComponent implements OnInit {
   }
 
   findSku(colorId: string, size: string): Sku | undefined {
-    return this.product()?.skus.find(s => s.colorId === colorId && s.sizeLabel === size);
+    return this.product()?.skus.find(s => s.colorId === colorId && s.sizeLabel.toLowerCase() === size.toLowerCase());
   }
 
   skuCountForColor(colorId: string): number {
@@ -373,7 +373,12 @@ export class ProductDetailComponent implements OnInit {
         this.cancelAdd();
         this.snack.open(`Size "${label}" added`, '', { duration: 1500 });
       },
-      error: (e) => this.snack.open(e?.error?.error?.message ?? 'Failed to add size', '', { duration: 3000 }),
+      error: (e) => {
+        const msg = e?.error?.error?.message ?? e?.error?.message ?? 'Failed to add size';
+        this.snack.open(msg, 'OK', { duration: 4000 });
+        this.cancelAdd();
+        this.loadProduct();
+      },
     });
   }
 
