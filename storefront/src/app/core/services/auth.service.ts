@@ -7,27 +7,25 @@ import { AuthUser, AuthResponse } from '../models/auth.model';
 import { ApiResponse } from '../models/product.model';
 
 const TOKEN_KEY = 'ted_auth_token';
-const USER_KEY = 'ted_auth_user';
+const USER_KEY  = 'ted_auth_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = inject(HttpClient);
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly isBrowser = isPlatformBrowser(this.platformId);
-  private readonly baseUrl = environment.apiUrl;
+  private readonly http        = inject(HttpClient);
+  private readonly platformId  = inject(PLATFORM_ID);
+  private readonly isBrowser   = isPlatformBrowser(this.platformId);
+  private readonly baseUrl     = environment.apiUrl;
 
   readonly currentUser = signal<AuthUser | null>(this.loadStoredUser());
-  readonly isLoggedIn = computed(() => !!this.currentUser());
-  readonly modalOpen = signal(false);
+  readonly isLoggedIn  = computed(() => !!this.currentUser());
+  readonly modalOpen   = signal(false);
 
   private loadStoredUser(): AuthUser | null {
     if (!isPlatformBrowser(this.platformId)) return null;
     try {
       const raw = localStorage.getItem(USER_KEY);
       return raw ? (JSON.parse(raw) as AuthUser) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   getToken(): string | null {
@@ -35,43 +33,49 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
-  openModal(): void {
-    this.modalOpen.set(true);
-  }
+  openModal():  void { this.modalOpen.set(true);  }
+  closeModal(): void { this.modalOpen.set(false); }
 
-  closeModal(): void {
-    this.modalOpen.set(false);
-  }
-
-  register(email: string, password: string) {
+  register(email: string, password: string, name?: string, phone?: string) {
     return this.http
-      .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/register`, { email, password })
-      .pipe(
-        map(r => r.data),
-        tap(data => this.persistSession(data)),
-      );
+      .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/register`, {
+        email, password,
+        ...(name  ? { name }  : {}),
+        ...(phone ? { phone } : {}),
+      })
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
   }
 
   login(email: string, password: string) {
     return this.http
       .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/login`, { email, password })
-      .pipe(
-        map(r => r.data),
-        tap(data => this.persistSession(data)),
-      );
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
   }
 
   verifyOtp(phone: string, otp: string) {
     return this.http
       .post<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/verify-otp`, { phone, otp })
-      .pipe(
-        map(r => r.data),
-        tap(data => this.persistSession(data)),
-      );
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
   }
 
   sendOtp(phone: string) {
     return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/send-otp`, { phone });
+  }
+
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  sendProfileOtp(purpose: 'EMAIL' | 'PHONE', newValue: string) {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/profile/send-otp`, { purpose, newValue });
+  }
+
+  updateProfile(data: { name?: string; purpose?: 'EMAIL' | 'PHONE'; newValue?: string; otp?: string }) {
+    return this.http
+      .patch<ApiResponse<AuthResponse>>(`${this.baseUrl}/auth/profile`, data)
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/auth/password`, { currentPassword, newPassword });
   }
 
   logout(): void {

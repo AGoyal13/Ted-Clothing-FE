@@ -145,44 +145,34 @@ type LoginMethod = 'email' | 'otp';
         @if (tab() === 'register') {
           <form class="modal__form" (ngSubmit)="submitRegister()">
             <div class="modal__field">
-              <label class="modal__label" for="reg-email">Email</label>
-              <input
-                id="reg-email"
-                class="modal__input"
-                type="email"
-                [(ngModel)]="regEmail"
-                name="email"
-                placeholder="your@email.com"
-                required
-                autocomplete="email"
-              />
+              <label class="modal__label" for="reg-name">Name</label>
+              <input id="reg-name" class="modal__input" type="text"
+                     [(ngModel)]="regName" name="name" placeholder="Your name (optional)"
+                     autocomplete="name" />
             </div>
             <div class="modal__field">
-              <label class="modal__label" for="reg-password">Password</label>
-              <input
-                id="reg-password"
-                class="modal__input"
-                type="password"
-                [(ngModel)]="regPassword"
-                name="password"
-                placeholder="Min 8 characters"
-                minlength="8"
-                required
-                autocomplete="new-password"
-              />
+              <label class="modal__label" for="reg-email">Email *</label>
+              <input id="reg-email" class="modal__input" type="email"
+                     [(ngModel)]="regEmail" name="email" placeholder="your@email.com"
+                     required autocomplete="email" />
             </div>
             <div class="modal__field">
-              <label class="modal__label" for="reg-confirm">Confirm Password</label>
-              <input
-                id="reg-confirm"
-                class="modal__input"
-                type="password"
-                [(ngModel)]="regConfirm"
-                name="confirm"
-                placeholder="••••••••"
-                required
-                autocomplete="new-password"
-              />
+              <label class="modal__label" for="reg-phone">Mobile Number</label>
+              <input id="reg-phone" class="modal__input" type="tel"
+                     [(ngModel)]="regPhone" name="phone" placeholder="10-digit number (optional)"
+                     maxlength="10" autocomplete="tel" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-password">Password *</label>
+              <input id="reg-password" class="modal__input" type="password"
+                     [(ngModel)]="regPassword" name="password" placeholder="Min 8 characters"
+                     minlength="8" required autocomplete="new-password" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-confirm">Confirm Password *</label>
+              <input id="reg-confirm" class="modal__input" type="password"
+                     [(ngModel)]="regConfirm" name="confirm" placeholder="••••••••"
+                     required autocomplete="new-password" />
             </div>
             <button class="modal__submit" type="submit" [disabled]="loading()">
               {{ loading() ? 'CREATING…' : 'CREATE ACCOUNT' }}
@@ -427,7 +417,9 @@ export class AuthModalComponent {
   loginPassword = '';
   otpPhone = '';
   otpCode = '';
+  regName = '';
   regEmail = '';
+  regPhone = '';
   regPassword = '';
   regConfirm = '';
 
@@ -505,7 +497,7 @@ export class AuthModalComponent {
     }
     this.loading.set(true);
     this.errorMsg.set('');
-    this.authService.register(this.regEmail, this.regPassword).subscribe({
+    this.authService.register(this.regEmail, this.regPassword, this.regName || undefined, this.regPhone || undefined).subscribe({
       next: () => {
         this.loading.set(false);
         this.close();

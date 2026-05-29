@@ -9,12 +9,26 @@ export interface WishlistEntry {
   id: string;
   skuId: string;
   productId: string;
+  productTitle: string;
+  productSlug: string;
+  colorName: string;
+  colorHex: string;
+  sizeLabel: string;
+  image: string;
+  basePrice: number;
+  discountPercent: number;
 }
 
 interface WishlistApiItem {
   id: string;
   skuId: string;
-  sku: { id: string; productId: string };
+  sku: {
+    id: string;
+    productId: string;
+    sizeLabel: string;
+    color: { id: string; colorName: string; colorHex: string; images: string[] };
+    product: { id: string; title: string; slug: string; basePrice: number; discountPercent: number };
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +39,7 @@ export class WishlistService {
 
   private readonly _entries = signal<WishlistEntry[]>([]);
 
+  readonly items = this._entries.asReadonly();
   readonly count = computed(() => this._entries().length);
 
   readonly wishlistedProductIds = computed(
@@ -57,30 +72,30 @@ export class WishlistService {
   private loadWishlist(): void {
     this.http
       .get<ApiResponse<WishlistApiItem[]>>(`${this.baseUrl}/wishlist`)
-      .pipe(
-        map(r =>
-          r.data.map(item => ({
-            id: item.id,
-            skuId: item.skuId,
-            productId: item.sku.productId,
-          }))
-        )
-      )
+      .pipe(map(r => r.data.map(this.mapItem)))
       .subscribe({ next: entries => this._entries.set(entries), error: () => {} });
+  }
+
+  private mapItem(item: WishlistApiItem): WishlistEntry {
+    return {
+      id: item.id,
+      skuId: item.skuId,
+      productId: item.sku.productId,
+      productTitle: item.sku.product.title,
+      productSlug: item.sku.product.slug,
+      colorName: item.sku.color.colorName,
+      colorHex: item.sku.color.colorHex,
+      sizeLabel: item.sku.sizeLabel,
+      image: item.sku.color.images?.[0] ?? '',
+      basePrice: item.sku.product.basePrice,
+      discountPercent: item.sku.product.discountPercent,
+    };
   }
 
   private add(skuId: string, productId: string): void {
     this.http
       .post<ApiResponse<{ id: string }>>(`${this.baseUrl}/wishlist`, { skuId })
-      .subscribe({
-        next: r => {
-          this._entries.update(prev => [
-            ...prev,
-            { id: r.data.id, skuId, productId },
-          ]);
-        },
-        error: () => {},
-      });
+      .subscribe({ next: () => this.loadWishlist(), error: () => {} });
   }
 
   private remove(skuId: string, productId: string): void {
@@ -88,5 +103,9 @@ export class WishlistService {
     this.http
       .delete(`${this.baseUrl}/wishlist/${skuId}`)
       .subscribe({ error: () => this.loadWishlist() });
+  }
+
+  effectivePrice(entry: WishlistEntry): number {
+    return Math.round(entry.basePrice * (1 - entry.discountPercent / 100));
   }
 }
