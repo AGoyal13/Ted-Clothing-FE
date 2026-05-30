@@ -1,13 +1,18 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { ApiService } from '../../core/services/api.service';
 
-type Preset = '7d' | '30d' | '90d';
+type Preset = '7d' | '30d' | '90d' | 'custom';
 
 interface DailyReg { date: string; count: number; }
 interface TopProduct { productId: string; title: string; slug: string; count: number; }
@@ -26,23 +31,44 @@ interface AdminStats {
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatTooltipModule,
+    MatDatepickerModule, MatNativeDateModule, MatFormFieldModule, MatInputModule,
   ],
   template: `
     <div class="dash">
       <!-- Header -->
       <div class="dash__header">
         <h1 class="dash__title">Dashboard</h1>
-        <div class="dash__presets">
-          @for (p of presets; track p.value) {
+        <div class="dash__controls">
+          <div class="dash__presets">
+            @for (p of presets; track p.value) {
+              <button
+                mat-stroked-button
+                [class.active]="preset() === p.value"
+                (click)="setPreset(p.value)"
+              >{{ p.label }}</button>
+            }
+          </div>
+          <div class="dash__custom-range">
+            <mat-form-field appearance="outline" class="dash__range-field">
+              <mat-label>Custom range</mat-label>
+              <mat-date-range-input [formGroup]="dateRange" [rangePicker]="picker" [max]="today">
+                <input matStartDate formControlName="start" placeholder="Start" />
+                <input matEndDate formControlName="end" placeholder="End" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="picker" />
+              <mat-date-range-picker #picker />
+            </mat-form-field>
             <button
-              mat-stroked-button
-              [class.active]="preset() === p.value"
-              (click)="setPreset(p.value)"
-            >{{ p.label }}</button>
-          }
+              mat-flat-button
+              color="primary"
+              class="dash__apply-btn"
+              [disabled]="!dateRange.value.start || !dateRange.value.end"
+              (click)="applyCustomRange()"
+            >Apply</button>
+          </div>
         </div>
       </div>
 
@@ -266,6 +292,13 @@ interface AdminStats {
       margin: 0;
     }
 
+    .dash__controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
     .dash__presets {
       display: flex;
       gap: 8px;
@@ -274,6 +307,23 @@ interface AdminStats {
         background: #3f51b5;
         color: white;
       }
+    }
+
+    .dash__custom-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dash__range-field {
+      width: 240px;
+
+      .mat-mdc-form-field-subscript-wrapper { display: none; }
+    }
+
+    .dash__apply-btn {
+      height: 40px;
+      margin-top: -4px;
     }
 
     .dash__spinner {
@@ -466,6 +516,12 @@ export class DashboardComponent implements OnInit {
     { label: '90 Days', value: '90d' },
   ];
 
+  readonly today = new Date();
+  readonly dateRange = new FormGroup({
+    start: new FormControl<Date | null>(null),
+    end: new FormControl<Date | null>(null),
+  });
+
   readonly preset = signal<Preset>('30d');
   readonly loading = signal(true);
   readonly stats = signal<AdminStats | null>(null);
@@ -501,7 +557,15 @@ export class DashboardComponent implements OnInit {
   }
 
   setPreset(p: Preset): void {
+    this.dateRange.reset();
     this.preset.set(p);
+    this.load();
+  }
+
+  applyCustomRange(): void {
+    const { start, end } = this.dateRange.value;
+    if (!start || !end) return;
+    this.preset.set('custom');
     this.load();
   }
 
@@ -516,9 +580,20 @@ export class DashboardComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    const to = new Date();
-    const days = this.preset() === '7d' ? 7 : this.preset() === '30d' ? 30 : 90;
-    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+
+    let from: Date;
+    let to: Date;
+
+    if (this.preset() === 'custom') {
+      const { start, end } = this.dateRange.value;
+      from = start!;
+      to = new Date(end!);
+      to.setHours(23, 59, 59, 999);
+    } else {
+      to = new Date();
+      const days = this.preset() === '7d' ? 7 : this.preset() === '30d' ? 30 : 90;
+      from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+    }
 
     this.api.get<AdminStats>('admin/stats', {
       from: from.toISOString(),
