@@ -11,6 +11,7 @@ import { ProductService } from '../../core/services/product.service';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WishlistService } from '../../core/services/wishlist.service';
+import { ApiService } from '../../core/services/api.service';
 import {
   ProductDetail,
   ProductSku,
@@ -215,6 +216,51 @@ import { CartItem } from '../../core/models/cart.model';
                 </svg>
                 Added to cart!
               </p>
+            }
+
+            <!-- Notify Me When Back in Stock -->
+            @if (allSizesOos()) {
+              @if (notifySent()) {
+                <p class="pdp__notify-success">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  You're on the list! We'll email you when it's back.
+                </p>
+              } @else if (!notifyOpen()) {
+                <button class="pdp__notify-trigger" (click)="openNotify()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  NOTIFY ME WHEN BACK IN STOCK
+                </button>
+              } @else {
+                <div class="pdp__notify-form">
+                  <p class="pdp__notify-hint">We'll email you when this is available again.</p>
+                  <div class="pdp__notify-row">
+                    <input
+                      type="email"
+                      class="pdp__notify-input"
+                      placeholder="your@email.com"
+                      [value]="notifyEmail()"
+                      (input)="notifyEmail.set($any($event.target).value)"
+                      [disabled]="notifySending()"
+                    />
+                    <button
+                      class="btn-primary pdp__notify-submit"
+                      (click)="submitNotify()"
+                      [disabled]="!notifyEmail().trim() || notifySending()"
+                    >
+                      @if (notifySending()) {
+                        <span class="pdp__notify-spinner"></span>
+                      } @else {
+                        NOTIFY ME
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
             }
 
             <!-- Description -->
@@ -724,6 +770,106 @@ import { CartItem } from '../../core/models/cart.model';
         color: var(--cream);
       }
     }
+
+    /* Notify Me */
+    .pdp__notify-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      margin-top: 0.25rem;
+      background: transparent;
+      border: 1px dashed rgba(245, 240, 232, 0.2);
+      color: var(--muted);
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        border-color: rgba(201, 168, 76, 0.5);
+        color: var(--gold);
+      }
+    }
+
+    .pdp__notify-form {
+      margin-top: 0.25rem;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .pdp__notify-hint {
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.625rem;
+    }
+
+    .pdp__notify-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .pdp__notify-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid rgba(245, 240, 232, 0.15);
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(201, 168, 76, 0.5);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+      }
+    }
+
+    .pdp__notify-submit {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 100px;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        &::after { display: none; }
+      }
+    }
+
+    .pdp__notify-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(13, 13, 13, 0.3);
+      border-top-color: #0d0d0d;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .pdp__notify-success {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      color: #4caf7d;
+      animation: fadeUp 0.3s ease both;
+    }
   `],
 })
 export class ProductComponent implements OnInit {
@@ -732,6 +878,7 @@ export class ProductComponent implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly authService = inject(AuthService);
   private readonly wishlistService = inject(WishlistService);
+  private readonly apiService = inject(ApiService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
 
@@ -745,6 +892,11 @@ export class ProductComponent implements OnInit {
   readonly descExpanded = signal(true);
   readonly measExpanded = signal(false);
   readonly addedToCart = signal(false);
+
+  readonly notifyOpen = signal(false);
+  readonly notifyEmail = signal('');
+  readonly notifySending = signal(false);
+  readonly notifySent = signal(false);
 
   private addedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -819,6 +971,11 @@ export class ProductComponent implements OnInit {
     return p ? this.wishlistService.isWishlisted(p.id) : false;
   });
 
+  readonly allSizesOos = computed(() => {
+    const sizes = this.sizesForColor();
+    return sizes.length > 0 && sizes.every(s => s.stockQty === 0);
+  });
+
   readonly hasMeasurements = computed(() => {
     const sku = this.selectedSku();
     if (!sku) return false;
@@ -866,6 +1023,36 @@ export class ProductComponent implements OnInit {
     this.selectedColorId.set(colorId);
     this.selectedSkuId.set(null);
     this.selectedThumbIndex.set(0);
+    this.notifyOpen.set(false);
+    this.notifySent.set(false);
+  }
+
+  openNotify(): void {
+    const user = this.authService.currentUser();
+    this.notifyEmail.set(user?.email ?? '');
+    this.notifyOpen.set(true);
+  }
+
+  submitNotify(): void {
+    const p = this.product();
+    const email = this.notifyEmail().trim();
+    if (!p || !email) return;
+
+    this.notifySending.set(true);
+    this.apiService.post('/stock-notifications', {
+      productId: p.id,
+      skuId: this.selectedSkuId() ?? null,
+      email,
+    }).subscribe({
+      next: () => {
+        this.notifySent.set(true);
+        this.notifyOpen.set(false);
+        this.notifySending.set(false);
+      },
+      error: () => {
+        this.notifySending.set(false);
+      },
+    });
   }
 
   selectSize(sku: ProductSku): void {

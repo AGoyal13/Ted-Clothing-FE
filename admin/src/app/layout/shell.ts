@@ -30,6 +30,10 @@ import { AuthService } from '../core/services/auth.service';
           <span class="role">Admin</span>
         </div>
         <mat-nav-list>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>dashboard</mat-icon>
+            <span matListItemTitle>Dashboard</span>
+          </a>
           <a mat-list-item routerLink="/categories" routerLinkActive="active" (click)="isMobile() && drawer.close()">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categories</span>

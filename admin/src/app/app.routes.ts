@@ -12,7 +12,11 @@ export const routes: Routes = [
     component: ShellComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'products', pathMatch: 'full' },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
+      },
       {
         path: 'categories',
         loadComponent: () => import('./features/categories/categories.component').then(m => m.CategoriesComponent),
