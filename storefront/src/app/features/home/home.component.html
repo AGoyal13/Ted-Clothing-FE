@@ -1,0 +1,45 @@
+<main>
+  <app-hero />
+
+  @defer (on viewport) {
+    <app-marquee />
+  } @placeholder {
+    <div style="height:44px;background:var(--gold);"></div>
+  }
+
+  @defer (on viewport) {
+    <app-category-grid />
+  } @placeholder {
+    <div style="height:500px;"></div>
+  }
+
+  @defer (on viewport) {
+    <app-featured-products />
+  } @placeholder {
+    <div style="height:600px;"></div>
+  }
+
+  @defer (on viewport) {
+    <app-promo-banners />
+  } @placeholder {
+    <div style="height:300px;"></div>
+  }
+
+  @defer (on viewport) {
+    <app-testimonials />
+  } @placeholder {
+    <div style="height:400px;"></div>
+  }
+
+  @defer (on viewport) {
+    <app-feedback-form />
+  } @placeholder {
+    <div style="height:320px;"></div>
+  }
+
+  @defer (on viewport) {
+    <app-newsletter />
+  } @placeholder {
+    <div style="height:300px;"></div>
+  }
+</main>

@@ -1,0 +1,30 @@
+.marquee {
+  background: var(--gold);
+  overflow: hidden;
+  padding: 0.75rem 0;
+
+  &:hover .marquee__track {
+    animation-play-state: paused;
+  }
+}
+
+.marquee__track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee-scroll 24s linear infinite;
+  width: max-content;
+}
+
+.marquee__content {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--bg);
+  white-space: nowrap;
+  padding-right: 2rem;
+}
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

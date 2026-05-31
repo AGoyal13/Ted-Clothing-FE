@@ -1,0 +1,79 @@
+
+    <main class="wl-page">
+
+      <!-- Header -->
+      <div class="wl-page__header">
+        <p class="wl-page__eyebrow">CURATED BY YOU</p>
+        <h1 class="wl-page__heading">WISHLIST</h1>
+        @if (wishlist.count() > 0) {
+          <p class="wl-page__count">{{ wishlist.count() }} {{ wishlist.count() === 1 ? 'piece' : 'pieces' }}</p>
+        }
+      </div>
+
+      @if (wishlist.count() === 0) {
+        <!-- Empty state -->
+        <div class="wl-page__empty">
+          <div class="wl-page__empty-icon" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <p class="wl-page__empty-title">Your wishlist is empty</p>
+          <p class="wl-page__empty-sub">Save pieces you love and find them here.</p>
+          <a routerLink="/" class="wl-page__cta">EXPLORE COLLECTION</a>
+        </div>
+      } @else {
+        <!-- Product grid -->
+        <div class="wl-page__grid">
+          @for (item of wishlist.items(); track item.skuId) {
+            <article class="wl-card">
+
+              <!-- Image -->
+              <a [routerLink]="['/product', item.productSlug]" class="wl-card__img-wrap">
+                @if (item.image) {
+                  <img class="wl-card__img" [src]="item.image" [alt]="item.productTitle" loading="lazy" />
+                } @else {
+                  <div class="wl-card__img-placeholder"></div>
+                }
+              </a>
+
+              <!-- Remove -->
+              <button class="wl-card__remove"
+                      (click)="wishlist.toggle(item.productId, item.skuId)"
+                      aria-label="Remove from wishlist">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
+
+              <!-- Info -->
+              <div class="wl-card__info">
+                <a [routerLink]="['/product', item.productSlug]" class="wl-card__title">
+                  {{ item.productTitle }}
+                </a>
+                <span class="wl-card__meta">
+                  <span class="wl-card__swatch"
+                        [style.background]="item.colorHex || '#888'"
+                        aria-hidden="true"></span>
+                  {{ item.colorName }} &middot; {{ item.sizeLabel }}
+                </span>
+                <div class="wl-card__price">
+                  <span class="wl-card__price-current">₹{{ wishlist.effectivePrice(item) | number:'1.0-0' }}</span>
+                  @if (item.discountPercent > 0) {
+                    <span class="wl-card__price-original">₹{{ item.basePrice | number:'1.0-0' }}</span>
+                    <span class="wl-card__discount">{{ item.discountPercent }}% off</span>
+                  }
+                </div>
+              </div>
+
+            </article>
+          }
+        </div>
+
+        <!-- Continue shopping -->
+        <div class="wl-page__footer">
+          <a routerLink="/" class="wl-page__cta wl-page__cta--outline">CONTINUE SHOPPING</a>
+        </div>
+      }
+
+    </main>

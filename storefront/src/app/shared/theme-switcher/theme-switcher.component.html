@@ -1,0 +1,68 @@
+@if (inline()) {
+  <!-- Inline mode: options rendered directly, no trigger button -->
+  <div class="ts__options ts__options--inline">
+    @for (theme of themeService.themes; track theme.id) {
+      <button
+        class="ts__option"
+        [class.ts__option--active]="themeService.activeId() === theme.id"
+        (click)="themeService.setTheme(theme.id)"
+      >
+        <div class="ts__swatches">
+          @for (swatch of theme.swatches; track $index) {
+            <span class="ts__swatch" [style.background]="swatch"></span>
+          }
+        </div>
+        <span class="ts__option-name">{{ theme.name }}</span>
+        <span class="ts__option-sub">{{ theme.subtitle }}</span>
+        @if (themeService.activeId() === theme.id) {
+          <span class="ts__check" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="2 6 5 9 10 3"/>
+            </svg>
+          </span>
+        }
+      </button>
+    }
+  </div>
+} @else {
+  <div class="ts">
+    <!-- Trigger: 3 swatches of active theme -->
+    <button class="ts__btn" (click)="toggle()" aria-label="Switch theme" [attr.aria-expanded]="open()">
+      @for (swatch of activeTheme()?.swatches; track $index) {
+        <span class="ts__dot" [style.background]="swatch"></span>
+      }
+    </button>
+
+    <!-- Dropdown panel -->
+    @if (open()) {
+      <div class="ts__panel" role="menu">
+        <p class="ts__panel-title">SELECT THEME</p>
+        <div class="ts__options">
+          @for (theme of themeService.themes; track theme.id) {
+            <button
+              class="ts__option"
+              [class.ts__option--active]="themeService.activeId() === theme.id"
+              (click)="select(theme.id)"
+              role="menuitem"
+            >
+              <div class="ts__swatches">
+                @for (swatch of theme.swatches; track $index) {
+                  <span class="ts__swatch" [style.background]="swatch"></span>
+                }
+              </div>
+              <span class="ts__option-name">{{ theme.name }}</span>
+              <span class="ts__option-sub">{{ theme.subtitle }}</span>
+              @if (themeService.activeId() === theme.id) {
+                <span class="ts__check" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polyline points="2 6 5 9 10 3"/>
+                  </svg>
+                </span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,102 @@
+
+    <!-- Toast -->
+    @if (toast()) {
+      <div class="fb-toast" role="status">{{ toast() }}</div>
+    }
+
+    <section class="fb" aria-labelledby="fb-heading">
+      <div class="fb__inner">
+        <div class="fb__header">
+          <p class="fb__eyebrow">SHARE YOUR EXPERIENCE</p>
+          <h2 class="fb__heading" id="fb-heading">YOUR THOUGHTS</h2>
+        </div>
+
+        @if (submitted()) {
+          <div class="fb__thankyou">
+            <div class="fb__thankyou-icon" aria-hidden="true">✓</div>
+            <p class="fb__thankyou-title">Thank you, {{ submittedName() }}!</p>
+            <p class="fb__thankyou-sub">Your review has been submitted and will appear once approved.</p>
+          </div>
+        } @else {
+          <form class="fb__form" (ngSubmit)="submit()" #form="ngForm" novalidate>
+
+            <!-- Star rating -->
+            <div class="fb__field">
+              <label class="fb__label">Rating</label>
+              <div class="fb__stars" role="radiogroup" aria-label="Rating">
+                @for (star of stars; track star) {
+                  <button
+                    type="button"
+                    class="fb__star"
+                    [class.fb__star--filled]="star <= (hoverRating() || selectedRating())"
+                    (mouseenter)="hoverRating.set(star)"
+                    (mouseleave)="hoverRating.set(0)"
+                    (click)="selectedRating.set(star)"
+                    [attr.aria-label]="star + ' star' + (star > 1 ? 's' : '')"
+                    [attr.aria-pressed]="star === selectedRating()"
+                  >★</button>
+                }
+              </div>
+            </div>
+
+            <!-- Quote -->
+            <div class="fb__field">
+              <label class="fb__label" for="fb-quote">Your Review *</label>
+              <textarea
+                id="fb-quote"
+                class="fb__textarea"
+                [(ngModel)]="quote"
+                name="quote"
+                placeholder="Tell us about your experience with Ted Clothing…"
+                rows="4"
+                required
+                minlength="10"
+              ></textarea>
+            </div>
+
+            <div class="fb__row">
+              <!-- Name -->
+              <div class="fb__field">
+                <label class="fb__label" for="fb-name">Name *</label>
+                <input
+                  id="fb-name"
+                  class="fb__input"
+                  type="text"
+                  [(ngModel)]="name"
+                  name="name"
+                  placeholder="Your name"
+                  required
+                  autocomplete="name"
+                />
+              </div>
+
+              <!-- Location -->
+              <div class="fb__field">
+                <label class="fb__label" for="fb-location">City *</label>
+                <input
+                  id="fb-location"
+                  class="fb__input"
+                  type="text"
+                  [(ngModel)]="location"
+                  name="location"
+                  placeholder="e.g. Mumbai, India"
+                  required
+                  autocomplete="address-level2"
+                />
+              </div>
+            </div>
+
+            @if (errorMsg()) {
+              <p class="fb__error">{{ errorMsg() }}</p>
+            }
+
+            <button
+              class="fb__submit"
+              type="submit"
+              [disabled]="loading()"
+            >{{ loading() ? 'SUBMITTING…' : 'SUBMIT REVIEW' }}</button>
+
+          </form>
+        }
+      </div>
+    </section>

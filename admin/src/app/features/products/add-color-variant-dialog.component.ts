@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
 import { ImageUploadComponent } from './image-upload.component';
+import { ColorSwatchPickerComponent } from '../../shared/color-swatch-picker.component';
 
 interface SizeRow { sizeLabel: string; stockQty: number; }
 
@@ -18,7 +19,7 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
   imports: [
     FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    ImageUploadComponent,
+    ImageUploadComponent, ColorSwatchPickerComponent,
   ],
   template: `
     <h2 mat-dialog-title>Add Color with Sizes</h2>
@@ -30,13 +31,10 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
             <mat-label>Color Name</mat-label>
             <input matInput [(ngModel)]="colorName" placeholder="e.g. Navy Blue" />
           </mat-form-field>
-          <mat-form-field appearance="outline" class="flex1">
-            <mat-label>Hex (optional)</mat-label>
-            <input matInput [(ngModel)]="colorHex" placeholder="#1a237e" />
-            @if (colorHex) {
-              <span matSuffix class="swatch" [style.background]="colorHex"></span>
-            }
-          </mat-form-field>
+          <div class="hex-field flex1">
+            <label class="hex-label">Hex Colour <span class="opt">(optional)</span></label>
+            <app-color-swatch-picker [(hex)]="colorHex"></app-color-swatch-picker>
+          </div>
         </div>
 
         <!-- Image upload -->
@@ -86,11 +84,13 @@ interface SizeRow { sizeLabel: string; stockQty: number; }
     </mat-dialog-actions>
   `,
   styles: [`
-    .form { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; min-width: 400px; }
-    .row { display: flex; gap: 12px; }
+    .form { display: flex; flex-direction: column; gap: 16px; padding-top: 8px; min-width: 420px; }
+    .row { display: flex; gap: 12px; align-items: flex-end; }
     .flex1 { flex: 1; }
     .flex2 { flex: 2; }
-    .swatch { display: inline-block; width: 18px; height: 18px; border-radius: 50%; border: 1px solid #ddd; margin-right: 4px; }
+    .hex-field { display: flex; flex-direction: column; gap: 6px; }
+    .hex-label { font-size: 12px; color: rgba(0,0,0,0.6); font-weight: 500; letter-spacing: 0.01em; }
+    .opt { font-weight: 400; color: rgba(0,0,0,0.38); margin-left: 4px; }
 
     .suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .hint { font-size: 12px; color: #777; }

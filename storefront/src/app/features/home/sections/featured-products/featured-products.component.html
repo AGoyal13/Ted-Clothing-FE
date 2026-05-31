@@ -1,0 +1,35 @@
+<section class="featured" aria-labelledby="featured-heading">
+  <div class="featured__header">
+    <div>
+      <p class="featured__eyebrow">CURATED FOR YOU</p>
+      <h2 class="featured__heading" id="featured-heading">FEATURED COLLECTION</h2>
+    </div>
+    <p class="featured__subtitle">
+      <em>Each piece tells a story. Each garment, a statement.</em>
+    </p>
+  </div>
+
+  <div class="featured__grid">
+    @if (loading()) {
+      @for (i of [1,2,3,4]; track i) {
+        <div class="featured__skeleton">
+          <div class="skeleton aspect-3-4"></div>
+          <div class="skeleton featured__skeleton-title"></div>
+          <div class="skeleton featured__skeleton-price"></div>
+        </div>
+      }
+    } @else {
+      @for (product of products(); track product.id; let i = $index) {
+        <app-product-card
+          appAnimateOnScroll
+          [product]="product"
+          [delay]="(i * 80) + 'ms'"
+        />
+      }
+    }
+  </div>
+
+  <div class="featured__footer">
+    <a routerLink="/category/men" class="btn-ghost">VIEW ALL PRODUCTS</a>
+  </div>
+</section>

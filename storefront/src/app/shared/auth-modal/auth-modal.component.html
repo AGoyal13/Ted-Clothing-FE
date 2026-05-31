@@ -1,0 +1,180 @@
+
+    <div class="overlay" (click)="close()">
+      <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Sign in">
+
+        <button class="modal__close" (click)="close()" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Brand -->
+        <div class="modal__brand">
+          <span class="modal__brand-ted">TED</span>
+          <span class="modal__brand-clothing">CLOTHING</span>
+        </div>
+
+        <!-- Tabs -->
+        <div class="modal__tabs">
+          <button
+            class="modal__tab"
+            [class.modal__tab--active]="tab() === 'login'"
+            (click)="setTab('login')"
+          >SIGN IN</button>
+          <button
+            class="modal__tab"
+            [class.modal__tab--active]="tab() === 'register'"
+            (click)="setTab('register')"
+          >CREATE ACCOUNT</button>
+        </div>
+
+        <!-- Error -->
+        @if (errorMsg()) {
+          <p class="modal__error">{{ errorMsg() }}</p>
+        }
+
+        <!-- Login Form -->
+        @if (tab() === 'login') {
+          <div class="modal__method-switch">
+            <button
+              class="modal__method-btn"
+              [class.active]="loginMethod() === 'password'"
+              (click)="loginMethod.set('password')"
+            >Password</button>
+            <button
+              class="modal__method-btn"
+              [class.active]="loginMethod() === 'otp'"
+              (click)="loginMethod.set('otp')"
+            >Email OTP</button>
+          </div>
+
+          @if (loginMethod() === 'password') {
+            <form class="modal__form" (ngSubmit)="submitLogin()" #loginForm="ngForm">
+              <div class="modal__field">
+                <label class="modal__label" for="login-email">Email</label>
+                <input
+                  id="login-email"
+                  class="modal__input"
+                  type="email"
+                  [(ngModel)]="loginEmail"
+                  name="email"
+                  placeholder="your@email.com"
+                  required
+                  autocomplete="email"
+                />
+              </div>
+              <div class="modal__field">
+                <label class="modal__label" for="login-password">Password</label>
+                <input
+                  id="login-password"
+                  class="modal__input"
+                  type="password"
+                  [(ngModel)]="loginPassword"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                  autocomplete="current-password"
+                />
+              </div>
+              <button class="modal__submit" type="submit" [disabled]="loading()">
+                {{ loading() ? 'SIGNING IN…' : 'SIGN IN' }}
+              </button>
+            </form>
+          }
+
+          @if (loginMethod() === 'otp') {
+            <form class="modal__form" (ngSubmit)="otpStep() === 'email' ? submitSendOtp() : submitVerifyOtp()">
+              <div class="modal__field">
+                <label class="modal__label" for="otp-email">Email</label>
+                <input
+                  id="otp-email"
+                  class="modal__input"
+                  type="email"
+                  [(ngModel)]="otpEmail"
+                  name="email"
+                  placeholder="your@email.com"
+                  [disabled]="otpStep() === 'verify'"
+                  required
+                  autocomplete="email"
+                />
+              </div>
+              @if (otpStep() === 'verify') {
+                <div class="modal__field">
+                  <label class="modal__label" for="otp-code">OTP</label>
+                  <input
+                    id="otp-code"
+                    class="modal__input"
+                    type="text"
+                    [(ngModel)]="otpCode"
+                    name="otp"
+                    placeholder="Enter 6-digit OTP"
+                    maxlength="6"
+                    required
+                    autocomplete="one-time-code"
+                  />
+                </div>
+              }
+              <button class="modal__submit" type="submit" [disabled]="loading()">
+                @if (loading()) { SENDING… }
+                @else if (otpStep() === 'email') { SEND OTP }
+                @else { VERIFY OTP }
+              </button>
+              @if (otpStep() === 'verify') {
+                <button type="button" class="modal__link-btn" (click)="otpStep.set('email')">Change email</button>
+              }
+            </form>
+          }
+        }
+
+        <!-- Register Form -->
+        @if (tab() === 'register') {
+          <form class="modal__form" (ngSubmit)="submitRegister()">
+            <div class="modal__field">
+              <label class="modal__label" for="reg-name">Name</label>
+              <input id="reg-name" class="modal__input" type="text"
+                     [(ngModel)]="regName" name="name" placeholder="Your name (optional)"
+                     autocomplete="name" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-email">Email *</label>
+              <input id="reg-email" class="modal__input" type="email"
+                     [(ngModel)]="regEmail" name="email" placeholder="your@email.com"
+                     required autocomplete="email" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-phone">Mobile Number</label>
+              <input id="reg-phone" class="modal__input" type="tel"
+                     [(ngModel)]="regPhone" name="phone" placeholder="10-digit number (optional)"
+                     maxlength="10" autocomplete="tel" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-password">Password *</label>
+              <input id="reg-password" class="modal__input" type="password"
+                     [(ngModel)]="regPassword" name="password" placeholder="Min 8 characters"
+                     minlength="8" required autocomplete="new-password" />
+            </div>
+            <div class="modal__field">
+              <label class="modal__label" for="reg-confirm">Confirm Password *</label>
+              <input id="reg-confirm" class="modal__input" type="password"
+                     [(ngModel)]="regConfirm" name="confirm" placeholder="••••••••"
+                     required autocomplete="new-password" />
+            </div>
+            <button class="modal__submit" type="submit" [disabled]="loading()">
+              {{ loading() ? 'CREATING…' : 'CREATE ACCOUNT' }}
+            </button>
+          </form>
+        }
+
+        <!-- Footer switch -->
+        <p class="modal__footer">
+          @if (tab() === 'login') {
+            New here?
+            <button class="modal__link-btn" (click)="setTab('register')">Create an account</button>
+          } @else {
+            Already have an account?
+            <button class="modal__link-btn" (click)="setTab('login')">Sign in</button>
+          }
+        </p>
+
+      </div>
+    </div>

@@ -1,0 +1,13 @@
+<section class="stats" aria-label="Brand statistics">
+  <div class="stats__inner">
+    @for (stat of stats(); track stat.label) {
+      <div class="stats__item">
+        <span class="stats__number">{{ stat.number }}</span>
+        <span class="stats__label">{{ stat.label }}</span>
+      </div>
+      @if (!$last) {
+        <div class="stats__divider" aria-hidden="true"></div>
+      }
+    }
+  </div>
+</section>

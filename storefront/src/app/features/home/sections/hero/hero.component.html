@@ -1,0 +1,74 @@
+
+    <section class="hero" aria-label="Hero banner">
+
+      <!-- Noise grain overlay -->
+      <svg class="hero__grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+        </filter>
+        <rect width="100%" height="100%" filter="url(#grain)" opacity="0.04"/>
+      </svg>
+
+      <!-- Radial gradient -->
+      <div class="hero__gradient" aria-hidden="true"></div>
+
+      <div class="hero__inner">
+        <!-- Left: Editorial Text -->
+        <div class="hero__content">
+          <p class="hero__eyebrow">NEW SEASON — SS'25</p>
+          <h1 class="hero__headline">
+            <span>WEAR</span>
+            <span class="hero__headline--gold">YOUR</span>
+            <span>QUIET</span>
+            <span>LUXURY</span>
+          </h1>
+          <p class="hero__subtext">
+            Handcrafted in India. Worn by those<br>who let their clothes do the talking.
+          </p>
+          <div class="hero__ctas">
+            <a routerLink="/category/men" class="btn-primary">Shop Collection</a>
+            <a routerLink="/category/women" class="btn-ghost">Explore Women</a>
+          </div>
+
+          <div class="hero__stats">
+            <div class="hero__stat">
+              <span class="hero__stat-number">12K+</span>
+              <span class="hero__stat-label">Happy Clients</span>
+            </div>
+            <div class="hero__stat-divider" aria-hidden="true"></div>
+            <div class="hero__stat">
+              <span class="hero__stat-number">{{ uniquePieces() }}</span>
+              <span class="hero__stat-label">Unique Pieces</span>
+            </div>
+            <div class="hero__stat-divider" aria-hidden="true"></div>
+            <div class="hero__stat">
+              <span class="hero__stat-number">98%</span>
+              <span class="hero__stat-label">Satisfaction</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Editorial Card Placeholder -->
+        <div class="hero__visual" aria-hidden="true">
+          <div class="hero__card">
+            <div class="hero__card-inner">
+              <p class="hero__card-label">EDITORIAL</p>
+              <div class="hero__card-line"></div>
+              <p class="hero__card-sub">SS 2025</p>
+            </div>
+            <div class="hero__card-corner hero__card-corner--tl"></div>
+            <div class="hero__card-corner hero__card-corner--br"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll Indicator -->
+      <div class="hero__scroll" aria-label="Scroll down">
+        <span class="hero__scroll-line"></span>
+        <svg class="hero__scroll-chevron" width="16" height="10" viewBox="0 0 16 10" fill="none">
+          <path d="M1 1l7 7 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+    </section>

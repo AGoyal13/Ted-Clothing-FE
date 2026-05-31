@@ -13,65 +13,8 @@ import { isPlatformBrowser } from '@angular/common';
 @Component({
   selector: 'app-cursor',
   standalone: true,
-  template: `
-    @if (visible()) {
-      <div class="cursor-dot" #dot></div>
-      <div class="cursor-ring" #ring [class.cursor--hover]="hovering()"></div>
-    }
-  `,
-  styles: [`
-    :host {
-      display: contents;
-    }
-
-    .cursor-dot {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 8px;
-      height: 8px;
-      background: var(--gold);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      transition: transform 0.1s ease, background 0.2s ease;
-      will-change: transform;
-    }
-
-    .cursor-ring {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 40px;
-      height: 40px;
-      border: 1.5px solid var(--gold);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9998;
-      transform: translate(-50%, -50%);
-      will-change: transform;
-      transition: width 0.3s var(--ease-enter),
-                  height 0.3s var(--ease-enter),
-                  border-color 0.3s ease,
-                  opacity 0.3s ease;
-      opacity: 0.7;
-
-      &.cursor--hover {
-        width: 60px;
-        height: 60px;
-        border-color: var(--gold-light);
-        opacity: 1;
-      }
-    }
-
-    @media (hover: none) {
-      .cursor-dot,
-      .cursor-ring {
-        display: none;
-      }
-    }
-  `],
+  templateUrl: './cursor.component.html',
+  styleUrl: './cursor.component.scss',
 })
 export class CursorComponent implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);

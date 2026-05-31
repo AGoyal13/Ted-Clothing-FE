@@ -1,0 +1,31 @@
+
+    <section class="testi" aria-labelledby="testi-heading">
+      <div class="testi__inner">
+        <div class="testi__header">
+          <p class="testi__eyebrow">WHAT THEY SAY</p>
+          <h2 class="testi__heading" id="testi-heading">WORN & LOVED</h2>
+        </div>
+
+        <div class="testi__grid">
+          @for (t of testimonials(); track t.author) {
+            <article class="testi__card">
+              <div class="testi__stars" [attr.aria-label]="t.rating + ' stars'">
+                <span aria-hidden="true">{{ '★'.repeat(t.rating) }}{{ '☆'.repeat(5 - t.rating) }}</span>
+              </div>
+              <blockquote class="testi__quote">
+                <em>"{{ t.quote }}"</em>
+              </blockquote>
+              <div class="testi__author">
+                <div class="testi__avatar" aria-hidden="true">
+                  <span>{{ t.initials }}</span>
+                </div>
+                <div class="testi__author-info">
+                  <p class="testi__author-name">{{ t.author }}</p>
+                  <p class="testi__author-loc">{{ t.location }}</p>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      </div>
+    </section>

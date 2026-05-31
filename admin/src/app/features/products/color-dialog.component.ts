@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/services/api.service';
 import { ImageUploadComponent } from './image-upload.component';
+import { ColorSwatchPickerComponent } from '../../shared/color-swatch-picker.component';
 
 interface Color { id: string; colorName: string; colorHex: string | null; images: string[]; }
 
@@ -18,7 +19,7 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
   imports: [
     ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    ImageUploadComponent,
+    ImageUploadComponent, ColorSwatchPickerComponent,
   ],
   template: `
     <h2 mat-dialog-title>{{ data.color ? 'Edit Color' : 'Add Color' }}</h2>
@@ -29,11 +30,13 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
           <input matInput formControlName="colorName" placeholder="e.g. Navy Blue" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Hex Color</mat-label>
-          <input matInput formControlName="colorHex" placeholder="#1a237e" />
-          <mat-hint>Optional — for color swatch display</mat-hint>
-        </mat-form-field>
+        <div class="hex-field">
+          <label class="hex-label">Hex Color <span class="opt">(optional)</span></label>
+          <app-color-swatch-picker
+            [hex]="form.get('colorHex')?.value || ''"
+            (hexChange)="form.patchValue({ colorHex: $event })">
+          </app-color-swatch-picker>
+        </div>
 
         <app-image-upload
           [productId]="data.productId"
@@ -50,9 +53,12 @@ interface Color { id: string; colorName: string; colorHex: string | null; images
     </mat-dialog-actions>
   `,
   styles: [`
-    .form { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; min-width: 360px; }
+    .form { display: flex; flex-direction: column; gap: 16px; padding-top: 8px; min-width: 380px; }
     .full-width { width: 100%; }
     mat-spinner { margin: auto; }
+    .hex-field { display: flex; flex-direction: column; gap: 6px; }
+    .hex-label { font-size: 12px; color: rgba(0,0,0,0.6); font-weight: 500; letter-spacing: 0.01em; }
+    .opt { font-weight: 400; color: rgba(0,0,0,0.38); margin-left: 4px; }
   `],
 })
 export class ColorDialogComponent implements OnInit {

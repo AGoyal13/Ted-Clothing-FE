@@ -1,0 +1,37 @@
+<section class="cat-section" aria-labelledby="cat-heading">
+  <div class="cat-section__header">
+    <h2 class="cat-section__heading" id="cat-heading">SHOP BY CATEGORY</h2>
+    <div class="cat-section__divider"></div>
+  </div>
+
+  <div class="cat-grid">
+    @if (loading()) {
+      @for (i of [1,2,3,4,5,6]; track i) {
+        <div class="cat-card skeleton"></div>
+      }
+    } @else {
+      @for (cat of categories(); track cat.id; let i = $index) {
+        <a
+          [routerLink]="['/category', cat.slug]"
+          class="cat-card"
+          [class.cat-card--featured]="i === 0 && categories().length >= 3"
+          [style.--accent]="cat.accent"
+          [attr.aria-label]="'Shop ' + cat.name"
+        >
+          <div class="cat-card__bg"></div>
+          <div class="cat-card__content">
+            <span class="cat-card__number">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+            <h3 class="cat-card__name">{{ cat.name }}</h3>
+            <div class="cat-card__arrow">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+          </div>
+          <div class="cat-card__border"></div>
+        </a>
+      }
+    }
+  </div>
+</section>

@@ -1,0 +1,247 @@
+
+    <header class="navbar" [class.navbar--scrolled]="scrolled()">
+      <div class="navbar__inner">
+
+        <!-- Logo + mobile delivery chip -->
+        <div class="navbar__left">
+          <a routerLink="/" class="navbar__logo" aria-label="Ted Clothing Home">
+            <span class="navbar__logo-ted">TED</span>
+            <span class="navbar__logo-clothing">CLOTHING</span>
+          </a>
+          @if (authService.isLoggedIn() && defaultAddress()) {
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--mobile" aria-label="Delivery address">
+              <svg class="navbar__delivery-pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+            </a>
+          }
+        </div>
+
+        <!-- Desktop Nav -->
+        <nav class="navbar__nav" aria-label="Main navigation">
+          @for (root of navTree(); track root.slug) {
+            <div class="nav-item"
+                 (mouseenter)="onNavEnter(root.slug)"
+                 (mouseleave)="onNavLeave()">
+              <a [routerLink]="['/category', root.slug]"
+                 class="navbar__link"
+                 [class.navbar__link--mega-open]="activeMega() === root.slug">
+                {{ root.name }}
+                <svg class="navbar__link-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </a>
+            </div>
+          }
+        </nav>
+
+        <!-- Right Actions -->
+        <div class="navbar__actions">
+
+          <!-- Delivery location — desktop only (mobile version is below logo) -->
+          @if (authService.isLoggedIn() && defaultAddress()) {
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--desktop" aria-label="Delivery address">
+              <svg class="navbar__delivery-pin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="navbar__delivery-text">
+                <span class="navbar__delivery-label">Deliver to</span>
+                <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+              </span>
+            </a>
+            <span class="navbar__delivery-divider"></span>
+          }
+
+          <!-- Search (placeholder) -->
+          <button class="navbar__icon-btn" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Wishlist (logged-in only) -->
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/wishlist" routerLinkActive="navbar__icon-btn--active" class="navbar__icon-btn" aria-label="Wishlist">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </a>
+          }
+
+          <a routerLink="/cart" class="navbar__cart-btn" aria-label="Shopping cart">
+            <span class="navbar__cart-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              @if (cartCount() > 0) {
+                <span class="navbar__cart-badge">{{ cartCount() }}</span>
+              }
+            </span>
+            <span class="navbar__cart-label">CART ({{ cartCount() }})</span>
+          </a>
+
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/account" routerLinkActive="navbar__account--active" class="navbar__account" aria-label="My account">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </a>
+          } @else {
+            <button class="navbar__login" (click)="authService.openModal()" aria-label="Sign in">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </button>
+          }
+
+          <!-- Hamburger -->
+          <button class="navbar__hamburger" (click)="toggleMobileMenu()"
+                  [attr.aria-expanded]="mobileOpen()" aria-label="Toggle menu">
+            <span [class.open]="mobileOpen()"></span>
+            <span [class.open]="mobileOpen()"></span>
+            <span [class.open]="mobileOpen()"></span>
+          </button>
+        </div>
+
+      </div><!-- /navbar__inner -->
+
+      <!-- Mega menu panels (direct children of .navbar, positioned absolute top:100%) -->
+      @for (root of navTree(); track root.slug) {
+        @let groups = buildGroups(root);
+        @let unified = groups[0]?.slug === root.slug;
+        <div class="mega"
+             [class.mega--visible]="activeMega() === root.slug"
+             (mouseenter)="onMegaEnter()"
+             (mouseleave)="onMegaLeave()">
+          <div class="mega__inner" [class.mega__inner--unified]="unified">
+            @for (group of groups; track $index) {
+              <div class="mega__group">
+                <div class="mega__group-header-row" [class.mega__group-header-row--bordered]="group.showBorder && !unified">
+                  @if (group.label) {
+                    <span class="mega__group-label">{{ group.label | uppercase }}</span>
+                  }
+                </div>
+                @for (link of group.links; track link.slug) {
+                  <a [routerLink]="['/category', link.slug]"
+                     class="mega__link"
+                     (click)="closeMega()">
+                    @if (link.imageUrl) {
+                      <img class="mega__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                    }
+                    {{ link.name }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+    </header>
+
+    <!-- Mobile Drawer -->
+    @if (mobileOpen()) {
+      <div class="mobile-overlay" (click)="closeMobileMenu()">
+        <nav class="mobile-menu" (click)="$event.stopPropagation()" aria-label="Mobile navigation">
+
+          <div class="mobile-menu__head">
+            <a routerLink="/" class="mobile-menu__brand" (click)="closeMobileMenu()">
+              <span class="navbar__logo-ted">TED</span>
+              <span class="navbar__logo-clothing">CLOTHING</span>
+            </a>
+            <button class="mobile-menu__close" (click)="closeMobileMenu()" aria-label="Close menu">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="mobile-menu__cats">
+            @for (root of navTree(); track root.slug) {
+              <div class="drawer__section" [class.drawer__section--collapsed]="isSectionCollapsed(root.slug)">
+
+                <button class="drawer__header" (click)="toggleSection(root.slug)">
+                  <span class="drawer__header-label">{{ root.name | uppercase }}</span>
+                  <svg class="drawer__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                <div class="drawer__body">
+                  @for (group of buildGroups(root); track $index; let gi = $index) {
+                    @if (group.label && group.slug !== root.slug) {
+                      <div class="drawer__sub-section">
+                        <button class="drawer__sub-header"
+                                (click)="toggleDrawerGroup(root.slug + ':' + gi)">
+                          <span class="drawer__sub-label">{{ group.label | uppercase }}</span>
+                          <svg class="drawer__sub-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                               [style.transform]="isDrawerGroupCollapsed(root.slug + ':' + gi) ? 'rotate(-90deg)' : 'rotate(0deg)'">
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+                        <div class="drawer__sub-body"
+                             [style.maxHeight]="isDrawerGroupCollapsed(root.slug + ':' + gi) ? '0px' : '600px'">
+                          @for (link of group.links; track link.slug) {
+                            <a [routerLink]="['/category', link.slug]"
+                               class="drawer__link drawer__link--nested"
+                               (click)="closeMobileMenu()">
+                              @if (link.imageUrl) {
+                                <img class="drawer__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                              }
+                              {{ link.name }}
+                            </a>
+                          }
+                        </div>
+                      </div>
+                    } @else {
+                      @for (link of group.links; track link.slug) {
+                        <a [routerLink]="['/category', link.slug]"
+                           class="drawer__link"
+                           (click)="closeMobileMenu()">
+                          @if (link.imageUrl) {
+                            <img class="drawer__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                          }
+                          {{ link.name }}
+                        </a>
+                      }
+                    }
+                  }
+                </div>
+
+              </div>
+            }
+          </div>
+
+          <!-- Footer links -->
+          <div class="mobile-menu__footer">
+            <a routerLink="/cart" class="mobile-menu__footer-link" (click)="closeMobileMenu()">
+              Cart
+              @if (cartCount() > 0) {
+                <span class="mobile-menu__badge">{{ cartCount() }}</span>
+              }
+            </a>
+            @if (authService.isLoggedIn()) {
+              <a routerLink="/wishlist" class="mobile-menu__footer-link" (click)="closeMobileMenu()">Wishlist</a>
+              <button class="mobile-menu__footer-link mobile-menu__footer-signout" (click)="signOut()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign Out
+              </button>
+            } @else {
+              <button class="mobile-menu__footer-link" (click)="authService.openModal(); closeMobileMenu()">Sign In</button>
+            }
+          </div>
+
+        </nav>
+      </div>
+    }

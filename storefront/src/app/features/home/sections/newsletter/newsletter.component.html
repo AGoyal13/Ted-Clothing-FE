@@ -1,0 +1,46 @@
+@if (!auth.isLoggedIn()) {
+<section class="nl" aria-labelledby="nl-heading">
+  <div class="nl__inner">
+    @if (!submitted()) {
+      <p class="nl__eyebrow">EXCLUSIVE ACCESS</p>
+      <h2 class="nl__heading" id="nl-heading">STAY IN THE CIRCLE</h2>
+      <p class="nl__subtext">
+        <em>New arrivals, exclusive drops, stories from the studio.</em>
+      </p>
+
+      <form class="nl__form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="nl__input-group">
+          <label for="nl-email" class="sr-only">Email address</label>
+          <input
+            id="nl-email"
+            type="email"
+            class="nl__input"
+            placeholder="your@email.com"
+            [(ngModel)]="email"
+            name="email"
+            required
+            autocomplete="email"
+          />
+          <button type="submit" class="nl__btn btn-primary" [disabled]="!email()">
+            JOIN
+          </button>
+        </div>
+        <p class="nl__disclaimer">No spam. Unsubscribe anytime.</p>
+      </form>
+    } @else {
+      <div class="nl__success" role="status">
+        <div class="nl__check" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h3 class="nl__success-title">YOU'RE IN THE CIRCLE</h3>
+        <p class="nl__success-text">
+          <em>Welcome. Expect the extraordinary.</em>
+        </p>
+      </div>
+    }
+  </div>
+</section>
+}
