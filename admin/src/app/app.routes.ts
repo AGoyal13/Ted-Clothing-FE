@@ -46,6 +46,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/feedback/feedback.component').then(m => m.FeedbackComponent),
       },
       {
+        path: 'reviews',
+        loadComponent: () => import('./features/reviews/reviews.component').then(m => m.ReviewsComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent),
       },

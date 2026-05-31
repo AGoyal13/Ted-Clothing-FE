@@ -1,5 +1,6 @@
-import { Component, computed, HostListener, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, computed, effect, HostListener, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -34,28 +35,28 @@ function emptyForm(): AddressFormData {
             </div>
             <!-- Desktop nav (hidden on mobile) -->
             <nav class="acct__nav">
-              <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'profile'" (click)="tab.set('profile')">
+              <a class="acct__nav-item" [routerLink]="['/account', 'profile']" [class.acct__nav-item--active]="tab() === 'profile'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Profile
-              </button>
-              <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'wishlist'" (click)="tab.set('wishlist')">
+              </a>
+              <a class="acct__nav-item" [routerLink]="['/account', 'wishlist']" [class.acct__nav-item--active]="tab() === 'wishlist'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 Wishlist
                 @if (wishlistService.count() > 0) {
                   <span class="acct__nav-badge">{{ wishlistService.count() }}</span>
                 }
-              </button>
-              <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'addresses'" (click)="setTab('addresses')">
+              </a>
+              <a class="acct__nav-item" [routerLink]="['/account', 'addresses']" [class.acct__nav-item--active]="tab() === 'addresses'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 Addresses
                 @if (addressService.addresses().length > 0) {
                   <span class="acct__nav-badge">{{ addressService.addresses().length }}</span>
                 }
-              </button>
-              <button class="acct__nav-item" [class.acct__nav-item--active]="tab() === 'preferences'" (click)="tab.set('preferences')">
+              </a>
+              <a class="acct__nav-item" [routerLink]="['/account', 'preferences']" [class.acct__nav-item--active]="tab() === 'preferences'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Preferences
-              </button>
+              </a>
             </nav>
 
             <!-- Mobile nav dropdown (hidden on desktop) -->
@@ -87,28 +88,28 @@ function emptyForm(): AddressFormData {
               </button>
               @if (navOpen()) {
                 <div class="acct__nav-mob-options">
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'profile'" (click)="selectMobileTab('profile')">
+                  <a class="acct__nav-mob-opt" [routerLink]="['/account', 'profile']" [class.acct__nav-mob-opt--active]="tab() === 'profile'" (click)="navOpen.set(false)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Profile
-                  </button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'wishlist'" (click)="selectMobileTab('wishlist')">
+                  </a>
+                  <a class="acct__nav-mob-opt" [routerLink]="['/account', 'wishlist']" [class.acct__nav-mob-opt--active]="tab() === 'wishlist'" (click)="navOpen.set(false)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     Wishlist
                     @if (wishlistService.count() > 0) {
                       <span class="acct__nav-badge">{{ wishlistService.count() }}</span>
                     }
-                  </button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'addresses'" (click)="selectMobileTab('addresses')">
+                  </a>
+                  <a class="acct__nav-mob-opt" [routerLink]="['/account', 'addresses']" [class.acct__nav-mob-opt--active]="tab() === 'addresses'" (click)="navOpen.set(false)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     Addresses
                     @if (addressService.addresses().length > 0) {
                       <span class="acct__nav-badge">{{ addressService.addresses().length }}</span>
                     }
-                  </button>
-                  <button class="acct__nav-mob-opt" [class.acct__nav-mob-opt--active]="tab() === 'preferences'" (click)="selectMobileTab('preferences')">
+                  </a>
+                  <a class="acct__nav-mob-opt" [routerLink]="['/account', 'preferences']" [class.acct__nav-mob-opt--active]="tab() === 'preferences'" (click)="navOpen.set(false)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     Preferences
-                  </button>
+                  </a>
                 </div>
               }
             </div>
@@ -503,6 +504,7 @@ function emptyForm(): AddressFormData {
       border: none;
       padding: 0.6rem 0.75rem;
       cursor: pointer;
+      text-decoration: none;
       transition: color 0.2s, background 0.2s;
       border-radius: 2px;
 
@@ -1159,7 +1161,7 @@ function emptyForm(): AddressFormData {
     /* ── Mobile ──────────────────────────────────────────────── */
     @media (max-width: 768px) {
       .acct {
-        padding: 5rem 1.25rem 5rem;
+        padding: 6.5rem 1.25rem 5rem;
       }
 
       .acct__layout {
@@ -1246,13 +1248,14 @@ function emptyForm(): AddressFormData {
         border: none;
         border-bottom: 1px solid rgba(245, 240, 232, 0.06);
         color: var(--muted);
+        text-decoration: none;
         font-family: var(--font-sans);
         font-size: 0.875rem;
         cursor: pointer;
         text-align: left;
         transition: color 0.15s, background 0.15s;
         &:last-child { border-bottom: none; }
-        &:hover { color: var(--cream); background: rgba(245, 240, 232, 0.03); }
+        &:hover, &:active { color: var(--cream); background: rgba(245, 240, 232, 0.05); }
       }
 
       .acct__nav-mob-opt svg { flex-shrink: 0; stroke: currentColor; }
@@ -1282,11 +1285,21 @@ export class AccountComponent implements OnInit, OnDestroy {
   readonly wishlistService = inject(WishlistService);
   readonly addressService = inject(AddressService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
+  private readonly routeParams = toSignal(this.route.params, { initialValue: {} });
   readonly tab = signal<Tab>('profile');
   readonly navOpen = signal(false);
+
+  constructor() {
+    const validTabs = new Set<Tab>(['profile', 'wishlist', 'addresses', 'preferences']);
+    effect(() => {
+      const t = (this.routeParams() as Record<string, string>)['tab'] as Tab;
+      this.tab.set(validTabs.has(t) ? t : 'profile');
+    });
+  }
   readonly tabLabel = computed(() => {
     const labels: Record<Tab, string> = {
       profile: 'Profile', wishlist: 'Wishlist',
@@ -1333,13 +1346,12 @@ export class AccountComponent implements OnInit, OnDestroy {
   onDocClick(): void { this.navOpen.set(false); }
 
   setTab(t: Tab): void {
-    this.tab.set(t);
+    this.router.navigate(['/account', t]);
     this.closeForm();
   }
 
   selectMobileTab(t: Tab): void {
-    if (t === 'addresses') this.setTab(t);
-    else this.tab.set(t);
+    this.setTab(t);
     this.navOpen.set(false);
   }
 

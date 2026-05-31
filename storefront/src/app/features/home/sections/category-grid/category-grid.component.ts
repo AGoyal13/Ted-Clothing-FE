@@ -96,6 +96,28 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
       grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
       grid-auto-rows: 220px;
       gap: 1rem;
+
+      @media (max-width: 768px) {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.75rem;
+
+        &::-webkit-scrollbar {
+          display: none;
+        }
+      }
+    }
+
+    @media (max-width: 768px) {
+      .cat-card,
+      .cat-card.skeleton {
+        flex: 0 0 72%;
+        height: 180px;
+        scroll-snap-align: start;
+      }
     }
 
     .cat-card {

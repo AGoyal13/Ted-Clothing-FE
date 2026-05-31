@@ -172,6 +172,10 @@ import { formatINR } from '../../core/models/product.model';
     .cart-page {
       min-height: 100vh;
       padding-top: 80px;
+
+      @media (max-width: 900px) {
+        padding-top: 100px;
+      }
     }
 
     .cart-page__inner {

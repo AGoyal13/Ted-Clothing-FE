@@ -6,6 +6,8 @@ import {
   OnDestroy,
   PLATFORM_ID,
   signal,
+  computed,
+  effect,
 } from '@angular/core';
 import { isPlatformBrowser, UpperCasePipe } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
@@ -14,6 +16,7 @@ import { catchError, of, filter } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
+import { AddressService } from '../../core/services/address.service';
 import { NavCategory } from '../../core/models/category.model';
 
 interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBorder: boolean; }
@@ -26,11 +29,22 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
     <header class="navbar" [class.navbar--scrolled]="scrolled()">
       <div class="navbar__inner">
 
-        <!-- Logo -->
-        <a routerLink="/" class="navbar__logo" aria-label="Ted Clothing Home">
-          <span class="navbar__logo-ted">TED</span>
-          <span class="navbar__logo-clothing">CLOTHING</span>
-        </a>
+        <!-- Logo + mobile delivery chip -->
+        <div class="navbar__left">
+          <a routerLink="/" class="navbar__logo" aria-label="Ted Clothing Home">
+            <span class="navbar__logo-ted">TED</span>
+            <span class="navbar__logo-clothing">CLOTHING</span>
+          </a>
+          @if (authService.isLoggedIn() && defaultAddress()) {
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--mobile" aria-label="Delivery address">
+              <svg class="navbar__delivery-pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+            </a>
+          }
+        </div>
 
         <!-- Desktop Nav -->
         <nav class="navbar__nav" aria-label="Main navigation">
@@ -52,6 +66,21 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
 
         <!-- Right Actions -->
         <div class="navbar__actions">
+
+          <!-- Delivery location — desktop only (mobile version is below logo) -->
+          @if (authService.isLoggedIn() && defaultAddress()) {
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--desktop" aria-label="Delivery address">
+              <svg class="navbar__delivery-pin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="navbar__delivery-text">
+                <span class="navbar__delivery-label">Deliver to</span>
+                <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+              </span>
+            </a>
+            <span class="navbar__delivery-divider"></span>
+          }
 
           <!-- Search (placeholder) -->
           <button class="navbar__icon-btn" aria-label="Search">
@@ -788,6 +817,89 @@ interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBor
       justify-content: center;
       margin-left: 6px;
     }
+
+    /* ── Logo + mobile delivery wrapper ─────────────────────────── */
+    .navbar__left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    /* ── Delivery location chip (shared base) ────────────────────── */
+    .navbar__delivery {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      flex-shrink: 0;
+
+      &:hover { color: var(--gold); }
+    }
+
+    .navbar__delivery-pin {
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .navbar__delivery-city {
+      font-family: var(--font-sans);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    /* Desktop variant — in navbar__actions */
+    .navbar__delivery--desktop {
+      color: var(--cream);
+    }
+
+    .navbar__delivery-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .navbar__delivery-label {
+      font-family: var(--font-sans);
+      font-size: 0.55rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .navbar__delivery--desktop .navbar__delivery-city {
+      font-size: 0.72rem;
+      color: var(--cream);
+    }
+
+    .navbar__delivery-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(245, 240, 232, 0.12);
+      flex-shrink: 0;
+    }
+
+    /* Mobile variant — below logo in navbar__left */
+    .navbar__delivery--mobile {
+      color: var(--muted);
+
+      .navbar__delivery-city {
+        font-size: 0.6rem;
+        color: var(--cream);
+        opacity: 0.75;
+      }
+    }
+
+    /* Visibility toggle */
+    .navbar__delivery--mobile { display: none; }
+
+    @media (max-width: 900px) {
+      .navbar__delivery--desktop { display: none; }
+      .navbar__delivery-divider { display: none; }
+      .navbar__delivery--mobile { display: flex; }
+    }
   `],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
@@ -796,9 +908,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   readonly authService = inject(AuthService);
   private readonly categoryService = inject(CategoryService);
+  private readonly addressService = inject(AddressService);
+
+  readonly defaultAddress = computed(() =>
+    this.addressService.addresses().find(a => a.isDefault) ?? null
+  );
 
   readonly scrolled = signal(false);
   readonly mobileOpen = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.authService.isLoggedIn()) this.addressService.load();
+    });
+  }
   readonly activeMega = signal<string | null>(null);
   readonly expandedSections = signal<Set<string>>(new Set());
   readonly collapsedDrawerGroups = signal<Set<string>>(new Set());

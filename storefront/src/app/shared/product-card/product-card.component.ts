@@ -18,6 +18,8 @@ import {
 } from '../../core/models/product.model';
 import { AuthService } from '../../core/services/auth.service';
 import { WishlistService } from '../../core/services/wishlist.service';
+import { CartService } from '../../core/services/cart.service';
+import { CartItem } from '../../core/models/cart.model';
 
 @Component({
   selector: 'app-product-card',
@@ -35,8 +37,10 @@ import { WishlistService } from '../../core/services/wishlist.service';
             @if (isNew()) {
               <span class="badge badge--new">NEW</span>
             }
-            @if (onSale()) {
-              <span class="badge badge--sale">SALE</span>
+            @if (discountPct() > 20) {
+              <span class="badge badge--crazy-deal">CRAZY DEAL</span>
+            } @else if (discountPct() > 7) {
+              <span class="badge badge--price-crash">PRICE CRASH</span>
             }
           }
         </div>
@@ -73,20 +77,25 @@ import { WishlistService } from '../../core/services/wishlist.service';
           <div class="card__overlay"></div>
         </div>
 
-        <!-- Quick Add Bar (hover) -->
+        <!-- Hover size bar — display-only; no quick add (customer must visit PDP to purchase) -->
         <div class="card__quick-add">
-          <span class="card__quick-add-label">{{ outOfStock() ? 'OUT OF STOCK' : 'QUICK ADD' }}</span>
-          <div class="card__sizes">
-            @for (size of availableSizes(); track size.label) {
-              <button
-                class="card__size-chip"
-                [class.card__size-chip--oos]="!size.inStock"
-                (click)="$event.preventDefault(); $event.stopPropagation()"
-                [attr.aria-label]="'Add size ' + size.label"
-                [disabled]="!size.inStock"
-              >{{ size.label }}</button>
-            }
-          </div>
+          @if (outOfStock()) {
+            <span class="card__quick-add-label">OUT OF STOCK</span>
+          } @else if (selectedColorOos()) {
+            <span class="card__quick-add-label card__quick-add-label--hint">Try another colour</span>
+          } @else if (isFreeSize()) {
+            <span class="card__quick-add-label">ONE SIZE</span>
+          } @else {
+            <span class="card__quick-add-label">SIZES</span>
+            <div class="card__sizes">
+              @for (size of availableSizes(); track size.label) {
+                <span
+                  class="card__size-label"
+                  [class.card__size-label--oos]="!size.inStock"
+                >{{ size.label }}</span>
+              }
+            </div>
+          }
         </div>
       </a>
 
@@ -96,14 +105,26 @@ import { WishlistService } from '../../core/services/wishlist.service';
         @if (product().colors.length > 1) {
           <div class="card__swatches">
             @for (color of product().colors; track color.id) {
+              <!-- Desktop: select color in place -->
               <button
-                class="card__swatch"
-                [class.card__swatch--active]="selectedColorId() === color.id"
+                class="card__swatch card__swatch--btn"
+                [class.card__swatch--active]="(selectedColorId() ?? product().colors[0]?.id) === color.id"
+                [class.card__swatch--oos]="colorOosMap().get(color.id)"
                 [style.background]="color.colorHex || '#6b6560'"
-                [attr.aria-label]="color.colorName"
+                [attr.aria-label]="color.colorName + (colorOosMap().get(color.id) ? ' (Out of Stock)' : '')"
                 (click)="selectColor(color.id)"
                 [title]="color.colorName"
               ></button>
+              <!-- Mobile: navigate to PDP -->
+              <a
+                class="card__swatch card__swatch--link"
+                [routerLink]="['/product', product().slug]"
+                [class.card__swatch--active]="(selectedColorId() ?? product().colors[0]?.id) === color.id"
+                [class.card__swatch--oos]="colorOosMap().get(color.id)"
+                [style.background]="color.colorHex || '#6b6560'"
+                [attr.aria-label]="color.colorName + (colorOosMap().get(color.id) ? ' (Out of Stock)' : '')"
+                [title]="color.colorName"
+              ></a>
             }
           </div>
         }
@@ -116,16 +137,77 @@ import { WishlistService } from '../../core/services/wishlist.service';
           <h3 class="card__title">{{ product().title }}</h3>
         </a>
 
-        <!-- Price -->
+        <!-- Price — strikethrough + discount % only when discountPercent > 0 -->
         <div class="card__price">
           @if (onSale()) {
             <span class="card__price-original">{{ originalPriceStr() }}</span>
             <span class="card__price-sale">{{ effectivePriceStr() }}</span>
+            <span class="card__price-discount">{{ discountLabel() }}</span>
           } @else {
             <span class="card__price-base">{{ effectivePriceStr() }}</span>
           }
         </div>
       </div>
+
+      <!-- Mobile size info — tapping anywhere navigates to PDP -->
+      @if (!outOfStock()) {
+        <a [routerLink]="['/product', product().slug]" class="card__mobile-qa">
+          @if (selectedColorOos()) {
+            <span class="card__quick-add-label card__quick-add-label--hint">Try another colour</span>
+          } @else if (isFreeSize()) {
+            <span class="card__quick-add-label">ONE SIZE</span>
+          } @else {
+            <div class="card__sizes">
+              @for (size of availableSizes(); track size.label) {
+                <span class="card__size-label" [class.card__size-label--oos]="!size.inStock">{{ size.label }}</span>
+              }
+            </div>
+          }
+        </a>
+      }
+
+      <!-- Mobile Quick Add (original — disabled: no PLP cart actions) -->
+      @if (false) {
+        @if (!outOfStock()) {
+          <div class="card__mobile-qa">
+            @if (selectedColorOos()) {
+              <span class="card__quick-add-label card__quick-add-label--hint">Try another colour</span>
+            } @else if (isFreeSize()) {
+              @if (singleSize(); as size) {
+                <button
+                  class="card__mobile-add-btn"
+                  [class.card__mobile-add-btn--added]="recentlyAdded() === size?.skuId"
+                  (click)="addToCart($event, size)"
+                >
+                  @if (recentlyAdded() === size?.skuId) {
+                    ✓ ADDED
+                  } @else {
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                      <line x1="3" y1="6" x2="21" y2="6"/>
+                      <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                    ADD TO BAG
+                  }
+                </button>
+              }
+            } @else {
+              <span class="card__quick-add-label">QUICK ADD</span>
+              <div class="card__sizes" style="margin-top:0.375rem">
+                @for (size of availableSizes(); track size.label) {
+                  <button
+                    class="card__size-chip"
+                    [class.card__size-chip--oos]="!size.inStock"
+                    [class.card__size-chip--added]="recentlyAdded() === size.skuId"
+                    (click)="addToCart($event, size)"
+                    [disabled]="!size.inStock"
+                  >{{ recentlyAdded() === size.skuId ? '✓' : size.label }}</button>
+                }
+              </div>
+            }
+          </div>
+        }
+      }
     </article>
   `,
   styles: [`
@@ -134,6 +216,7 @@ import { WishlistService } from '../../core/services/wishlist.service';
       flex-direction: column;
       position: relative;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
       transition: border-color 0.3s ease;
 
       &:hover .card__image-wrap img {
@@ -220,6 +303,17 @@ import { WishlistService } from '../../core/services/wishlist.service';
       color: #ffcccc;
     }
 
+    .badge--crazy-deal {
+      background: #c0392b;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .badge--price-crash {
+      background: #e67e22;
+      color: #fff;
+    }
+
     .badge--oos {
       background: rgba(245, 240, 232, 0.1);
       color: var(--muted);
@@ -272,14 +366,140 @@ import { WishlistService } from '../../core/services/wishlist.service';
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      pointer-events: none;
+
+      @media (hover: none) and (pointer: coarse) {
+        display: none;
+      }
     }
+
+    .card__mobile-qa {
+      display: none;
+      text-decoration: none;
+
+      /* Show size labels only on larger touch screens (tablets ≥769px); hide on phones (2-col grid) */
+      @media (hover: none) and (pointer: coarse) and (min-width: 769px) {
+        display: block;
+        border-top: 1px solid rgba(245, 240, 232, 0.06);
+        padding: 0.5rem 0.375rem 0.625rem;
+      }
+    }
+
+    /* ── Mobile compact (2-col grid) ──────────────────────────────────── */
+    @media (max-width: 768px) {
+      .card__category {
+        display: none;
+      }
+
+      .card__info {
+        padding: 0.5rem 0.1rem 0;
+        gap: 0.15rem;
+      }
+
+      .card__title {
+        font-size: 0.82rem;
+      }
+
+      .card__price-base,
+      .card__price-sale {
+        font-size: 0.92rem;
+      }
+
+      .card__price-original {
+        font-size: 0.72rem;
+      }
+
+      .card__price-discount {
+        font-size: 0.65rem;
+      }
+
+      .card__price {
+        gap: 0.35rem;
+      }
+
+      /* Always show wishlist button on mobile (no hover state) */
+      .card__wishlist {
+        opacity: 1;
+        width: 30px;
+        height: 30px;
+      }
+    }
+
+    /* .card__mobile-add-btn — disabled: no PLP add-to-cart button */
+    /* .card__mobile-add-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.5rem;
+      background: transparent;
+      border: 1px solid rgba(201, 168, 76, 0.5);
+      color: var(--gold);
+      -webkit-tap-highlight-color: transparent;
+      font-family: var(--font-display);
+      font-size: 0.625rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+      &:active {
+        background: rgba(201, 168, 76, 0.45);
+        border-color: var(--gold);
+        color: #0d0d0d;
+      }
+
+      &--added {
+        background: var(--gold);
+        color: #0d0d0d;
+        border-color: var(--gold);
+      }
+    } */
 
     .card__quick-add-label {
       font-family: var(--font-display);
       font-size: 0.625rem;
       letter-spacing: 0.25em;
       color: var(--gold);
+
+      &--hint {
+        color: var(--muted);
+        font-family: var(--font-serif);
+        font-style: italic;
+        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+      }
     }
+
+    /* .card__hover-add-btn — disabled: no PLP add-to-cart button on hover */
+    /* .card__hover-add-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.5rem;
+      background: transparent;
+      border: 1px solid rgba(201, 168, 76, 0.6);
+      color: var(--gold);
+      font-family: var(--font-display);
+      font-size: 0.625rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+      &:hover {
+        background: var(--gold);
+        color: #0d0d0d;
+        border-color: var(--gold);
+      }
+
+      &--added {
+        background: var(--gold);
+        color: #0d0d0d;
+        border-color: var(--gold);
+      }
+    } */
 
     .card__sizes {
       display: flex;
@@ -287,7 +507,8 @@ import { WishlistService } from '../../core/services/wishlist.service';
       gap: 0.375rem;
     }
 
-    .card__size-chip {
+    /* .card__size-chip — disabled: no clickable size chips on PLP */
+    /* .card__size-chip {
       font-family: var(--font-sans);
       font-size: 0.7rem;
       font-weight: 500;
@@ -296,10 +517,17 @@ import { WishlistService } from '../../core/services/wishlist.service';
       color: var(--cream);
       background: transparent;
       cursor: pointer;
-      transition: border-color 0.2s ease, color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 
       &:hover:not(:disabled) {
         border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      &:active:not(:disabled) {
+        border-color: var(--gold);
+        background: rgba(201, 168, 76, 0.45);
         color: var(--gold);
       }
 
@@ -307,6 +535,27 @@ import { WishlistService } from '../../core/services/wishlist.service';
       &:disabled {
         opacity: 0.35;
         cursor: not-allowed;
+        text-decoration: line-through;
+      }
+
+      &.card__size-chip--added {
+        border-color: var(--gold);
+        background: var(--gold);
+        color: #0d0d0d;
+        cursor: default;
+      }
+    } */
+
+    .card__size-label {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid rgba(245, 240, 232, 0.25);
+      color: var(--cream);
+
+      &.card__size-label--oos {
+        opacity: 0.35;
         text-decoration: line-through;
       }
     }
@@ -331,7 +580,9 @@ import { WishlistService } from '../../core/services/wishlist.service';
       border-radius: 50%;
       border: 1px solid transparent;
       cursor: pointer;
+      position: relative;
       transition: transform 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
 
       &.card__swatch--active {
         border-color: var(--cream);
@@ -341,6 +592,30 @@ import { WishlistService } from '../../core/services/wishlist.service';
       &:hover {
         transform: scale(1.15);
       }
+
+      &.card__swatch--oos {
+        opacity: 0.35;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: -2px;
+          right: -2px;
+          height: 1.5px;
+          background: rgba(245, 240, 232, 0.8);
+          transform: translateY(-50%) rotate(-45deg);
+        }
+      }
+    }
+
+    /* Desktop: show button, hide anchor */
+    .card__swatch--link { display: none; }
+
+    @media (max-width: 768px) {
+      /* Mobile: hide button, show anchor */
+      .card__swatch--btn { display: none; }
+      .card__swatch--link { display: block; }
     }
 
     .card__category {
@@ -397,16 +672,44 @@ import { WishlistService } from '../../core/services/wishlist.service';
       color: var(--muted);
       text-decoration: line-through;
     }
+
+    .card__price-discount {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: #4caf7d;
+    }
   `],
 })
 export class ProductCardComponent {
   private readonly authService = inject(AuthService);
   private readonly wishlistService = inject(WishlistService);
+  private readonly cartService = inject(CartService);
 
   readonly product = input.required<Product>();
   readonly delay = input<string>('0ms');
 
   readonly selectedColorId = signal<string | null>(null);
+  // PLP quick-add disabled — preserved because mobile @if(false) block references these
+  readonly recentlyAdded = signal<string | null>(null);
+  private addedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly singleSize = computed(() => {
+    const inStock = this.availableSizes().filter(s => s.inStock);
+    return inStock.length === 1 ? inStock[0] : null;
+  });
+
+  private readonly FREE_SIZE_LABELS = new Set([
+    'free size', 'freesize', 'free sz',
+    'one size', 'onesize', 'one-size', 'one sz',
+    'free', 'os', 'osfm',
+    'universal', 'standard', 'single size', 'u',
+  ]);
+
+  readonly isFreeSize = computed(() => {
+    const single = this.singleSize();
+    return single !== null && this.FREE_SIZE_LABELS.has(single.label.toLowerCase().trim());
+  });
 
   readonly wishlisted = computed(() =>
     this.wishlistService.isWishlisted(this.product().id)
@@ -419,8 +722,39 @@ export class ProductCardComponent {
   });
 
   readonly onSale = computed(() => hasDiscount(this.product()));
+  readonly discountPct = computed(() => parseFloat(this.product().discountPercent ?? '0'));
+  readonly discountLabel = computed(() => {
+    const pct = this.discountPct();
+    return pct > 0 ? `${Math.round(pct)}% OFF` : '';
+  });
   readonly isNew = computed(() => isNewArrival(this.product()));
-  readonly outOfStock = computed(() => !isInStock(this.product()));
+  readonly outOfStock = computed(() => {
+    const items = this.cartService.items();
+    return !this.product().skus.some(s => {
+      const cartQty = items.find(i => i.skuId === s.id)?.quantity ?? 0;
+      return s.stockQty > cartQty;
+    });
+  });
+
+  readonly colorOosMap = computed(() => {
+    const skus = this.product().skus || [];
+    const items = this.cartService.items();
+    const map = new Map<string, boolean>();
+    for (const color of this.product().colors) {
+      const colorSkus = skus.filter(s => s.colorId === color.id);
+      const isOos = colorSkus.length === 0 || !colorSkus.some(s => {
+        const cartQty = items.find(i => i.skuId === s.id)?.quantity ?? 0;
+        return s.stockQty > cartQty;
+      });
+      map.set(color.id, isOos);
+    }
+    return map;
+  });
+
+  readonly selectedColorOos = computed(() => {
+    if (this.outOfStock()) return false;
+    return this.availableSizes().every(s => !s.inStock);
+  });
 
   readonly effectivePriceStr = computed(() =>
     formatINR(getEffectivePrice(this.product()))
@@ -444,11 +778,45 @@ export class ProductCardComponent {
         seen.add(s.sizeLabel);
         return true;
       })
-      .map(s => ({ label: s.sizeLabel, inStock: s.stockQty > 0 }));
+      .map(s => {
+        const cartQty = this.cartService.items().find(i => i.skuId === s.id)?.quantity ?? 0;
+        return { label: s.sizeLabel, inStock: s.stockQty > cartQty, skuId: s.id, stockQty: s.stockQty };
+      });
   });
 
   selectColor(colorId: string): void {
     this.selectedColorId.set(colorId);
+  }
+
+  // PLP quick-add disabled — no cart actions from product listing; customer visits PDP to purchase
+  addToCart(event: Event, size: { skuId: string; label: string; stockQty: number }): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const currentQty = this.cartService.items().find(i => i.skuId === size.skuId)?.quantity ?? 0;
+    if (currentQty >= size.stockQty) return;
+
+    const p = this.product();
+    const colorId = this.selectedColorId() || p.colors?.[0]?.id;
+    const color = p.colors?.find(c => c.id === colorId);
+
+    const item: CartItem = {
+      skuId: size.skuId,
+      skuCode: '',
+      productSlug: p.slug,
+      productTitle: p.title,
+      colorName: color?.colorName ?? '',
+      sizeLabel: size.label,
+      price: getEffectivePrice(p),
+      quantity: 1,
+      image: color?.images?.[0] ?? null,
+    };
+
+    this.cartService.addItem(item);
+
+    if (this.addedTimer) clearTimeout(this.addedTimer);
+    this.recentlyAdded.set(size.skuId);
+    this.addedTimer = setTimeout(() => this.recentlyAdded.set(null), 1500);
   }
 
   toggleWishlist(event: Event): void {

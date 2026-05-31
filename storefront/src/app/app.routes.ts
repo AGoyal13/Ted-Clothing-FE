@@ -23,6 +23,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/account/account.component').then(m => m.AccountComponent),
   },
   {
+    path: 'account/:tab',
+    loadComponent: () => import('./features/account/account.component').then(m => m.AccountComponent),
+  },
+  {
     path: 'wishlist',
     loadComponent: () => import('./features/wishlist/wishlist.component').then(m => m.WishlistPageComponent),
   },

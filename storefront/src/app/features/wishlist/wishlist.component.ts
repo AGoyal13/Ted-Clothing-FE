@@ -308,7 +308,7 @@ import { WishlistService } from '../../core/services/wishlist.service';
 
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 600px) {
-      .wl-page { padding: 6rem 4% 4rem; }
+      .wl-page { padding: 7.5rem 4% 4rem; }
       .wl-page__grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem 0.75rem; }
     }
   `],

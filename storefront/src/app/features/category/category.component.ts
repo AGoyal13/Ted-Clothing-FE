@@ -1,11 +1,17 @@
 import {
+  AfterViewInit,
   Component,
+  ElementRef,
   HostListener,
+  OnDestroy,
   OnInit,
+  PLATFORM_ID,
+  ViewChild,
   inject,
   signal,
   computed,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { combineLatest } from 'rxjs';
@@ -158,21 +164,34 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
         } @else {
           <div class="cat-page__grid">
             @for (product of products(); track product.id; let i = $index) {
-              <app-product-card appAnimateOnScroll [product]="product" [delay]="(i * 60) + 'ms'" />
+              <app-product-card
+                [id]="'plp-' + product.id"
+                appAnimateOnScroll
+                [product]="product"
+                [delay]="((i % 24) * 60) + 'ms'"
+              />
             }
           </div>
-          @if (totalPages() > 1) {
-            <div class="cat-page__pagination" role="navigation" aria-label="Pagination">
-              <button class="cat-page__page-btn" (click)="prevPage()" [disabled]="currentPage() <= 1" aria-label="Previous page">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              <span class="cat-page__page-ind">{{ currentPage() }} / {{ totalPages() }}</span>
-              <button class="cat-page__page-btn" (click)="nextPage()" [disabled]="currentPage() >= totalPages()" aria-label="Next page">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
+
+          @if (loadingMore()) {
+            <div class="cat-page__grid cat-page__grid--more">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="cat-page__skeleton">
+                  <div class="skeleton aspect-3-4"></div>
+                  <div class="skeleton" style="height:14px;width:70%;margin-top:8px;"></div>
+                  <div class="skeleton" style="height:12px;width:40%;margin-top:6px;"></div>
+                </div>
+              }
             </div>
           }
+
+          @if (!hasMore() && products().length > 0) {
+            <div class="cat-page__end">— You've seen it all —</div>
+          }
         }
+
+        <!-- Sentinel: always in DOM so IntersectionObserver can observe it -->
+        <div #scrollSentinel class="cat-page__sentinel"></div>
       </div>
 
       <!-- ── Mobile fixed bottom bar ────────────────────────────────── -->
@@ -248,6 +267,10 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
     .cat-page {
       min-height: 100vh;
       padding-top: 80px;
+
+      @media (max-width: 900px) {
+        padding-top: 100px;
+      }
     }
 
     /* ── Mobile scrollable header (hidden ≥769px) ───────────────────── */
@@ -438,6 +461,8 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
       padding: 2.5rem 5%;
 
       @media (max-width: 768px) {
+        padding-left: 3%;
+        padding-right: 3%;
         padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 2rem);
       }
     }
@@ -446,6 +471,11 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1.5rem 1.25rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem 0.5rem;
+      }
     }
 
     .cat-page__skeleton { display: flex; flex-direction: column; gap: .5rem; }
@@ -464,33 +494,34 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
       color: rgba(107,101,96,.7);
     }
 
-    /* ── Pagination ─────────────────────────────────────────────────── */
-    .cat-page__pagination {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      margin-top: 3rem;
+    /* ── Infinite scroll ────────────────────────────────────────────── */
+    .cat-page__sentinel {
+      height: 1px;
     }
 
-    .cat-page__page-btn {
-      width: 40px; height: 40px;
-      border: 1px solid rgba(245,240,232,.15);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--cream);
-      cursor: pointer;
-      background: transparent;
-      transition: border-color .2s, color .2s;
-
-      &:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
-      &:disabled { opacity: .3; cursor: not-allowed; }
+    .cat-page__grid--more {
+      margin-top: 1.5rem;
+      animation: fadeUp 0.35s var(--ease-enter);
     }
 
-    .cat-page__page-ind {
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .cat-page__end {
+      text-align: center;
+      padding: 2.5rem 0 1rem;
       font-family: var(--font-display);
-      font-size: .875rem;
-      letter-spacing: .15em;
+      font-size: 0.7rem;
+      letter-spacing: 0.28em;
       color: var(--muted);
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.1s forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 0.45; }
     }
 
     /* ── Mobile fixed bottom bar (hidden ≥769px) ────────────────────── */
@@ -681,7 +712,8 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
     }
   `],
 })
-export class CategoryComponent implements OnInit {
+export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
+  private readonly platformId     = inject(PLATFORM_ID);
   private readonly route          = inject(ActivatedRoute);
   private readonly router         = inject(Router);
   private readonly productService = inject(ProductService);
@@ -689,13 +721,18 @@ export class CategoryComponent implements OnInit {
   private readonly meta           = inject(Meta);
   private readonly titleService   = inject(Title);
 
+  @ViewChild('scrollSentinel') private sentinel!: ElementRef<HTMLDivElement>;
+  private observer: IntersectionObserver | null = null;
+
   readonly slug            = signal('');
   readonly breadcrumbs     = signal<{ label: string; slug?: string }[]>([]);
   readonly loading         = signal(true);
+  readonly loadingMore     = signal(false);
   readonly products        = signal<Product[]>([]);
   readonly total           = signal(0);
   readonly currentPage     = signal(1);
   readonly totalPages      = signal(1);
+  readonly hasMore         = computed(() => this.currentPage() < this.totalPages());
   readonly sortBy          = signal<SortOption>('newest');
   readonly sortOpen        = signal(false);
   readonly catDdOpen       = signal(false);
@@ -751,6 +788,7 @@ export class CategoryComponent implements OnInit {
       this.activeCat.set(catFromUrl);
       this.pendingCat.set(catFromUrl);
       this.currentPage.set(1);
+      this.products.set([]);
 
       if (newSlug !== this.prevSlug) {
         this.prevSlug = newSlug;
@@ -806,8 +844,9 @@ export class CategoryComponent implements OnInit {
     }
   }
 
-  private loadProducts(): void {
-    this.loading.set(true);
+  private loadProducts(append = false): void {
+    append ? this.loadingMore.set(true) : this.loading.set(true);
+
     const slug       = this.slug();
     const genderEnum = GENDER_SLUGS[slug.toLowerCase()];
     const activeCat  = this.activeCat();
@@ -828,13 +867,28 @@ export class CategoryComponent implements OnInit {
 
     this.productService.getProducts(params as any).subscribe({
       next: (res) => {
-        this.products.set(res.items ?? []);
+        const items = res.items ?? [];
+        if (append) {
+          this.products.update(prev => [...prev, ...items]);
+          this.loadingMore.set(false);
+        } else {
+          this.products.set(items);
+          this.loading.set(false);
+        }
         this.total.set(res.total ?? 0);
         this.totalPages.set(res.totalPages ?? 1);
-        this.loading.set(false);
       },
-      error: () => { this.products.set([]); this.loading.set(false); },
+      error: () => {
+        if (append) { this.loadingMore.set(false); }
+        else        { this.products.set([]); this.loading.set(false); }
+      },
     });
+  }
+
+  loadMore(): void {
+    if (!this.hasMore() || this.loadingMore() || this.loading()) return;
+    this.currentPage.update(p => p + 1);
+    this.loadProducts(true);
   }
 
   // ── Desktop dropdown ──────────────────────────────────────────────
@@ -864,6 +918,7 @@ export class CategoryComponent implements OnInit {
     this.sortBy.set(value);
     this.sortOpen.set(false);
     this.currentPage.set(1);
+    this.products.set([]);
     this.loadProducts();
   }
 
@@ -900,20 +955,22 @@ export class CategoryComponent implements OnInit {
     this.sortBy.set(value);
     this.sheetOpen.set('none');
     this.currentPage.set(1);
+    this.products.set([]);
     this.loadProducts();
   }
 
-  // ── Pagination ────────────────────────────────────────────────────
+  // ── Infinite scroll ───────────────────────────────────────────────
 
-  prevPage(): void {
-    if (this.currentPage() <= 1) return;
-    this.currentPage.update(p => p - 1);
-    this.loadProducts();
+  ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.sentinel) return;
+    this.observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) this.loadMore(); },
+      { rootMargin: '200px' }
+    );
+    this.observer.observe(this.sentinel.nativeElement);
   }
 
-  nextPage(): void {
-    if (this.currentPage() >= this.totalPages()) return;
-    this.currentPage.update(p => p + 1);
-    this.loadProducts();
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
   }
 }

@@ -101,6 +101,25 @@ import { AnimateOnScrollDirective } from '../../../../core/directives/animate-on
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1.5rem 1.25rem;
+
+      @media (max-width: 768px) {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.5rem;
+
+        &::-webkit-scrollbar {
+          display: none;
+        }
+
+        app-product-card,
+        .featured__skeleton {
+          flex: 0 0 43%;
+          scroll-snap-align: start;
+        }
+      }
     }
 
     .featured__skeleton {

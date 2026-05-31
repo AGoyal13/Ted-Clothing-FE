@@ -4,7 +4,11 @@ import {
   inject,
   signal,
   computed,
+  effect,
+  untracked,
+  PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { ProductService } from '../../core/services/product.service';
@@ -22,10 +26,34 @@ import {
 } from '../../core/models/product.model';
 import { CartItem } from '../../core/models/cart.model';
 
+interface ReviewItem {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  verified: boolean;
+  createdAt: string;
+  authorName: string;
+}
+
+interface ReviewsAggregate {
+  avgRating: number;
+  totalCount: number;
+  distribution: Record<number, number>;
+}
+
+interface ReviewsResponse {
+  aggregate: ReviewsAggregate;
+  reviews: ReviewItem[];
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DatePipe],
   template: `
     <main class="pdp">
       @if (loading()) {
@@ -136,8 +164,9 @@ import { CartItem } from '../../core/models/cart.model';
                     <button
                       class="pdp__color-swatch"
                       [class.pdp__color-swatch--active]="selectedColorId() === color.id"
+                      [class.pdp__color-swatch--oos]="colorOosMap().get(color.id)"
                       [style.background]="color.colorHex || '#6b6560'"
-                      [attr.aria-label]="color.colorName"
+                      [attr.aria-label]="color.colorName + (colorOosMap().get(color.id) ? ' (Out of Stock)' : '')"
                       [attr.aria-pressed]="selectedColorId() === color.id"
                       (click)="selectColor(color.id)"
                     ></button>
@@ -147,7 +176,9 @@ import { CartItem } from '../../core/models/cart.model';
             }
 
             <!-- Size Selector -->
-            @if (sizesForColor().length > 0) {
+            @if (isFreeSize()) {
+              <p class="pdp__field-label">SIZE: <span class="pdp__field-value">One Size</span></p>
+            } @else if (sizesForColor().length > 0) {
               <div class="pdp__field">
                 <p class="pdp__field-label">
                   SIZE:
@@ -160,9 +191,9 @@ import { CartItem } from '../../core/models/cart.model';
                     <button
                       class="pdp__size-chip"
                       [class.pdp__size-chip--active]="selectedSkuId() === sku.id"
-                      [class.pdp__size-chip--oos]="sku.stockQty === 0"
-                      [disabled]="sku.stockQty === 0"
-                      [attr.aria-label]="sku.sizeLabel + (sku.stockQty === 0 ? ' - Out of stock' : '')"
+                      [class.pdp__size-chip--oos]="effectiveStock(sku.id, sku.stockQty) <= 0"
+                      [disabled]="effectiveStock(sku.id, sku.stockQty) <= 0"
+                      [attr.aria-label]="sku.sizeLabel + (effectiveStock(sku.id, sku.stockQty) <= 0 ? ' - Out of stock' : '')"
                       [attr.aria-pressed]="selectedSkuId() === sku.id"
                       (click)="selectSize(sku)"
                     >{{ sku.sizeLabel }}</button>
@@ -172,10 +203,10 @@ import { CartItem } from '../../core/models/cart.model';
             }
 
             <!-- Stock Indicator -->
-            @if (selectedSkuId()) {
-              <div class="pdp__stock" [attr.data-status]="stockStatus()">
+            @if (selectedSkuId() || allSizesOos()) {
+              <div class="pdp__stock" [attr.data-status]="allSizesOos() ? 'oos' : stockStatus()">
                 <span class="pdp__stock-dot"></span>
-                <span class="pdp__stock-text">{{ stockStatusText() }}</span>
+                <span class="pdp__stock-text">{{ allSizesOos() && !selectedSkuId() ? 'Out of Stock' : stockStatusText() }}</span>
               </div>
             }
 
@@ -183,11 +214,16 @@ import { CartItem } from '../../core/models/cart.model';
             <div class="pdp__actions-row">
               <button
                 class="pdp__add-btn btn-primary"
+                [class.pdp__add-btn--added]="addedToCart()"
                 (click)="addToCart()"
-                [disabled]="!selectedSkuId() || stockStatus() === 'oos'"
+                [disabled]="allSizesOos() || !selectedSkuId() || stockStatus() === 'oos'"
                 [attr.aria-label]="'Add ' + product()!.title + ' to cart'"
               >
-                @if (!selectedSkuId()) {
+                @if (allSizesOos()) {
+                  OUT OF STOCK
+                } @else if (addedToCart()) {
+                  ✓ ADDED TO CART
+                } @else if (!selectedSkuId()) {
                   SELECT A SIZE
                 } @else if (stockStatus() === 'oos') {
                   OUT OF STOCK
@@ -207,16 +243,26 @@ import { CartItem } from '../../core/models/cart.model';
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
               </button>
-            </div>
 
-            @if (addedToCart()) {
-              <p class="pdp__added-msg" role="status">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                Added to cart!
-              </p>
-            }
+              <button
+                class="pdp__share-btn"
+                [class.pdp__share-btn--copied]="linkCopied()"
+                (click)="shareProduct()"
+                [attr.aria-label]="linkCopied() ? 'Link copied' : 'Share this product'"
+              >
+                @if (linkCopied()) {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                } @else {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                }
+              </button>
+            </div>
 
             <!-- Notify Me When Back in Stock -->
             @if (allSizesOos()) {
@@ -322,6 +368,73 @@ import { CartItem } from '../../core/models/cart.model';
             }
           </div>
         </div>
+
+        <!-- Reviews -->
+        @if (reviewsAggregate() && reviewsAggregate()!.totalCount > 0) {
+          <section class="pdp__reviews">
+            <div class="pdp__reviews-inner">
+              <h2 class="pdp__reviews-heading">Customer Reviews</h2>
+
+              <div class="pdp__rev-agg">
+                <div class="pdp__rev-score">
+                  <span class="pdp__rev-avg">{{ reviewsAggregate()!.avgRating.toFixed(1) }}</span>
+                  <div class="pdp__rev-stars-row">
+                    @for (i of [1,2,3,4,5]; track i) {
+                      <span class="pdp__rev-star" [class.active]="i <= reviewsAggregate()!.avgRating">★</span>
+                    }
+                  </div>
+                  <span class="pdp__rev-count">
+                    {{ reviewsAggregate()!.totalCount }}
+                    {{ reviewsAggregate()!.totalCount === 1 ? 'review' : 'reviews' }}
+                  </span>
+                </div>
+                <div class="pdp__rev-bars">
+                  @for (star of [5,4,3,2,1]; track star) {
+                    <div class="pdp__rev-bar-row">
+                      <span class="pdp__rev-bar-label">{{ star }}★</span>
+                      <div class="pdp__rev-bar-track">
+                        <div class="pdp__rev-bar-fill"
+                          [style.width.%]="reviewsAggregate()!.totalCount > 0
+                            ? reviewsAggregate()!.distribution[star] / reviewsAggregate()!.totalCount * 100
+                            : 0">
+                        </div>
+                      </div>
+                      <span class="pdp__rev-bar-n">{{ reviewsAggregate()!.distribution[star] }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="pdp__rev-list">
+                @for (r of reviewsList(); track r.id) {
+                  <article class="pdp__rev-card">
+                    <div class="pdp__rev-card-top">
+                      <span class="pdp__rev-card-stars">
+                        @for (i of [1,2,3,4,5]; track i) {
+                          <span [class.active]="i <= r.rating">★</span>
+                        }
+                      </span>
+                      @if (r.verified) {
+                        <span class="pdp__rev-verified">✓ Verified Purchase</span>
+                      }
+                    </div>
+                    @if (r.title) {
+                      <p class="pdp__rev-card-title">{{ r.title }}</p>
+                    }
+                    <p class="pdp__rev-card-body">{{ r.body }}</p>
+                    <p class="pdp__rev-card-meta">{{ r.authorName }} · {{ r.createdAt | date:'d MMM y' }}</p>
+                  </article>
+                }
+              </div>
+
+              @if (reviewsHasMore()) {
+                <button class="pdp__rev-more" (click)="loadMoreReviews()" [disabled]="reviewsLoading()">
+                  @if (reviewsLoading()) { Loading... } @else { Load More Reviews }
+                </button>
+              }
+            </div>
+          </section>
+        }
       }
     </main>
   `,
@@ -579,6 +692,7 @@ import { CartItem } from '../../core/models/cart.model';
       border-radius: 50%;
       border: 2px solid transparent;
       cursor: pointer;
+      position: relative;
       transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
       &:hover {
@@ -589,6 +703,21 @@ import { CartItem } from '../../core/models/cart.model';
         border-color: var(--cream);
         box-shadow: 0 0 0 1px rgba(245, 240, 232, 0.4);
         transform: scale(1.1);
+      }
+
+      &--oos {
+        opacity: 0.35;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: -3px;
+          right: -3px;
+          height: 1.5px;
+          background: rgba(245, 240, 232, 0.8);
+          transform: translateY(-50%) rotate(-45deg);
+        }
       }
     }
 
@@ -663,11 +792,20 @@ import { CartItem } from '../../core/models/cart.model';
       padding: 1rem;
       font-size: 0.875rem;
       letter-spacing: 0.25em;
+      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         &::after { display: none; }
+      }
+
+      &--added {
+        background: transparent !important;
+        border: 1px solid var(--gold) !important;
+        color: var(--gold) !important;
+        cursor: default;
+        &::after { display: none !important; }
       }
     }
 
@@ -694,14 +832,27 @@ import { CartItem } from '../../core/models/cart.model';
       }
     }
 
-    .pdp__added-msg {
+    .pdp__share-btn {
+      width: 52px;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-family: var(--font-sans);
-      font-size: 0.8rem;
-      color: #4caf7d;
-      animation: fadeUp 0.3s ease both;
+      justify-content: center;
+      border: 1px solid rgba(245, 240, 232, 0.2);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      &--copied {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
     }
 
     .pdp__description,
@@ -870,6 +1021,210 @@ import { CartItem } from '../../core/models/cart.model';
       color: #4caf7d;
       animation: fadeUp 0.3s ease both;
     }
+
+    /* ── Reviews ─────────────────────────────── */
+    .pdp__reviews {
+      border-top: 1px solid rgba(245, 240, 232, 0.08);
+      margin-top: 3rem;
+      padding-top: 2.5rem;
+    }
+
+    .pdp__reviews-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 5% 3rem;
+    }
+
+    .pdp__reviews-heading {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cream);
+      margin: 0 0 2rem;
+    }
+
+    .pdp__rev-agg {
+      display: flex;
+      gap: 3rem;
+      align-items: flex-start;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .pdp__rev-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      min-width: 90px;
+    }
+
+    .pdp__rev-avg {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--gold);
+    }
+
+    .pdp__rev-stars-row {
+      display: flex;
+      gap: 2px;
+      font-size: 1.1rem;
+    }
+
+    .pdp__rev-stars-row .pdp__rev-star,
+    .pdp__rev-card-stars span {
+      color: rgba(245, 240, 232, 0.2);
+      transition: color 0.15s;
+    }
+
+    .pdp__rev-stars-row .pdp__rev-star.active,
+    .pdp__rev-card-stars span.active {
+      color: var(--gold);
+    }
+
+    .pdp__rev-count {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pdp__rev-bars {
+      flex: 1;
+      min-width: 200px;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pdp__rev-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdp__rev-bar-label {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      color: var(--muted);
+      width: 22px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .pdp__rev-bar-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(245, 240, 232, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .pdp__rev-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    .pdp__rev-bar-n {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      color: var(--muted);
+      width: 16px;
+      flex-shrink: 0;
+    }
+
+    .pdp__rev-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .pdp__rev-card {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+    }
+
+    .pdp__rev-card-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pdp__rev-card-stars {
+      display: flex;
+      gap: 2px;
+      font-size: 0.9rem;
+    }
+
+    .pdp__rev-verified {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      color: #4caf7d;
+      background: rgba(76, 175, 80, 0.08);
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+
+    .pdp__rev-card-title {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin: 0 0 0.4rem;
+    }
+
+    .pdp__rev-card-body {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin: 0 0 0.75rem;
+    }
+
+    .pdp__rev-card-meta {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      color: rgba(245, 240, 232, 0.35);
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+
+    .pdp__rev-more {
+      display: block;
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      padding: 0.85rem 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: transparent;
+      border: 1px solid rgba(245, 240, 232, 0.2);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+
+      &:hover:not(:disabled) {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+    }
   `],
 })
 export class ProductComponent implements OnInit {
@@ -881,6 +1236,7 @@ export class ProductComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
+  private readonly platformId = inject(PLATFORM_ID);
 
   readonly loading = signal(true);
   readonly notFound = signal(false);
@@ -892,11 +1248,20 @@ export class ProductComponent implements OnInit {
   readonly descExpanded = signal(true);
   readonly measExpanded = signal(false);
   readonly addedToCart = signal(false);
+  readonly linkCopied = signal(false);
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly notifyOpen = signal(false);
   readonly notifyEmail = signal('');
   readonly notifySending = signal(false);
   readonly notifySent = signal(false);
+
+  readonly reviewsLoading = signal(false);
+  readonly reviewsAggregate = signal<ReviewsAggregate | null>(null);
+  readonly reviewsList = signal<ReviewItem[]>([]);
+  readonly reviewsPage = signal(1);
+  readonly reviewsTotalPages = signal(1);
+  readonly reviewsHasMore = computed(() => this.reviewsPage() < this.reviewsTotalPages());
 
   private addedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -926,6 +1291,28 @@ export class ProductComponent implements OnInit {
     return p.skus.filter(s => s.colorId === colorId);
   });
 
+  private readonly FREE_SIZE_LABELS = new Set([
+    'free size', 'freesize', 'free sz',
+    'one size', 'onesize', 'one-size', 'one sz',
+    'free', 'os', 'osfm',
+    'universal', 'standard', 'single size', 'u',
+  ]);
+
+  readonly isFreeSize = computed(() => {
+    const sizes = this.sizesForColor();
+    return sizes.length === 1 && this.FREE_SIZE_LABELS.has(sizes[0].sizeLabel.toLowerCase().trim());
+  });
+
+  private readonly cartQtyMap = computed(() => {
+    const map = new Map<string, number>();
+    for (const item of this.cartService.items()) map.set(item.skuId, item.quantity);
+    return map;
+  });
+
+  effectiveStock(skuId: string, stockQty: number): number {
+    return Math.max(0, stockQty - (this.cartQtyMap().get(skuId) ?? 0));
+  }
+
   readonly selectedSku = computed<ProductSku | null>(() => {
     const p = this.product();
     if (!p) return null;
@@ -953,8 +1340,9 @@ export class ProductComponent implements OnInit {
   readonly stockStatus = computed<'in' | 'low' | 'oos'>(() => {
     const sku = this.selectedSku();
     if (!sku) return 'in';
-    if (sku.stockQty === 0) return 'oos';
-    if (sku.stockQty <= 3) return 'low';
+    const effective = this.effectiveStock(sku.id, sku.stockQty);
+    if (effective <= 0) return 'oos';
+    if (effective <= 3) return 'low';
     return 'in';
   });
 
@@ -962,7 +1350,7 @@ export class ProductComponent implements OnInit {
     const status = this.stockStatus();
     const sku = this.selectedSku();
     if (status === 'oos') return 'Out of Stock';
-    if (status === 'low') return `Only ${sku?.stockQty} left`;
+    if (status === 'low') return `Only ${sku ? this.effectiveStock(sku.id, sku.stockQty) : 0} left`;
     return 'In Stock';
   });
 
@@ -973,7 +1361,19 @@ export class ProductComponent implements OnInit {
 
   readonly allSizesOos = computed(() => {
     const sizes = this.sizesForColor();
-    return sizes.length > 0 && sizes.every(s => s.stockQty === 0);
+    return sizes.length > 0 && sizes.every(s => this.effectiveStock(s.id, s.stockQty) <= 0);
+  });
+
+  readonly colorOosMap = computed(() => {
+    const p = this.product();
+    if (!p) return new Map<string, boolean>();
+    const map = new Map<string, boolean>();
+    for (const color of p.colors) {
+      const colorSkus = p.skus.filter(s => s.colorId === color.id);
+      const isOos = colorSkus.length === 0 || !colorSkus.some(s => this.effectiveStock(s.id, s.stockQty) > 0);
+      map.set(color.id, isOos);
+    }
+    return map;
   });
 
   readonly hasMeasurements = computed(() => {
@@ -991,6 +1391,20 @@ export class ProductComponent implements OnInit {
     }));
   });
 
+  constructor() {
+    effect(() => {
+      const sizes = this.sizesForColor();
+      const map = this.cartQtyMap();
+      if (untracked(() => this.selectedSkuId()) !== null) return;
+      const inStock = sizes.filter(s => Math.max(0, s.stockQty - (map.get(s.id) ?? 0)) > 0);
+      if (inStock.length === 1) {
+        this.selectedSkuId.set(inStock[0].id);
+      } else if (sizes.length === 1) {
+        this.selectedSkuId.set(sizes[0].id);
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       const slug = params['slug'];
@@ -1001,12 +1415,18 @@ export class ProductComponent implements OnInit {
   private loadProduct(slug: string): void {
     this.loading.set(true);
     this.notFound.set(false);
+    this.reviewsAggregate.set(null);
+    this.reviewsList.set([]);
+    this.reviewsPage.set(1);
+    this.reviewsTotalPages.set(1);
     this.productService.getProductBySlug(slug).subscribe({
       next: (product) => {
         this.product.set(product);
         if (product.colors?.length > 0) {
           this.selectedColorId.set(product.colors[0].id);
         }
+        this.autoSelectSku();
+        this.loadReviews(product.id, 1);
         this.loading.set(false);
         this.titleService.setTitle(`${product.title} — Ted Clothing`);
         this.meta.updateTag({ name: 'description', content: product.description?.slice(0, 160) ?? '' });
@@ -1021,10 +1441,22 @@ export class ProductComponent implements OnInit {
 
   selectColor(colorId: string): void {
     this.selectedColorId.set(colorId);
-    this.selectedSkuId.set(null);
+    this.autoSelectSku();
     this.selectedThumbIndex.set(0);
     this.notifyOpen.set(false);
     this.notifySent.set(false);
+  }
+
+  private autoSelectSku(): void {
+    const sizes = this.sizesForColor();
+    const inStock = sizes.filter(s => this.effectiveStock(s.id, s.stockQty) > 0);
+    if (inStock.length === 1) {
+      this.selectedSkuId.set(inStock[0].id);
+    } else if (sizes.length === 1) {
+      this.selectedSkuId.set(sizes[0].id);
+    } else {
+      this.selectedSkuId.set(null);
+    }
   }
 
   openNotify(): void {
@@ -1055,8 +1487,32 @@ export class ProductComponent implements OnInit {
     });
   }
 
+  private loadReviews(productId: string, page: number): void {
+    this.reviewsLoading.set(true);
+    this.apiService.get<ReviewsResponse>(`/products/${productId}/reviews`, { page, limit: 5 }).subscribe({
+      next: (data) => {
+        if (page === 1) {
+          this.reviewsAggregate.set(data.aggregate);
+          this.reviewsList.set(data.reviews);
+        } else {
+          this.reviewsList.update(list => [...list, ...data.reviews]);
+        }
+        this.reviewsPage.set(data.page);
+        this.reviewsTotalPages.set(data.totalPages);
+        this.reviewsLoading.set(false);
+      },
+      error: () => this.reviewsLoading.set(false),
+    });
+  }
+
+  loadMoreReviews(): void {
+    const p = this.product();
+    if (!p) return;
+    this.loadReviews(p.id, this.reviewsPage() + 1);
+  }
+
   selectSize(sku: ProductSku): void {
-    if (sku.stockQty === 0) return;
+    if (this.effectiveStock(sku.id, sku.stockQty) <= 0) return;
     this.selectedSkuId.set(sku.id);
   }
 
@@ -1084,6 +1540,36 @@ export class ProductComponent implements OnInit {
     this.wishlistService.toggle(p.id, skuId);
   }
 
+  async shareProduct(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const p = this.product();
+    if (!p) return;
+
+    const url = window.location.href;
+    const payload = {
+      title: p.title,
+      text: `${p.category?.name ?? ''} · ${p.title}`,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(payload);
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.triggerCopied();
+      }
+    } catch {
+      // user cancelled share or clipboard denied — silent fail
+    }
+  }
+
+  private triggerCopied(): void {
+    if (this.copiedTimer) clearTimeout(this.copiedTimer);
+    this.linkCopied.set(true);
+    this.copiedTimer = setTimeout(() => this.linkCopied.set(false), 2000);
+  }
+
   addToCart(): void {
     const p = this.product();
     const sku = this.selectedSku();
@@ -1104,6 +1590,7 @@ export class ProductComponent implements OnInit {
       image: color?.images?.[0] ?? null,
     };
 
+    if (this.effectiveStock(sku.id, sku.stockQty) <= 0) return;
     this.cartService.addItem(item);
     this.addedToCart.set(true);
     if (this.addedTimer) clearTimeout(this.addedTimer);
