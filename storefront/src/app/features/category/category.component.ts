@@ -27,6 +27,15 @@ type SheetType = 'none' | 'sort' | 'category';
 
 interface FilterOption { label: string; slug: string; }
 
+interface PlpScrollState {
+  products: Product[];
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  sortBy: SortOption;
+  scrollToId: string;
+}
+
 const GENDER_SLUGS: Record<string, 'MEN' | 'WOMEN' | 'KIDS'> = {
   men: 'MEN', women: 'WOMEN', kids: 'KIDS',
 };
@@ -169,6 +178,7 @@ const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" str
                 appAnimateOnScroll
                 [product]="product"
                 [delay]="((i % 24) * 60) + 'ms'"
+                (click)="saveScrollState(product.id)"
               />
             }
           </div>
@@ -723,6 +733,10 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('scrollSentinel') private sentinel!: ElementRef<HTMLDivElement>;
   private observer: IntersectionObserver | null = null;
+  private sentinelVisible = false;
+  // Captured in constructor (mid-navigation) — getCurrentNavigation() returns null
+  // by the time the combineLatest subscribe callback fires (after NavigationEnd).
+  private readonly initialNavTrigger = this.router.getCurrentNavigation()?.trigger;
 
   readonly slug            = signal('');
   readonly breadcrumbs     = signal<{ label: string; slug?: string }[]>([]);
@@ -787,21 +801,63 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.activeCat.set(catFromUrl);
       this.pendingCat.set(catFromUrl);
-      this.currentPage.set(1);
-      this.products.set([]);
+
+      // ── Scroll restoration (Option C) ───────────────────────────────
+      const isBrowser   = isPlatformBrowser(this.platformId);
+      const isBackNav   = this.initialNavTrigger === 'popstate';
+      const stateKey    = `plp:${newSlug}:${catFromUrl}`;
+      let   restoredFromState = false;
+
+      if (isBrowser && isBackNav) {
+        const raw = sessionStorage.getItem(stateKey);
+        if (raw) {
+          try {
+            const state: PlpScrollState = JSON.parse(raw);
+            sessionStorage.removeItem(stateKey);
+            this.sortBy.set(state.sortBy);
+            this.products.set(state.products);
+            this.currentPage.set(state.currentPage);
+            this.totalPages.set(state.totalPages);
+            this.total.set(state.total);
+            this.loading.set(false);
+            restoredFromState = true;
+            // Scroll after DOM paints — instant (no animation) to feel like native back
+            setTimeout(() => {
+              document.getElementById(state.scrollToId)
+                ?.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }, 0);
+          } catch { /* corrupt JSON — fall through to normal load */ }
+        }
+      }
+
+      if (!restoredFromState) {
+        // Clear any stale saved state for this category on fresh (non-back) navigation
+        if (isBrowser) {
+          Object.keys(sessionStorage)
+            .filter(k => k.startsWith(`plp:${newSlug}:`))
+            .forEach(k => sessionStorage.removeItem(k));
+        }
+        this.currentPage.set(1);
+        this.products.set([]);
+      }
+      // ────────────────────────────────────────────────────────────────
 
       if (newSlug !== this.prevSlug) {
         this.prevSlug = newSlug;
         this.slug.set(newSlug);
-        this.categoryOptions.set([]);
-        this.breadcrumbs.set([]);
-        this.pageType.set('leaf');
+        if (!restoredFromState) {
+          this.categoryOptions.set([]);
+          this.breadcrumbs.set([]);
+          this.pageType.set('leaf');
+        }
         this.loadCategoryMeta();
         this.titleService.setTitle(`${this.displayName()} — Ted Clothing`);
         this.meta.updateTag({ name: 'description', content: `Shop ${this.displayName()} at Ted Clothing. Premium handcrafted Indian clothing.` });
       }
 
-      this.loadProducts();
+      if (!restoredFromState) {
+        this.loadProducts();
+      }
     });
   }
 
@@ -874,6 +930,9 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           this.products.set(items);
           this.loading.set(false);
+          // Sentinel may have been visible during load (user scrolled fast or short page).
+          // Observer won't re-fire for persistent intersection — trigger manually.
+          if (this.sentinelVisible) setTimeout(() => this.loadMore(), 0);
         }
         this.total.set(res.total ?? 0);
         this.totalPages.set(res.totalPages ?? 1);
@@ -959,12 +1018,33 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadProducts();
   }
 
+  // ── Scroll state (Option C) ───────────────────────────────────────
+
+  saveScrollState(productId: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const stateKey = `plp:${this.slug()}:${this.activeCat()}`;
+    const state: PlpScrollState = {
+      products:    this.products(),
+      currentPage: this.currentPage(),
+      totalPages:  this.totalPages(),
+      total:       this.total(),
+      sortBy:      this.sortBy(),
+      scrollToId:  `plp-${productId}`,
+    };
+    try {
+      sessionStorage.setItem(stateKey, JSON.stringify(state));
+    } catch { /* quota exceeded — fail silently */ }
+  }
+
   // ── Infinite scroll ───────────────────────────────────────────────
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId) || !this.sentinel) return;
     this.observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) this.loadMore(); },
+      ([entry]) => {
+        this.sentinelVisible = entry.isIntersecting;
+        if (entry.isIntersecting) this.loadMore();
+      },
       { rootMargin: '200px' }
     );
     this.observer.observe(this.sentinel.nativeElement);
