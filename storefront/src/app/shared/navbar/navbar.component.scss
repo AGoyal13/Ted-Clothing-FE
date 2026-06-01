@@ -23,6 +23,10 @@
       padding: 1.25rem 5%;
       max-width: 1440px;
       margin: 0 auto;
+
+      @media (min-width: 901px) {
+        align-items: flex-end;
+      }
     }
 
     .navbar__logo {
@@ -292,3 +296,20 @@
     @media (max-width: 900px) {
       .navbar__delivery--mobile { display: flex; }
     }
+
+    .navbar__delivery--desktop {
+      display: none;
+      color: var(--muted);
+      padding: 0.25rem 0;
+
+      .navbar__delivery-city {
+        font-size: 0.7rem;
+        color: var(--cream);
+        opacity: 0.8;
+      }
+
+      @media (min-width: 901px) {
+        display: flex;
+      }
+    }
+

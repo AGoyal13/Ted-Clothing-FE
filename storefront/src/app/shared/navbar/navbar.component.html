@@ -16,6 +16,9 @@
               </svg>
               <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
             </a>
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--desktop" aria-label="Delivery address">
+              <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+            </a>
           }
         </div>
 

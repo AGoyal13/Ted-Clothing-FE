@@ -1,7 +1,7 @@
 
     .cart-page {
       min-height: 100vh;
-      padding-top: 80px;
+      padding-top: 110px;
 
       @media (max-width: 900px) {
         padding-top: 100px;
@@ -12,6 +12,10 @@
       max-width: 1440px;
       margin: 0 auto;
       padding: 3rem 5%;
+
+      @media (max-width: 600px) {
+        padding: 1.5rem 4%;
+      }
     }
 
     .cart-page__header {
@@ -90,13 +94,14 @@
         .cart-row__right {
           grid-column: 1 / -1;
           flex-direction: row;
+          align-items: center;
           justify-content: space-between;
         }
       }
     }
 
     .cart-row__image {
-      width: 100px;
+      width: 100%;
       aspect-ratio: 3/4;
       overflow: hidden;
       background: var(--surface);
@@ -236,7 +241,7 @@
       border: 1px solid rgba(245, 240, 232, 0.06);
       padding: 2rem;
       position: sticky;
-      top: 90px;
+      top: 120px;
     }
 
     .cart-page__summary-title {

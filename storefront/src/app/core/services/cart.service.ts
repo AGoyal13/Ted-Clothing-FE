@@ -18,6 +18,8 @@ export class CartService {
   readonly oosItems = signal<CartItem[]>([]);
   readonly loading = signal(false);
 
+  private readonly qtyTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
   readonly count = computed(() =>
     this.items().reduce((sum, i) => sum + i.quantity, 0)
   );
@@ -42,7 +44,10 @@ export class CartService {
       const userId = this.auth.currentUser()?.id ?? null;
 
       if (prevUserId !== undefined && prevUserId !== null && userId === null) {
-        // User just logged out — clear immediately and reload as guest
+        // Rotate session ID so this guest session is isolated from the logged-out user.
+        // Without this, guest items added after logout would merge into the next account
+        // that logs in on the same device.
+        localStorage.setItem(SESSION_ID_KEY, crypto.randomUUID());
         this.items.set([]);
         this.oosItems.set([]);
         this.loadCart();
@@ -82,12 +87,27 @@ export class CartService {
       this.removeItem(skuId);
       return;
     }
+    // Optimistic update immediately
     this.items.update(items =>
       items.map(i => (i.skuId === skuId ? { ...i, quantity } : i))
     );
-    this.api.patch<unknown>(`/cart/${skuId}`, { quantity }).subscribe({
-      error: () => this.loadCart(),
-    });
+    // Debounce the PATCH per item — rapid clicks collapse into one request,
+    // eliminating out-of-order server writes and stale next: handler comparisons.
+    clearTimeout(this.qtyTimers.get(skuId));
+    this.qtyTimers.set(skuId, setTimeout(() => {
+      this.qtyTimers.delete(skuId);
+      this.api.patch<{ quantity: number }>(`/cart/${skuId}`, { quantity }).subscribe({
+        next: (updated) => {
+          // Server may cap qty (e.g. stock dropped between optimistic update and response)
+          if (updated.quantity !== quantity) {
+            this.items.update(items =>
+              items.map(i => i.skuId === skuId ? { ...i, quantity: updated.quantity } : i)
+            );
+          }
+        },
+        error: () => this.loadCart(),
+      });
+    }, 300));
   }
 
   removeItem(skuId: string): void {

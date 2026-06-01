@@ -54,6 +54,7 @@ export class ProductComponent implements OnInit, OnDestroy {
   readonly descExpanded = signal(true);
   readonly measExpanded = signal(false);
   readonly addedToCart = signal(false);
+  readonly addingToCart = signal(false);
   readonly linkCopied = signal(false);
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
   private addedTimer: ReturnType<typeof setTimeout> | null = null;
@@ -303,13 +304,17 @@ export class ProductComponent implements OnInit, OnDestroy {
     const sku = this.selectedSku();
     if (!sku) return;
     if (this.effectiveStock(sku.id, sku.stockQty) <= 0) return;
+    if (this.addingToCart()) return;
 
+    this.addingToCart.set(true);
     this.cartService.addItem(sku.id, 1).subscribe({
       next: () => {
+        this.addingToCart.set(false);
         this.addedToCart.set(true);
         if (this.addedTimer) clearTimeout(this.addedTimer);
         this.addedTimer = setTimeout(() => this.addedToCart.set(false), 3000);
       },
+      error: () => this.addingToCart.set(false),
     });
   }
 }

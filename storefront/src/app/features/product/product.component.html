@@ -126,7 +126,7 @@
                 class="pdp__add-btn btn-primary"
                 [class.pdp__add-btn--added]="addedToCart()"
                 (click)="addToCart()"
-                [disabled]="allSizesOos() || !selectedSkuId() || stockStatus() === 'oos'"
+                [disabled]="allSizesOos() || !selectedSkuId() || stockStatus() === 'oos' || addingToCart()"
                 [attr.aria-label]="'Add ' + product()!.title + ' to cart'"
               >
                 @if (allSizesOos()) {
