@@ -24,7 +24,6 @@ import {
   getBasePrice,
   hasDiscount,
 } from '../../core/models/product.model';
-import { CartItem } from '../../core/models/cart.model';
 import { PdpGalleryComponent } from './components/pdp-gallery/pdp-gallery.component';
 import { PdpReviewsComponent } from './components/pdp-reviews/pdp-reviews.component';
 import { PdpNotifyComponent } from './components/pdp-notify/pdp-notify.component';
@@ -301,29 +300,16 @@ export class ProductComponent implements OnInit, OnDestroy {
   }
 
   addToCart(): void {
-    const p = this.product();
     const sku = this.selectedSku();
-    if (!p || !sku) return;
-
-    const colorId = this.selectedColorId() ?? p.colors[0]?.id;
-    const color = p.colors.find(c => c.id === colorId);
-
-    const item: CartItem = {
-      skuId: sku.id,
-      skuCode: sku.skuCode,
-      productSlug: p.slug,
-      productTitle: p.title,
-      colorName: color?.colorName ?? '',
-      sizeLabel: sku.sizeLabel,
-      price: sku.priceOverride ? parseFloat(sku.priceOverride) : getEffectivePrice(p),
-      quantity: 1,
-      image: color?.images?.[0] ?? null,
-    };
-
+    if (!sku) return;
     if (this.effectiveStock(sku.id, sku.stockQty) <= 0) return;
-    this.cartService.addItem(item);
-    this.addedToCart.set(true);
-    if (this.addedTimer) clearTimeout(this.addedTimer);
-    this.addedTimer = setTimeout(() => this.addedToCart.set(false), 3000);
+
+    this.cartService.addItem(sku.id, 1).subscribe({
+      next: () => {
+        this.addedToCart.set(true);
+        if (this.addedTimer) clearTimeout(this.addedTimer);
+        this.addedTimer = setTimeout(() => this.addedToCart.set(false), 3000);
+      },
+    });
   }
 }

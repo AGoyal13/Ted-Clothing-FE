@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { CartService } from '../../core/services/cart.service';
 
 type Tab = 'login' | 'register';
 type LoginMethod = 'password' | 'otp';
@@ -20,6 +21,7 @@ type OtpStep = 'email' | 'verify';
 })
 export class AuthModalComponent {
   private readonly authService = inject(AuthService);
+  private readonly cartService = inject(CartService);
 
   readonly tab = signal<Tab>('login');
   readonly loginMethod = signal<LoginMethod>('password');
@@ -61,6 +63,7 @@ export class AuthModalComponent {
     this.authService.login(this.loginEmail, this.loginPassword).subscribe({
       next: () => {
         this.loading.set(false);
+        this.cartService.onLogin();
         this.close();
       },
       error: (err: any) => {
@@ -93,6 +96,7 @@ export class AuthModalComponent {
     this.authService.verifyOtp(this.otpEmail, this.otpCode).subscribe({
       next: () => {
         this.loading.set(false);
+        this.cartService.onLogin();
         this.close();
       },
       error: (err: any) => {
@@ -117,6 +121,7 @@ export class AuthModalComponent {
     this.authService.register(this.regEmail, this.regPassword, this.regName || undefined, this.regPhone || undefined).subscribe({
       next: () => {
         this.loading.set(false);
+        this.cartService.onLogin();
         this.close();
       },
       error: (err: any) => {

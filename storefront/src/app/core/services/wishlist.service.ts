@@ -92,6 +92,12 @@ export class WishlistService {
     };
   }
 
+  addItem(skuId: string, productId: string): void {
+    if (!this.isWishlisted(productId)) {
+      this.add(skuId, productId);
+    }
+  }
+
   private add(skuId: string, productId: string): void {
     this.http
       .post<ApiResponse<{ id: string }>>(`${this.baseUrl}/wishlist`, { skuId })

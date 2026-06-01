@@ -19,7 +19,6 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { WishlistService } from '../../core/services/wishlist.service';
 import { CartService } from '../../core/services/cart.service';
-import { CartItem } from '../../core/models/cart.model';
 
 @Component({
   selector: 'app-product-card',
@@ -143,23 +142,7 @@ export class ProductCardComponent {
     const currentQty = this.cartService.items().find(i => i.skuId === size.skuId)?.quantity ?? 0;
     if (currentQty >= size.stockQty) return;
 
-    const p = this.product();
-    const colorId = this.selectedColorId() || p.colors?.[0]?.id;
-    const color = p.colors?.find(c => c.id === colorId);
-
-    const item: CartItem = {
-      skuId: size.skuId,
-      skuCode: '',
-      productSlug: p.slug,
-      productTitle: p.title,
-      colorName: color?.colorName ?? '',
-      sizeLabel: size.label,
-      price: getEffectivePrice(p),
-      quantity: 1,
-      image: color?.images?.[0] ?? null,
-    };
-
-    this.cartService.addItem(item);
+    this.cartService.addItem(size.skuId, 1).subscribe();
 
     if (this.addedTimer) clearTimeout(this.addedTimer);
     this.recentlyAdded.set(size.skuId);

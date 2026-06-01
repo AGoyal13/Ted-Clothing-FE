@@ -112,10 +112,22 @@
       white-space: nowrap;
     }
 
-    .navbar__cart-icon-wrap {
+    .navbar__cart-icon-wrap,
+    .navbar__icon-wrap {
       position: relative;
       display: flex;
       align-items: center;
+    }
+
+    .navbar__icon-badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      color: var(--gold);
+      font-family: var(--font-sans);
+      font-size: 0.6rem;
+      font-weight: 700;
+      line-height: 1;
     }
 
     .navbar__cart-badge {

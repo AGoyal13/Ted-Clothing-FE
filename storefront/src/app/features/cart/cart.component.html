@@ -3,10 +3,26 @@
       <div class="cart-page__inner">
         <div class="cart-page__header">
           <h1 class="cart-page__title">YOUR BAG</h1>
-          <p class="cart-page__count">{{ itemCount() }} {{ itemCount() === 1 ? 'item' : 'items' }}</p>
+          @if (itemCount() > 0) {
+            <p class="cart-page__count">{{ itemCount() }} {{ itemCount() === 1 ? 'item' : 'items' }}</p>
+          }
         </div>
 
-        @if (items().length === 0) {
+        @if (loading() && !hasAnyItems()) {
+          <!-- Loading skeleton -->
+          <div class="cart-page__skeleton">
+            @for (n of [1,2,3]; track n) {
+              <div class="cart-skeleton-row">
+                <div class="cart-skeleton-row__img skeleton-pulse"></div>
+                <div class="cart-skeleton-row__body">
+                  <div class="skeleton-pulse" style="width:60%;height:1rem;margin-bottom:0.5rem"></div>
+                  <div class="skeleton-pulse" style="width:40%;height:0.75rem;margin-bottom:0.75rem"></div>
+                  <div class="skeleton-pulse" style="width:30%;height:1.1rem"></div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (!hasAnyItems()) {
           <!-- Empty State -->
           <div class="cart-page__empty">
             <div class="cart-page__empty-icon" aria-hidden="true">
@@ -24,81 +40,116 @@
           </div>
         } @else {
           <div class="cart-page__layout">
-            <!-- Items -->
+            <!-- Items Column -->
             <div class="cart-page__items">
-              @for (item of items(); track item.skuId) {
-                <div class="cart-row">
-                  <!-- Product Image -->
-                  <div class="cart-row__image">
-                    @if (item.image) {
-                      <img
-                        [src]="item.image"
-                        [alt]="item.productTitle"
-                        loading="lazy"
-                        width="100"
-                        height="133"
-                      />
-                    } @else {
-                      <div class="cart-row__img-placeholder">
-                        <span>{{ item.productTitle.charAt(0) }}</span>
+
+              <!-- In-stock items -->
+              @if (items().length > 0) {
+                @for (item of items(); track item.skuId) {
+                  <div class="cart-row">
+                    <div class="cart-row__image">
+                      @if (item.image) {
+                        <img [src]="item.image" [alt]="item.productTitle" loading="lazy" width="100" height="133" />
+                      } @else {
+                        <div class="cart-row__img-placeholder">
+                          <span>{{ item.productTitle.charAt(0) }}</span>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="cart-row__details">
+                      <a [routerLink]="['/product', item.productSlug]" class="cart-row__title">{{ item.productTitle }}</a>
+                      <p class="cart-row__meta">{{ item.colorName }} · {{ item.sizeLabel }}</p>
+
+                      @if (item.discountPct > 0) {
+                        <p class="cart-row__price">
+                          <span class="cart-row__price--strike">{{ formatINR(item.basePrice) }}</span>
+                          <span>{{ formatINR(item.price) }}</span>
+                          <span class="cart-row__discount-label">{{ discountLabel(item) }}</span>
+                        </p>
+                      } @else {
+                        <p class="cart-row__price">{{ formatINR(item.price) }}</p>
+                      }
+
+                      <div class="cart-row__qty" role="group" aria-label="Quantity">
+                        <button class="cart-row__qty-btn" (click)="updateQty(item, item.quantity - 1)" aria-label="Decrease quantity">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        </button>
+                        <span class="cart-row__qty-num" [attr.aria-label]="'Quantity: ' + item.quantity">{{ item.quantity }}</span>
+                        <button
+                          class="cart-row__qty-btn"
+                          (click)="updateQty(item, item.quantity + 1)"
+                          [disabled]="item.quantity >= item.stockQty"
+                          [class.cart-row__qty-btn--maxed]="item.quantity >= item.stockQty"
+                          aria-label="Increase quantity"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        </button>
                       </div>
-                    }
-                  </div>
+                      @if (item.quantity >= item.stockQty) {
+                        <p class="cart-row__stock-cap">Max available</p>
+                      }
+                    </div>
 
-                  <!-- Product Details -->
-                  <div class="cart-row__details">
-                    <a
-                      [routerLink]="['/product', item.productSlug]"
-                      class="cart-row__title"
-                    >{{ item.productTitle }}</a>
-                    <p class="cart-row__meta">
-                      {{ item.colorName }} · {{ item.sizeLabel }}
-                    </p>
-                    <p class="cart-row__price">{{ formatINR(item.price) }}</p>
-
-                    <!-- Quantity Stepper -->
-                    <div class="cart-row__qty" role="group" aria-label="Quantity">
-                      <button
-                        class="cart-row__qty-btn"
-                        (click)="updateQty(item, item.quantity - 1)"
-                        aria-label="Decrease quantity"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                          <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                      </button>
-                      <span class="cart-row__qty-num" aria-label="Quantity: {{ item.quantity }}">{{ item.quantity }}</span>
-                      <button
-                        class="cart-row__qty-btn"
-                        (click)="updateQty(item, item.quantity + 1)"
-                        aria-label="Increase quantity"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                          <line x1="12" y1="5" x2="12" y2="19"/>
-                          <line x1="5" y1="12" x2="19" y2="12"/>
+                    <div class="cart-row__right">
+                      <p class="cart-row__line-total">{{ formatINR(item.price * item.quantity) }}</p>
+                      <button class="cart-row__remove" (click)="removeItem(item.skuId)" [attr.aria-label]="'Remove ' + item.productTitle + ' from cart'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                          <path d="M10 11v6M14 11v6"/>
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                         </svg>
                       </button>
                     </div>
                   </div>
+                }
+              }
 
-                  <!-- Line Total + Remove -->
-                  <div class="cart-row__right">
-                    <p class="cart-row__line-total">{{ formatINR(item.price * item.quantity) }}</p>
-                    <button
-                      class="cart-row__remove"
-                      (click)="removeItem(item.skuId)"
-                      [attr.aria-label]="'Remove ' + item.productTitle + ' from cart'"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        <path d="M10 11v6M14 11v6"/>
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                      </svg>
-                    </button>
-                  </div>
+              <!-- OOS section -->
+              @if (oosItems().length > 0) {
+                <div class="cart-oos-section">
+                  <h3 class="cart-oos-section__title">OUT OF STOCK ({{ oosItems().length }})</h3>
+                  @for (item of oosItems(); track item.skuId) {
+                    <div class="cart-row cart-row--oos">
+                      <div class="cart-row__image">
+                        <div class="cart-row__oos-badge">OUT OF STOCK</div>
+                        @if (item.image) {
+                          <img [src]="item.image" [alt]="item.productTitle" loading="lazy" width="100" height="133" />
+                        } @else {
+                          <div class="cart-row__img-placeholder">
+                            <span>{{ item.productTitle.charAt(0) }}</span>
+                          </div>
+                        }
+                      </div>
+
+                      <div class="cart-row__details">
+                        <a [routerLink]="['/product', item.productSlug]" class="cart-row__title">{{ item.productTitle }}</a>
+                        <p class="cart-row__meta">{{ item.colorName }} · {{ item.sizeLabel }}</p>
+                        <p class="cart-row__price">{{ formatINR(item.price) }}</p>
+                        <p class="cart-row__qty-label">Qty: {{ item.quantity }}</p>
+
+                        <div class="cart-row__oos-actions">
+                          @if (authService.isLoggedIn()) {
+                            <button class="cart-row__oos-btn" (click)="moveToWishlist(item)">
+                              Move to Wishlist
+                            </button>
+                          }
+                          <button class="cart-row__oos-btn cart-row__oos-btn--remove" (click)="removeItem(item.skuId)">
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  }
                 </div>
               }
+
             </div>
 
             <!-- Order Summary Sidebar -->
@@ -108,7 +159,7 @@
 
                 <div class="cart-page__summary-rows">
                   <div class="cart-page__summary-row">
-                    <span>Subtotal ({{ itemCount() }} items)</span>
+                    <span>Subtotal ({{ itemCount() }} {{ itemCount() === 1 ? 'item' : 'items' }})</span>
                     <span>{{ subtotal() }}</span>
                   </div>
                   <div class="cart-page__summary-row">
@@ -130,7 +181,7 @@
                   <span>{{ subtotal() }}</span>
                 </div>
 
-                @if (total() < 999) {
+                @if (total() > 0 && total() < 999) {
                   <p class="cart-page__free-shipping-note">
                     Add {{ formatINR(999 - total()) }} more for free shipping
                   </p>
@@ -139,11 +190,15 @@
                 <!-- Checkout Button (Phase 4) -->
                 <button
                   class="btn-primary cart-page__checkout-btn"
-                  disabled
-                  aria-disabled="true"
+                  [disabled]="items().length === 0"
+                  [attr.aria-disabled]="items().length === 0"
                   title="Checkout coming soon"
                 >
-                  CHECKOUT — COMING SOON
+                  @if (items().length === 0) {
+                    ADD ITEMS TO PROCEED
+                  } @else {
+                    CHECKOUT — COMING SOON
+                  }
                 </button>
 
                 <a routerLink="/" class="cart-page__continue">← Continue Shopping</a>

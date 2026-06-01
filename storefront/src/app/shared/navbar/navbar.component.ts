@@ -17,6 +17,7 @@ import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
 import { AddressService } from '../../core/services/address.service';
+import { WishlistService } from '../../core/services/wishlist.service';
 import { MegaMenuComponent } from './mega-menu/mega-menu.component';
 import { MobileDrawerComponent } from './mobile-drawer/mobile-drawer.component';
 
@@ -43,6 +44,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   readonly mobileOpen = signal(false);
   readonly activeMega = signal<string | null>(null);
   readonly cartCount = this.cartService.count;
+  readonly wishlistCount = inject(WishlistService).count;
 
   private openTimer: ReturnType<typeof setTimeout> | null = null;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
