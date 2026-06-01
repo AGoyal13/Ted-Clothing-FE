@@ -192,19 +192,16 @@
                   </div>
                 }
 
-                <!-- Checkout Button (Phase 4) -->
-                <button
-                  class="btn-primary cart-page__checkout-btn"
-                  [disabled]="items().length === 0"
-                  [attr.aria-disabled]="items().length === 0"
-                  title="Checkout coming soon"
-                >
-                  @if (items().length === 0) {
+                <!-- Checkout Button -->
+                @if (items().length === 0) {
+                  <button class="btn-primary cart-page__checkout-btn" disabled>
                     ADD ITEMS TO PROCEED
-                  } @else {
-                    CHECKOUT — COMING SOON
-                  }
-                </button>
+                  </button>
+                } @else {
+                  <a class="btn-primary cart-page__checkout-btn" routerLink="/checkout">
+                    PROCEED TO CHECKOUT
+                  </a>
+                }
 
                 <a routerLink="/" class="cart-page__continue">← Continue Shopping</a>
               </div>

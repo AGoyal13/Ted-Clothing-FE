@@ -1,0 +1,90 @@
+<div class="confirmed">
+  <div class="confirmed__inner">
+
+    @if (loading()) {
+      <div class="confirmed__skeleton">
+        <div class="confirmed__skel-icon"></div>
+        <div class="confirmed__skel-line" style="width:200px"></div>
+        <div class="confirmed__skel-line" style="width:140px"></div>
+      </div>
+    } @else if (!order()) {
+      <div class="confirmed__error">Order not found.</div>
+    } @else {
+      <!-- Check icon -->
+      <div class="confirmed__icon-wrap">
+        <svg class="confirmed__check" width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="19" stroke="var(--gold)" stroke-width="2"/>
+          <polyline points="12,21 18,27 28,14" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h1 class="confirmed__title">ORDER CONFIRMED</h1>
+      <p class="confirmed__ref">Order #{{ shortId }}</p>
+      <p class="confirmed__thanks">
+        Thank you! Your order has been placed and is being processed.
+        We'll send updates to your email.
+      </p>
+
+      <!-- Address -->
+      <div class="confirmed__card">
+        <div class="confirmed__card-label">DELIVERING TO</div>
+        <div class="confirmed__addr-name">{{ order()!.address.name }}</div>
+        <div class="confirmed__addr-line">{{ order()!.address.line1 }}@if (order()!.address.line2){ , {{ order()!.address.line2 }}}</div>
+        @if (order()!.address.landmark) {
+          <div class="confirmed__addr-line">{{ order()!.address.landmark }}</div>
+        }
+        <div class="confirmed__addr-line">{{ order()!.address.city }}, {{ order()!.address.state }} — {{ order()!.address.pincode }}</div>
+        <div class="confirmed__addr-line">{{ order()!.address.phone }}</div>
+      </div>
+
+      <!-- Items -->
+      <div class="confirmed__card">
+        <div class="confirmed__card-label">ITEMS ({{ order()!.items.length }})</div>
+        <div class="confirmed__items">
+          @for (item of order()!.items; track item.id) {
+            <div class="confirmed__item">
+              <div class="confirmed__item-img-wrap">
+                <img
+                  [src]="getFirstImage(item.sku.color.images)"
+                  [alt]="item.sku.product.title"
+                  class="confirmed__item-img"
+                />
+              </div>
+              <div class="confirmed__item-info">
+                <div class="confirmed__item-title">{{ item.sku.product.title }}</div>
+                <div class="confirmed__item-meta">{{ item.sku.color.colorName }} · {{ item.sku.sizeLabel }}</div>
+                <div class="confirmed__item-qty">Qty: {{ item.quantity }}</div>
+              </div>
+              <div class="confirmed__item-price">{{ fmt(+item.priceAtPurchase * item.quantity) }}</div>
+            </div>
+          }
+        </div>
+
+        <div class="confirmed__totals">
+          <div class="confirmed__total-row">
+            <span>Subtotal</span>
+            <span>{{ fmt(+order()!.totalAmount - +order()!.shippingCharge) }}</span>
+          </div>
+          <div class="confirmed__total-row">
+            <span>Shipping</span>
+            @if (+order()!.shippingCharge === 0) {
+              <span class="confirmed__free">FREE</span>
+            } @else {
+              <span>{{ fmt(+order()!.shippingCharge) }}</span>
+            }
+          </div>
+          <div class="confirmed__total-divider"></div>
+          <div class="confirmed__total-row confirmed__total-row--grand">
+            <span>TOTAL PAID</span>
+            <span>{{ fmt(+order()!.totalAmount) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="confirmed__ctas">
+        <a class="confirmed__cta confirmed__cta--primary" routerLink="/">CONTINUE SHOPPING</a>
+      </div>
+    }
+  </div>
+</div>

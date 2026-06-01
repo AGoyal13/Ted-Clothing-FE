@@ -1,0 +1,243 @@
+.confirmed {
+  min-height: 100vh;
+  padding-top: 110px;
+  padding-bottom: 5rem;
+  background: var(--bg);
+}
+
+.confirmed__inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+.confirmed__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 3rem;
+}
+
+.confirmed__skel-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--surface);
+  animation: shimmer 1.5s infinite;
+}
+
+.confirmed__skel-line {
+  height: 20px;
+  background: var(--surface);
+  animation: shimmer 1.5s infinite;
+}
+
+// ─── Success state ────────────────────────────────────────────────────────────
+
+.confirmed__icon-wrap {
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.5s ease both;
+}
+
+.confirmed__check {
+  filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.35));
+}
+
+.confirmed__title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--cream);
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.05em;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+.confirmed__ref {
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  margin: 0 0 1rem;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+.confirmed__thanks {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 2.5rem;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+// ─── Cards ────────────────────────────────────────────────────────────────────
+
+.confirmed__card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+  animation: fadeUp 0.5s 0.25s ease both;
+}
+
+.confirmed__card-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.confirmed__addr-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--cream);
+  margin-bottom: 0.25rem;
+}
+
+.confirmed__addr-line {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+// ─── Items ────────────────────────────────────────────────────────────────────
+
+.confirmed__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.confirmed__item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.confirmed__item-img-wrap {
+  width: 56px;
+  height: 74px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.confirmed__item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.confirmed__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.confirmed__item-title {
+  font-size: 0.85rem;
+  color: var(--cream);
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confirmed__item-meta,
+.confirmed__item-qty {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.confirmed__item-price {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  color: var(--cream);
+  flex-shrink: 0;
+}
+
+// ─── Totals ───────────────────────────────────────────────────────────────────
+
+.confirmed__totals {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.confirmed__total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.83rem;
+  color: var(--muted);
+  padding: 0.3rem 0;
+
+  &--grand {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--cream);
+    letter-spacing: 0.05em;
+    padding-top: 0.5rem;
+  }
+}
+
+.confirmed__free {
+  color: #4caf7d;
+  font-size: 0.8rem;
+}
+
+.confirmed__total-divider {
+  border-top: 1px solid rgba(201, 168, 76, 0.15);
+  margin: 0.3rem 0;
+}
+
+// ─── CTAs ─────────────────────────────────────────────────────────────────────
+
+.confirmed__ctas {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+.confirmed__cta {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  padding: 0.85rem 2rem;
+  text-decoration: none;
+  transition: opacity 0.2s;
+
+  &--primary {
+    background: var(--gold);
+    color: #0d0d0d;
+
+    &:hover { opacity: 0.88; }
+  }
+
+  &--secondary {
+    border: 1px solid rgba(201, 168, 76, 0.4);
+    color: var(--cream);
+
+    &:hover { border-color: var(--gold); }
+  }
+}
+
+// ─── Error ────────────────────────────────────────────────────────────────────
+
+.confirmed__error {
+  font-size: 0.9rem;
+  color: var(--muted);
+  padding: 2rem 0;
+}

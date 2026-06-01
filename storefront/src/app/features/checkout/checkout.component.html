@@ -1,0 +1,199 @@
+<div class="checkout">
+  <div class="checkout__inner">
+
+    <!-- Header -->
+    <div class="checkout__header">
+      <a class="checkout__back" routerLink="/cart">← BACK TO BAG</a>
+      <h1 class="checkout__title">CHECKOUT</h1>
+    </div>
+
+    <div class="checkout__layout">
+
+      <!-- LEFT: Address + Items -->
+      <div class="checkout__main">
+
+        <!-- Delivery Address -->
+        <section class="checkout__section">
+          <h2 class="checkout__section-title">DELIVERY ADDRESS</h2>
+
+          @if (addressLoading()) {
+            <div class="checkout__addr-skeleton"></div>
+          } @else {
+            <!-- Saved addresses -->
+            @if (addresses().length > 0) {
+              <div class="checkout__addr-list">
+                @for (addr of addresses(); track addr.id) {
+                  <button
+                    class="checkout__addr-card"
+                    [class.checkout__addr-card--selected]="selectedAddressId() === addr.id"
+                    (click)="selectAddress(addr.id)"
+                    type="button"
+                  >
+                    <div class="checkout__addr-radio">
+                      <span class="checkout__addr-dot"></span>
+                    </div>
+                    <div class="checkout__addr-body">
+                      <div class="checkout__addr-name">{{ addr.name }}</div>
+                      <div class="checkout__addr-line">{{ addr.line1 }}@if (addr.line2){ , {{ addr.line2 }}}</div>
+                      @if (addr.landmark) {
+                        <div class="checkout__addr-line">{{ addr.landmark }}</div>
+                      }
+                      <div class="checkout__addr-line">{{ addr.city }}, {{ addr.state }} — {{ addr.pincode }}</div>
+                      <div class="checkout__addr-phone">{{ addr.phone }}</div>
+                    </div>
+                    @if (addr.isDefault) {
+                      <span class="checkout__addr-default">DEFAULT</span>
+                    }
+                  </button>
+                }
+              </div>
+            }
+
+            <!-- Add new address toggle -->
+            <button
+              class="checkout__add-addr-btn"
+              [class.checkout__add-addr-btn--active]="showAddForm()"
+              (click)="toggleAddForm()"
+              type="button"
+            >
+              @if (!showAddForm()) { + ADD NEW ADDRESS } @else { − CANCEL }
+            </button>
+
+            <!-- New address form -->
+            @if (showAddForm()) {
+              <form class="checkout__addr-form" #addrForm="ngForm" (ngSubmit)="saveAddress(addrForm)">
+                <div class="checkout__form-row">
+                  <div class="checkout__form-field">
+                    <label>Full Name *</label>
+                    <input name="name" [(ngModel)]="newAddress.name" required placeholder="Name" />
+                  </div>
+                  <div class="checkout__form-field">
+                    <label>Phone *</label>
+                    <input name="phone" [(ngModel)]="newAddress.phone" required placeholder="10-digit mobile" />
+                  </div>
+                </div>
+                <div class="checkout__form-field checkout__form-field--full">
+                  <label>Address Line 1 *</label>
+                  <input name="line1" [(ngModel)]="newAddress.line1" required placeholder="House / Flat / Block no." />
+                </div>
+                <div class="checkout__form-field checkout__form-field--full">
+                  <label>Address Line 2</label>
+                  <input name="line2" [(ngModel)]="newAddress.line2" placeholder="Street / Area / Colony" />
+                </div>
+                <div class="checkout__form-field checkout__form-field--full">
+                  <label>Landmark</label>
+                  <input name="landmark" [(ngModel)]="newAddress.landmark" placeholder="Near landmark (optional)" />
+                </div>
+                <div class="checkout__form-row">
+                  <div class="checkout__form-field">
+                    <label>Pincode *</label>
+                    <input
+                      name="pincode"
+                      [(ngModel)]="newAddress.pincode"
+                      required
+                      maxlength="6"
+                      placeholder="6-digit pincode"
+                      (ngModelChange)="onPincodeChange($event)"
+                    />
+                  </div>
+                  <div class="checkout__form-field">
+                    <label>City *</label>
+                    <input name="city" [(ngModel)]="newAddress.city" required placeholder="City" />
+                  </div>
+                </div>
+                <div class="checkout__form-field">
+                  <label>State *</label>
+                  <input name="state" [(ngModel)]="newAddress.state" required placeholder="State" />
+                </div>
+                <button class="checkout__save-addr-btn" type="submit" [disabled]="savingAddress() || addrForm.invalid">
+                  @if (savingAddress()) { SAVING... } @else { SAVE ADDRESS }
+                </button>
+              </form>
+            }
+          }
+        </section>
+
+        <!-- Order Items -->
+        <section class="checkout__section">
+          <h2 class="checkout__section-title">ORDER ITEMS ({{ items().length }})</h2>
+          <div class="checkout__items">
+            @for (item of items(); track item.skuId) {
+              <div class="checkout__item">
+                <div class="checkout__item-img-wrap">
+                  <img
+                    [src]="getImage(item)"
+                    [alt]="item.productTitle"
+                    class="checkout__item-img"
+                  />
+                </div>
+                <div class="checkout__item-info">
+                  <div class="checkout__item-title">{{ item.productTitle }}</div>
+                  <div class="checkout__item-meta">{{ item.colorName }} · {{ item.sizeLabel }}</div>
+                  <div class="checkout__item-qty">Qty: {{ item.quantity }}</div>
+                </div>
+                <div class="checkout__item-price">
+                  {{ fmt(item.price * item.quantity) }}
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT: Summary + Pay -->
+      <aside class="checkout__summary">
+        <h2 class="checkout__section-title">ORDER SUMMARY</h2>
+
+        <div class="checkout__summary-rows">
+          <div class="checkout__summary-row">
+            <span>Subtotal</span>
+            <span>{{ fmt(subtotal()) }}</span>
+          </div>
+          <div class="checkout__summary-row">
+            <span>Shipping</span>
+            @if (isFreeShipping()) {
+              <span class="checkout__free-ship">FREE</span>
+            } @else {
+              <span>{{ fmt(shippingCharge()) }}</span>
+            }
+          </div>
+          <div class="checkout__summary-divider"></div>
+          <div class="checkout__summary-row checkout__summary-row--total">
+            <span>TOTAL</span>
+            <span>{{ fmt(total()) }}</span>
+          </div>
+        </div>
+
+        @if (formError()) {
+          <div class="checkout__error">{{ formError() }}</div>
+        }
+
+        <button
+          class="checkout__pay-btn"
+          (click)="pay()"
+          [disabled]="paying() || items().length === 0 || !selectedAddressId()"
+        >
+          @if (paying()) {
+            <span class="checkout__pay-spinner"></span>
+            PROCESSING...
+          } @else {
+            PAY {{ fmt(total()) }}
+          }
+        </button>
+
+        @if (!selectedAddressId()) {
+          <p class="checkout__pay-hint">Select a delivery address to continue</p>
+        }
+
+        <div class="checkout__secure">
+          <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+            <path d="M6 0L0.5 2.5V7C0.5 10.25 2.5 12.5 6 13.5C9.5 12.5 11.5 10.25 11.5 7V2.5L6 0Z" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+          Secured by Razorpay
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
