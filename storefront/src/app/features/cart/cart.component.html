@@ -164,13 +164,13 @@
                   </div>
                   <div class="cart-page__summary-row">
                     <span>Shipping</span>
-                    <span class="cart-page__free">
-                      @if (total() >= 999) {
-                        FREE
-                      } @else {
-                        Calculated at checkout
-                      }
-                    </span>
+                    @if (total() === 0) {
+                      <span class="cart-page__shipping-value">—</span>
+                    } @else if (shippingCharge() === 0) {
+                      <span class="cart-page__free">FREE</span>
+                    } @else {
+                      <span class="cart-page__shipping-value">{{ formatINR(shippingCharge()) }}</span>
+                    }
                   </div>
                 </div>
 
@@ -178,13 +178,18 @@
 
                 <div class="cart-page__summary-row cart-page__summary-row--total">
                   <span>Total</span>
-                  <span>{{ subtotal() }}</span>
+                  <span>{{ grandTotal() }}</span>
                 </div>
 
-                @if (total() > 0 && total() < 999) {
-                  <p class="cart-page__free-shipping-note">
-                    Add {{ formatINR(999 - total()) }} more for free shipping
-                  </p>
+                @if (total() > 0 && amountForFreeShipping() > 0) {
+                  <div class="cart-page__shipping-progress">
+                    <p class="cart-page__free-shipping-note">
+                      Add {{ formatINR(amountForFreeShipping()) }} more for free shipping
+                    </p>
+                    <div class="cart-page__shipping-bar">
+                      <div class="cart-page__shipping-bar-fill" [style.width.%]="freeShippingProgress()"></div>
+                    </div>
+                  </div>
                 }
 
                 <!-- Checkout Button (Phase 4) -->

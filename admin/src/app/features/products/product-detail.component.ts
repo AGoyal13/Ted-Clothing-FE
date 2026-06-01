@@ -403,7 +403,7 @@ export class ProductDetailComponent implements OnInit {
     this.dialog.open(AddColorVariantDialogComponent, {
       width: '480px', maxWidth: '95vw',
       data: { productId: this.product()!.id, suggestedSizes: this.suggestedSizes() },
-    }).afterClosed().subscribe(r => { if (r) this.loadProduct(); });
+    }).afterClosed().subscribe(r => { if (r) this.loadProduct(true); });
   }
 
   openEditColor(color: ProductColor) {
@@ -418,7 +418,7 @@ export class ProductDetailComponent implements OnInit {
     this.api.delete(`products/${this.product()!.id}/colors/${color.id}`).subscribe({
       next: () => {
         this.snack.open('Color removed', '', { duration: 2000 });
-        this.loadProduct();
+        this.loadProduct(true);
       },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Error', '', { duration: 3000 }),
     });

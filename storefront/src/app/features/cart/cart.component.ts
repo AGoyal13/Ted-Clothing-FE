@@ -23,7 +23,17 @@ export class CartComponent {
   readonly loading = this.cartService.loading;
   readonly total = this.cartService.total;
   readonly itemCount = this.cartService.count;
+  readonly shippingCharge = this.cartService.shippingCharge;
+  readonly freeShippingThreshold = this.cartService.freeShippingThreshold;
   readonly subtotal = computed(() => formatINR(this.total()));
+  readonly grandTotal = computed(() => formatINR(this.total() + this.shippingCharge()));
+  readonly amountForFreeShipping = computed(() =>
+    Math.max(0, this.freeShippingThreshold() - this.total())
+  );
+  readonly freeShippingProgress = computed(() => {
+    const threshold = this.freeShippingThreshold();
+    return threshold > 0 ? Math.min(100, Math.round((this.total() / threshold) * 100)) : 100;
+  });
   readonly hasAnyItems = computed(() => this.items().length > 0 || this.oosItems().length > 0);
 
   readonly formatINR = formatINR;

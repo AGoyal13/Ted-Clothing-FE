@@ -17,6 +17,9 @@ export interface CartItem {
 export interface CartSummary {
   subtotal: number;
   itemCount: number;
+  shippingCharge: number;
+  freeShippingThreshold: number;
+  total: number;
 }
 
 export interface CartApiResponse {

@@ -17,6 +17,8 @@ export class CartService {
   readonly items = signal<CartItem[]>([]);
   readonly oosItems = signal<CartItem[]>([]);
   readonly loading = signal(false);
+  readonly shippingCharge = signal(0);
+  readonly freeShippingThreshold = signal(999);
 
   private readonly qtyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -69,6 +71,8 @@ export class CartService {
       next: (res) => {
         this.items.set(res.items.map(this.toCartItem));
         this.oosItems.set(res.oosItems.map(this.toCartItem));
+        this.shippingCharge.set(res.summary.shippingCharge ?? 0);
+        this.freeShippingThreshold.set(res.summary.freeShippingThreshold ?? 999);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

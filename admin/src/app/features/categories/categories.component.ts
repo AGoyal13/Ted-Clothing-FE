@@ -112,9 +112,10 @@ export class CategoriesComponent implements OnInit {
 
   ngOnInit() { this.load(); }
 
-  load() {
+  load(bustCache = false) {
     this.loading.set(true);
-    this.api.get<Category[]>('categories').subscribe({
+    const params = bustCache ? { _t: String(Date.now()) } : undefined;
+    this.api.get<Category[]>('categories', params).subscribe({
       next: (data) => { this.categories.set(data); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -122,23 +123,23 @@ export class CategoriesComponent implements OnInit {
 
   openCreate() {
     this.dialog.open(CategoryDialogComponent, { width: '400px', maxWidth: '95vw', data: { categories: this.categories() } })
-      .afterClosed().subscribe(result => { if (result) this.load(); });
+      .afterClosed().subscribe(result => { if (result) this.load(true); });
   }
 
   openEdit(cat: Category) {
     this.dialog.open(CategoryDialogComponent, { width: '400px', maxWidth: '95vw', data: { category: cat, categories: this.categories() } })
-      .afterClosed().subscribe(result => { if (result) this.load(); });
+      .afterClosed().subscribe(result => { if (result) this.load(true); });
   }
 
   openSizeTemplate(cat: Category) {
     this.dialog.open(SizeTemplateDialogComponent, { width: '500px', maxWidth: '95vw', data: { category: cat } })
-      .afterClosed().subscribe(result => { if (result) this.load(); });
+      .afterClosed().subscribe(result => { if (result) this.load(true); });
   }
 
   delete(cat: Category) {
     if (!confirm(`Delete "${cat.name}"?`)) return;
     this.api.delete(`categories/${cat.id}`).subscribe({
-      next: () => { this.snack.open('Deleted', '', { duration: 2000 }); this.load(); },
+      next: () => { this.snack.open('Deleted', '', { duration: 2000 }); this.load(true); },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Delete failed', '', { duration: 3000 }),
     });
   }

@@ -259,7 +259,7 @@ export class ProductsComponent implements OnInit {
     this.load();
   }
 
-  load() {
+  load(bustCache = false) {
     this.loading.set(true);
     this.selectedIds.set(new Set());
     const params: Record<string, string> = {
@@ -269,6 +269,7 @@ export class ProductsComponent implements OnInit {
     if (this.statusFilter) params['status'] = this.statusFilter;
     const catSlug = this.selectedChild || this.selectedParent;
     if (catSlug) params['categorySlug'] = catSlug;
+    if (bustCache) params['_t'] = String(Date.now());
 
     this.api.get<{ items: Product[]; total: number }>('products', params).subscribe({
       next: (data) => { this.products.set(data.items); this.total.set(data.total); this.loading.set(false); },
@@ -300,7 +301,7 @@ export class ProductsComponent implements OnInit {
       next: (res) => {
         this.snack.open(`${res.updated} product${res.updated === 1 ? '' : 's'} set to ${status}`, '', { duration: 3000 });
         this.bulkLoading.set(false);
-        this.load();
+        this.load(true);
       },
       error: (e) => {
         this.snack.open(e?.error?.error?.message ?? 'Bulk update failed', '', { duration: 3000 });
@@ -319,18 +320,18 @@ export class ProductsComponent implements OnInit {
 
   openCreate() {
     this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: {} })
-      .afterClosed().subscribe(r => { if (r) this.load(); });
+      .afterClosed().subscribe(r => { if (r) this.load(true); });
   }
 
   openEdit(p: Product) {
     this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: { product: p } })
-      .afterClosed().subscribe(r => { if (r) this.load(); });
+      .afterClosed().subscribe(r => { if (r) this.load(true); });
   }
 
   delete(p: Product) {
     if (!confirm(`Delete "${p.title}"? This will remove all its SKUs.`)) return;
     this.api.delete(`products/${p.id}`).subscribe({
-      next: () => { this.snack.open('Deleted', '', { duration: 2000 }); this.load(); },
+      next: () => { this.snack.open('Deleted', '', { duration: 2000 }); this.load(true); },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Delete failed', '', { duration: 3000 }),
     });
   }
