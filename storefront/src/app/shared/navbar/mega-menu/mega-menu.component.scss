@@ -1,0 +1,95 @@
+
+    .mega {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: rgba(16, 16, 16, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(201, 168, 76, 0.12);
+      border-bottom: 1px solid rgba(201, 168, 76, 0.12);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 999;
+    }
+
+    .mega--visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    .mega__inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 5% 32px;
+      display: flex;
+      gap: 40px;
+      position: relative;
+    }
+
+    .mega__inner--unified::after {
+      content: '';
+      position: absolute;
+      left: 5%;
+      right: 5%;
+      top: 50px;
+      height: 1px;
+      background: rgba(201, 168, 76, 0.12);
+      pointer-events: none;
+    }
+
+    .mega__group {
+      display: flex;
+      flex-direction: column;
+      min-width: 110px;
+    }
+
+    .mega__group-header-row {
+      height: 22px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .mega__group-header-row--bordered {
+      border-bottom: 1px solid rgba(201, 168, 76, 0.12);
+    }
+
+    .mega__group-label {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      user-select: none;
+    }
+
+    .mega__link {
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.15s ease, padding-left 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .mega__link:hover {
+      color: var(--cream);
+      padding-left: 5px;
+    }
+
+    .mega__link-img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 3px;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }

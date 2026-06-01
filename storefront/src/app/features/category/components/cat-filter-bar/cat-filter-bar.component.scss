@@ -1,0 +1,127 @@
+
+    /* Desktop sticky bar (hidden ≤768px) */
+    .cat-page__bar {
+      position: sticky;
+      top: 74px;
+      background: rgba(13,13,13,.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(245,240,232,.06);
+      z-index: 100;
+
+      @media (max-width: 768px) { display: none; }
+    }
+
+    .cat-page__bar-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      min-height: 62px;
+    }
+
+    .cat-page__bar-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: .15rem;
+      min-width: 0;
+    }
+
+    .cat-page__bar-right {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex-shrink: 0;
+    }
+
+    /* Breadcrumb */
+    .cat-page__bc {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      font-family: var(--font-sans);
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .cat-page__bc-link { color: var(--muted); text-decoration: none; }
+    .cat-page__bc-link:hover { color: var(--foreground); }
+    .cat-page__bc-sep  { color: var(--muted); opacity: .4; }
+    .cat-page__bc-cur  { color: var(--foreground); font-weight: 500; }
+
+    /* Dropdown pills */
+    .cat-page__pill-wrap { position: relative; }
+
+    .cat-page__pill {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      background: transparent;
+      border: 1px solid rgba(201,168,76,.25);
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: .75rem;
+      letter-spacing: .08em;
+      padding: .4rem .9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color .2s, color .2s, background .2s;
+
+      &:hover { border-color: var(--gold); color: var(--gold); }
+
+      &--active {
+        background: var(--gold);
+        border-color: var(--gold);
+        color: #0d0d0d;
+        font-weight: 600;
+        &:hover { background: rgba(201,168,76,.85); color: #0d0d0d; }
+      }
+    }
+
+    .cat-page__caret {
+      flex-shrink: 0;
+      transition: transform .2s;
+      &--open { transform: rotate(180deg); }
+    }
+
+    .cat-page__dd {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-width: 240px;
+      max-height: 340px;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid rgba(201,168,76,.2);
+      list-style: none;
+      z-index: 200;
+      animation: ddIn .15s var(--ease-enter, ease) both;
+
+      &--right { left: auto; right: 0; min-width: 200px; }
+    }
+
+    @keyframes ddIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .cat-page__dd-opt {
+      padding: .6rem 1rem;
+      font-family: var(--font-sans);
+      font-size: .8rem;
+      color: var(--cream);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+
+      &:hover { background: rgba(201,168,76,.08); color: var(--gold); }
+
+      &--active {
+        color: var(--gold);
+        &::before { content: '— '; opacity: .6; }
+      }
+    }

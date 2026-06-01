@@ -1,0 +1,29 @@
+.acct__panel {
+  animation: fadeUp 0.2s ease;
+}
+
+.acct__panel-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.18em;
+  color: var(--cream);
+  margin-bottom: 1.5rem;
+}
+
+.pref-section {
+  border-top: 1px solid rgba(245, 240, 232, 0.08);
+  padding-top: 1.5rem;
+}
+
+.pref-section__label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

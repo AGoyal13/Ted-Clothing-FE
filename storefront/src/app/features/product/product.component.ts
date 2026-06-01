@@ -9,14 +9,13 @@ import {
   untracked,
   PLATFORM_ID,
 } from '@angular/core';
-import { isPlatformBrowser, DatePipe } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { ProductService } from '../../core/services/product.service';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WishlistService } from '../../core/services/wishlist.service';
-import { ApiService } from '../../core/services/api.service';
 import {
   ProductDetail,
   ProductSku,
@@ -26,35 +25,14 @@ import {
   hasDiscount,
 } from '../../core/models/product.model';
 import { CartItem } from '../../core/models/cart.model';
-
-interface ReviewItem {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string;
-  verified: boolean;
-  createdAt: string;
-  authorName: string;
-}
-
-interface ReviewsAggregate {
-  avgRating: number;
-  totalCount: number;
-  distribution: Record<number, number>;
-}
-
-interface ReviewsResponse {
-  aggregate: ReviewsAggregate;
-  reviews: ReviewItem[];
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+import { PdpGalleryComponent } from './components/pdp-gallery/pdp-gallery.component';
+import { PdpReviewsComponent } from './components/pdp-reviews/pdp-reviews.component';
+import { PdpNotifyComponent } from './components/pdp-notify/pdp-notify.component';
 
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, PdpGalleryComponent, PdpReviewsComponent, PdpNotifyComponent],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss',
 })
@@ -64,7 +42,6 @@ export class ProductComponent implements OnInit, OnDestroy {
   private readonly cartService = inject(CartService);
   private readonly authService = inject(AuthService);
   private readonly wishlistService = inject(WishlistService);
-  private readonly apiService = inject(ApiService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
   private readonly platformId = inject(PLATFORM_ID);
@@ -75,30 +52,11 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   readonly selectedColorId = signal<string | null>(null);
   readonly selectedSkuId = signal<string | null>(null);
-  readonly selectedThumbIndex = signal(0);
   readonly descExpanded = signal(true);
   readonly measExpanded = signal(false);
   readonly addedToCart = signal(false);
   readonly linkCopied = signal(false);
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
-
-  readonly lightboxOpen = signal(false);
-  readonly fading = signal(false);
-  private touchStartX = 0;
-  private lightboxKeyHandler: ((e: KeyboardEvent) => void) | null = null;
-
-  readonly notifyOpen = signal(false);
-  readonly notifyEmail = signal('');
-  readonly notifySending = signal(false);
-  readonly notifySent = signal(false);
-
-  readonly reviewsLoading = signal(false);
-  readonly reviewsAggregate = signal<ReviewsAggregate | null>(null);
-  readonly reviewsList = signal<ReviewItem[]>([]);
-  readonly reviewsPage = signal(1);
-  readonly reviewsTotalPages = signal(1);
-  readonly reviewsHasMore = computed(() => this.reviewsPage() < this.reviewsTotalPages());
-
   private addedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly selectedColorName = computed(() => {
@@ -113,11 +71,6 @@ export class ProductComponent implements OnInit, OnDestroy {
     if (!p) return [];
     const colorId = this.selectedColorId() ?? p.colors[0]?.id;
     return p.colors.find(c => c.id === colorId)?.images ?? [];
-  });
-
-  readonly currentImage = computed(() => {
-    const imgs = this.currentImages();
-    return imgs[this.selectedThumbIndex()] ?? imgs[0] ?? null;
   });
 
   readonly sizesForColor = computed(() => {
@@ -251,10 +204,6 @@ export class ProductComponent implements OnInit, OnDestroy {
   private loadProduct(slug: string): void {
     this.loading.set(true);
     this.notFound.set(false);
-    this.reviewsAggregate.set(null);
-    this.reviewsList.set([]);
-    this.reviewsPage.set(1);
-    this.reviewsTotalPages.set(1);
     this.productService.getProductBySlug(slug).subscribe({
       next: (product) => {
         this.product.set(product);
@@ -262,7 +211,6 @@ export class ProductComponent implements OnInit, OnDestroy {
           this.selectedColorId.set(product.colors[0].id);
         }
         this.autoSelectSku();
-        this.loadReviews(product.id, 1);
         this.loading.set(false);
         this.titleService.setTitle(`${product.title} — Ted Clothing`);
         this.meta.updateTag({ name: 'description', content: product.description?.slice(0, 160) ?? '' });
@@ -278,9 +226,6 @@ export class ProductComponent implements OnInit, OnDestroy {
   selectColor(colorId: string): void {
     this.selectedColorId.set(colorId);
     this.autoSelectSku();
-    this.selectedThumbIndex.set(0);
-    this.notifyOpen.set(false);
-    this.notifySent.set(false);
   }
 
   private autoSelectSku(): void {
@@ -295,116 +240,12 @@ export class ProductComponent implements OnInit, OnDestroy {
     }
   }
 
-  openNotify(): void {
-    const user = this.authService.currentUser();
-    this.notifyEmail.set(user?.email ?? '');
-    this.notifyOpen.set(true);
-  }
-
-  submitNotify(): void {
-    const p = this.product();
-    const email = this.notifyEmail().trim();
-    if (!p || !email) return;
-
-    this.notifySending.set(true);
-    this.apiService.post('/stock-notifications', {
-      productId: p.id,
-      skuId: this.selectedSkuId() ?? null,
-      email,
-    }).subscribe({
-      next: () => {
-        this.notifySent.set(true);
-        this.notifyOpen.set(false);
-        this.notifySending.set(false);
-      },
-      error: () => {
-        this.notifySending.set(false);
-      },
-    });
-  }
-
-  private loadReviews(productId: string, page: number): void {
-    this.reviewsLoading.set(true);
-    this.apiService.get<ReviewsResponse>(`/products/${productId}/reviews`, { page, limit: 5 }).subscribe({
-      next: (data) => {
-        if (page === 1) {
-          this.reviewsAggregate.set(data.aggregate);
-          this.reviewsList.set(data.reviews);
-        } else {
-          this.reviewsList.update(list => [...list, ...data.reviews]);
-        }
-        this.reviewsPage.set(data.page);
-        this.reviewsTotalPages.set(data.totalPages);
-        this.reviewsLoading.set(false);
-      },
-      error: () => this.reviewsLoading.set(false),
-    });
-  }
-
-  loadMoreReviews(): void {
-    const p = this.product();
-    if (!p) return;
-    this.loadReviews(p.id, this.reviewsPage() + 1);
-  }
-
   selectSize(sku: ProductSku): void {
     if (this.effectiveStock(sku.id, sku.stockQty) <= 0) return;
     this.selectedSkuId.set(sku.id);
   }
 
-  selectThumb(index: number): void {
-    if (index === this.selectedThumbIndex()) return;
-    this.fading.set(true);
-    setTimeout(() => {
-      this.selectedThumbIndex.set(index);
-      this.fading.set(false);
-    }, 180);
-  }
-
-  prev(): void {
-    const len = this.currentImages().length;
-    if (len < 2) return;
-    this.selectedThumbIndex.update(i => (i - 1 + len) % len);
-  }
-
-  next(): void {
-    const len = this.currentImages().length;
-    if (len < 2) return;
-    this.selectedThumbIndex.update(i => (i + 1) % len);
-  }
-
-  openLightbox(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    this.lightboxOpen.set(true);
-    document.body.style.overflow = 'hidden';
-    this.lightboxKeyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.closeLightbox();
-      else if (e.key === 'ArrowLeft') this.prev();
-      else if (e.key === 'ArrowRight') this.next();
-    };
-    document.addEventListener('keydown', this.lightboxKeyHandler);
-  }
-
-  closeLightbox(): void {
-    this.lightboxOpen.set(false);
-    document.body.style.overflow = '';
-    if (this.lightboxKeyHandler) {
-      document.removeEventListener('keydown', this.lightboxKeyHandler);
-      this.lightboxKeyHandler = null;
-    }
-  }
-
-  onTouchStart(e: TouchEvent): void {
-    this.touchStartX = e.touches[0].clientX;
-  }
-
-  onTouchEnd(e: TouchEvent): void {
-    const dx = e.changedTouches[0].clientX - this.touchStartX;
-    if (Math.abs(dx) > 50) dx < 0 ? this.next() : this.prev();
-  }
-
   ngOnDestroy(): void {
-    this.closeLightbox();
     if (this.addedTimer) clearTimeout(this.addedTimer);
     if (this.copiedTimer) clearTimeout(this.copiedTimer);
   }

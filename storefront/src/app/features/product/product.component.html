@@ -29,53 +29,7 @@
       } @else if (product()) {
         <div class="pdp__inner">
 
-          <!-- Gallery — vertical thumb column left (desktop), horizontal strip below (mobile) -->
-          <div class="pdp__gallery" [class.pdp__gallery--single]="currentImages().length <= 1">
-
-            <!-- Thumbnail column -->
-            @if (currentImages().length > 1) {
-              <div class="pdp__thumbs">
-                @for (img of currentImages(); track img; let i = $index) {
-                  <button
-                    class="pdp__thumb"
-                    [class.pdp__thumb--active]="selectedThumbIndex() === i"
-                    (click)="selectThumb(i)"
-                    [attr.aria-label]="'View image ' + (i + 1)">
-                    <img [src]="img" [alt]="'Product image ' + (i + 1)" loading="lazy" width="80" height="106" />
-                  </button>
-                }
-              </div>
-            }
-
-            <!-- Main image — click opens lightbox, swipe navigates on mobile -->
-            <div class="pdp__carousel"
-                 (click)="openLightbox()"
-                 (touchstart)="onTouchStart($event)"
-                 (touchend)="onTouchEnd($event)">
-              <div class="pdp__main-image aspect-3-4" [class.pdp__main-image--fading]="fading()">
-                @if (currentImage()) {
-                  <img
-                    [src]="currentImage()"
-                    [alt]="product()!.title"
-                    loading="eager"
-                    width="600"
-                    height="800"
-                  />
-                } @else {
-                  <div class="pdp__img-placeholder">
-                    <span>{{ product()!.title.charAt(0) }}</span>
-                  </div>
-                }
-              </div>
-              <div class="pdp__carousel-zoom" aria-hidden="true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-                </svg>
-              </div>
-            </div>
-
-          </div>
+          <pdp-gallery [images]="currentImages()" [title]="product()!.title"></pdp-gallery>
 
           <!-- Product Info -->
           <div class="pdp__info">
@@ -166,7 +120,7 @@
               </div>
             }
 
-            <!-- Add to Cart + Wishlist -->
+            <!-- Add to Cart + Wishlist + Share -->
             <div class="pdp__actions-row">
               <button
                 class="pdp__add-btn btn-primary"
@@ -222,47 +176,11 @@
 
             <!-- Notify Me When Back in Stock -->
             @if (allSizesOos()) {
-              @if (notifySent()) {
-                <p class="pdp__notify-success">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  You're on the list! We'll email you when it's back.
-                </p>
-              } @else if (!notifyOpen()) {
-                <button class="pdp__notify-trigger" (click)="openNotify()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
-                  NOTIFY ME WHEN BACK IN STOCK
-                </button>
-              } @else {
-                <div class="pdp__notify-form">
-                  <p class="pdp__notify-hint">We'll email you when this is available again.</p>
-                  <div class="pdp__notify-row">
-                    <input
-                      type="email"
-                      class="pdp__notify-input"
-                      placeholder="your@email.com"
-                      [value]="notifyEmail()"
-                      (input)="notifyEmail.set($any($event.target).value)"
-                      [disabled]="notifySending()"
-                    />
-                    <button
-                      class="btn-primary pdp__notify-submit"
-                      (click)="submitNotify()"
-                      [disabled]="!notifyEmail().trim() || notifySending()"
-                    >
-                      @if (notifySending()) {
-                        <span class="pdp__notify-spinner"></span>
-                      } @else {
-                        NOTIFY ME
-                      }
-                    </button>
-                  </div>
-                </div>
-              }
+              <pdp-notify
+                [productId]="product()!.id"
+                [skuId]="selectedSkuId()"
+                [colorId]="selectedColorId()">
+              </pdp-notify>
             }
 
             <!-- Description -->
@@ -325,125 +243,6 @@
           </div>
         </div>
 
-        <!-- Reviews -->
-        @if (reviewsAggregate() && reviewsAggregate()!.totalCount > 0) {
-          <section class="pdp__reviews">
-            <div class="pdp__reviews-inner">
-              <h2 class="pdp__reviews-heading">Customer Reviews</h2>
-
-              <div class="pdp__rev-agg">
-                <div class="pdp__rev-score">
-                  <span class="pdp__rev-avg">{{ reviewsAggregate()!.avgRating.toFixed(1) }}</span>
-                  <div class="pdp__rev-stars-row">
-                    @for (i of [1,2,3,4,5]; track i) {
-                      <span class="pdp__rev-star" [class.active]="i <= reviewsAggregate()!.avgRating">★</span>
-                    }
-                  </div>
-                  <span class="pdp__rev-count">
-                    {{ reviewsAggregate()!.totalCount }}
-                    {{ reviewsAggregate()!.totalCount === 1 ? 'review' : 'reviews' }}
-                  </span>
-                </div>
-                <div class="pdp__rev-bars">
-                  @for (star of [5,4,3,2,1]; track star) {
-                    <div class="pdp__rev-bar-row">
-                      <span class="pdp__rev-bar-label">{{ star }}★</span>
-                      <div class="pdp__rev-bar-track">
-                        <div class="pdp__rev-bar-fill"
-                          [style.width.%]="reviewsAggregate()!.totalCount > 0
-                            ? reviewsAggregate()!.distribution[star] / reviewsAggregate()!.totalCount * 100
-                            : 0">
-                        </div>
-                      </div>
-                      <span class="pdp__rev-bar-n">{{ reviewsAggregate()!.distribution[star] }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <div class="pdp__rev-list">
-                @for (r of reviewsList(); track r.id) {
-                  <article class="pdp__rev-card">
-                    <div class="pdp__rev-card-top">
-                      <span class="pdp__rev-card-stars">
-                        @for (i of [1,2,3,4,5]; track i) {
-                          <span [class.active]="i <= r.rating">★</span>
-                        }
-                      </span>
-                      @if (r.verified) {
-                        <span class="pdp__rev-verified">✓ Verified Purchase</span>
-                      }
-                    </div>
-                    @if (r.title) {
-                      <p class="pdp__rev-card-title">{{ r.title }}</p>
-                    }
-                    <p class="pdp__rev-card-body">{{ r.body }}</p>
-                    <p class="pdp__rev-card-meta">{{ r.authorName }} · {{ r.createdAt | date:'d MMM y' }}</p>
-                  </article>
-                }
-              </div>
-
-              @if (reviewsHasMore()) {
-                <button class="pdp__rev-more" (click)="loadMoreReviews()" [disabled]="reviewsLoading()">
-                  @if (reviewsLoading()) { Loading... } @else { Load More Reviews }
-                </button>
-              }
-            </div>
-          </section>
-        }
-      }
-
-      <!-- Lightbox -->
-      @if (lightboxOpen()) {
-        <div class="pdp__lightbox"
-             (click)="closeLightbox()"
-             role="dialog"
-             aria-modal="true"
-             aria-label="Product image viewer">
-
-          <button class="pdp__lb-close" (click)="closeLightbox()" aria-label="Close viewer">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-
-          @if (currentImages().length > 1) {
-            <div class="pdp__lb-counter">{{ selectedThumbIndex() + 1 }} / {{ currentImages().length }}</div>
-          }
-
-          <div class="pdp__lb-content"
-               (click)="$event.stopPropagation()"
-               (touchstart)="onTouchStart($event)"
-               (touchend)="onTouchEnd($event)">
-            <img class="pdp__lb-img" [src]="currentImage()" [alt]="product()!.title" />
-          </div>
-
-          @if (currentImages().length > 1) {
-            <button class="pdp__lb-nav pdp__lb-nav--prev"
-                    (click)="$event.stopPropagation(); prev()"
-                    aria-label="Previous image">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
-            <button class="pdp__lb-nav pdp__lb-nav--next"
-                    (click)="$event.stopPropagation(); next()"
-                    aria-label="Next image">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-            <div class="pdp__lb-dots" (click)="$event.stopPropagation()">
-              @for (img of currentImages(); track img; let i = $index) {
-                <button
-                  class="pdp__lb-dot"
-                  [class.pdp__lb-dot--active]="selectedThumbIndex() === i"
-                  (click)="selectThumb(i)"
-                  [attr.aria-label]="'View image ' + (i + 1)">
-                </button>
-              }
-            </div>
-          }
-        </div>
+        <pdp-reviews [productId]="product()!.id"></pdp-reviews>
       }
     </main>

@@ -1,0 +1,66 @@
+
+    @if (reviewsAggregate() && reviewsAggregate()!.totalCount > 0) {
+      <section class="pdp__reviews">
+        <div class="pdp__reviews-inner">
+          <h2 class="pdp__reviews-heading">Customer Reviews</h2>
+
+          <div class="pdp__rev-agg">
+            <div class="pdp__rev-score">
+              <span class="pdp__rev-avg">{{ reviewsAggregate()!.avgRating.toFixed(1) }}</span>
+              <div class="pdp__rev-stars-row">
+                @for (i of [1,2,3,4,5]; track i) {
+                  <span class="pdp__rev-star" [class.active]="i <= reviewsAggregate()!.avgRating">★</span>
+                }
+              </div>
+              <span class="pdp__rev-count">
+                {{ reviewsAggregate()!.totalCount }}
+                {{ reviewsAggregate()!.totalCount === 1 ? 'review' : 'reviews' }}
+              </span>
+            </div>
+            <div class="pdp__rev-bars">
+              @for (star of [5,4,3,2,1]; track star) {
+                <div class="pdp__rev-bar-row">
+                  <span class="pdp__rev-bar-label">{{ star }}★</span>
+                  <div class="pdp__rev-bar-track">
+                    <div class="pdp__rev-bar-fill"
+                      [style.width.%]="reviewsAggregate()!.totalCount > 0
+                        ? reviewsAggregate()!.distribution[star] / reviewsAggregate()!.totalCount * 100
+                        : 0">
+                    </div>
+                  </div>
+                  <span class="pdp__rev-bar-n">{{ reviewsAggregate()!.distribution[star] }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="pdp__rev-list">
+            @for (r of reviewsList(); track r.id) {
+              <article class="pdp__rev-card">
+                <div class="pdp__rev-card-top">
+                  <span class="pdp__rev-card-stars">
+                    @for (i of [1,2,3,4,5]; track i) {
+                      <span [class.active]="i <= r.rating">★</span>
+                    }
+                  </span>
+                  @if (r.verified) {
+                    <span class="pdp__rev-verified">✓ Verified Purchase</span>
+                  }
+                </div>
+                @if (r.title) {
+                  <p class="pdp__rev-card-title">{{ r.title }}</p>
+                }
+                <p class="pdp__rev-card-body">{{ r.body }}</p>
+                <p class="pdp__rev-card-meta">{{ r.authorName }} · {{ r.createdAt | date:'d MMM y' }}</p>
+              </article>
+            }
+          </div>
+
+          @if (reviewsHasMore()) {
+            <button class="pdp__rev-more" (click)="loadMoreReviews()" [disabled]="reviewsLoading()">
+              @if (reviewsLoading()) { Loading... } @else { Load More Reviews }
+            </button>
+          }
+        </div>
+      </section>
+    }

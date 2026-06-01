@@ -293,10 +293,11 @@ export class ProductDetailComponent implements OnInit {
 
   ngOnInit() { this.loadProduct(); }
 
-  loadProduct() {
+  loadProduct(bustCache = false) {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.loading.set(true);
-    this.api.get<ProductDetail>(`products/${id}`).subscribe({
+    const params = bustCache ? { _t: Date.now() } : undefined;
+    this.api.get<ProductDetail>(`products/${id}`, params).subscribe({
       next: (p) => {
         this.product.set(p);
         this.loading.set(false);
@@ -409,7 +410,7 @@ export class ProductDetailComponent implements OnInit {
     this.dialog.open(ColorDialogComponent, {
       width: '440px', maxWidth: '95vw',
       data: { productId: this.product()!.id, color },
-    }).afterClosed().subscribe(r => { if (r) this.loadProduct(); });
+    }).afterClosed().subscribe(r => { if (r) this.loadProduct(true); });
   }
 
   deleteColor(color: ProductColor) {

@@ -1,0 +1,97 @@
+
+    <div class="mobile-overlay" (click)="closed.emit()">
+      <nav class="mobile-menu" (click)="$event.stopPropagation()" aria-label="Mobile navigation">
+
+        <div class="mobile-menu__head">
+          <a routerLink="/" class="mobile-menu__brand" (click)="closed.emit()">
+            <span class="navbar__logo-ted">TED</span>
+            <span class="navbar__logo-clothing">CLOTHING</span>
+          </a>
+          <button class="mobile-menu__close" (click)="closed.emit()" aria-label="Close menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="mobile-menu__cats">
+          @for (root of navTree; track root.slug) {
+            <div class="drawer__section" [class.drawer__section--collapsed]="isSectionCollapsed(root.slug)">
+
+              <button class="drawer__header" (click)="toggleSection(root.slug)">
+                <span class="drawer__header-label">{{ root.name | uppercase }}</span>
+                <svg class="drawer__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              <div class="drawer__body">
+                @for (group of buildGroups(root); track $index; let gi = $index) {
+                  @if (group.label && group.slug !== root.slug) {
+                    <div class="drawer__sub-section">
+                      <button class="drawer__sub-header"
+                              (click)="toggleDrawerGroup(root.slug + ':' + gi)">
+                        <span class="drawer__sub-label">{{ group.label | uppercase }}</span>
+                        <svg class="drawer__sub-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                             [style.transform]="isDrawerGroupCollapsed(root.slug + ':' + gi) ? 'rotate(-90deg)' : 'rotate(0deg)'">
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+                      <div class="drawer__sub-body"
+                           [style.maxHeight]="isDrawerGroupCollapsed(root.slug + ':' + gi) ? '0px' : '600px'">
+                        @for (link of group.links; track link.slug) {
+                          <a [routerLink]="['/category', link.slug]"
+                             class="drawer__link drawer__link--nested"
+                             (click)="closed.emit()">
+                            @if (link.imageUrl) {
+                              <img class="drawer__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                            }
+                            {{ link.name }}
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    @for (link of group.links; track link.slug) {
+                      <a [routerLink]="['/category', link.slug]"
+                         class="drawer__link"
+                         (click)="closed.emit()">
+                        @if (link.imageUrl) {
+                          <img class="drawer__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                        }
+                        {{ link.name }}
+                      </a>
+                    }
+                  }
+                }
+              </div>
+
+            </div>
+          }
+        </div>
+
+        <!-- Footer links -->
+        <div class="mobile-menu__footer">
+          <a routerLink="/cart" class="mobile-menu__footer-link" (click)="closed.emit()">
+            Cart
+            @if (cartCount > 0) {
+              <span class="mobile-menu__badge">{{ cartCount }}</span>
+            }
+          </a>
+          @if (isLoggedIn) {
+            <a routerLink="/wishlist" class="mobile-menu__footer-link" (click)="closed.emit()">Wishlist</a>
+            <button class="mobile-menu__footer-link mobile-menu__footer-signout" (click)="signedOut.emit()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign Out
+            </button>
+          } @else {
+            <button class="mobile-menu__footer-link" (click)="openModal.emit(); closed.emit()">Sign In</button>
+          }
+        </div>
+
+      </nav>
+    </div>

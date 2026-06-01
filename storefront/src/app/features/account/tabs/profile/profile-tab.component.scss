@@ -1,0 +1,225 @@
+.acct__panel {
+  animation: fadeUp 0.2s ease;
+}
+
+.acct__panel-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.18em;
+  color: var(--cream);
+  margin-bottom: 1.5rem;
+}
+
+/* ── Profile fields ──────────────────────────────────────── */
+.prof-section {
+  border-top: 1px solid rgba(245, 240, 232, 0.08);
+  padding: 1.4rem 0;
+  &:first-child { border-top: none; }
+}
+
+.prof-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.prof-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.prof-row--mt { margin-top: 0.6rem; }
+
+.prof-value {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--cream);
+  flex: 1;
+}
+
+.prof-input {
+  flex: 1;
+  background: rgba(245, 240, 232, 0.04);
+  border: 1px solid rgba(245, 240, 232, 0.12);
+  color: var(--cream);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  padding: 0.55rem 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+  &::placeholder { color: rgba(245, 240, 232, 0.25); }
+  &:focus { border-color: rgba(201, 168, 76, 0.5); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.prof-input--otp { max-width: 160px; flex: none; letter-spacing: 0.2em; }
+
+.prof-save-btn {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.prof-change-btn {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--gold);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  &:hover { opacity: 0.75; }
+}
+
+.prof-cancel {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.5rem;
+  display: block;
+  &:hover { color: var(--cream); }
+}
+
+.prof-otp-sent {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: #7ec87e;
+  white-space: nowrap;
+}
+
+.prof-otp-block { display: flex; flex-direction: column; }
+
+.prof-msg {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: #e07070;
+  margin-top: 0.5rem;
+}
+.prof-msg--ok { color: #7ec87e; }
+
+/* ── Change Password Modal ───────────────────────────────── */
+.pw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 13, 13, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeUp 0.18s ease;
+}
+
+.pw-modal {
+  background: var(--surface);
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  width: 100%;
+  max-width: 400px;
+  padding: 1.75rem;
+}
+
+.pw-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.pw-modal__title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  color: var(--cream);
+}
+
+.pw-modal__close {
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  transition: color 0.2s;
+  &:hover { color: var(--cream); }
+}
+
+.pw-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pw-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  label {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  input {
+    background: rgba(245, 240, 232, 0.04);
+    border: 1px solid rgba(245, 240, 232, 0.12);
+    color: var(--cream);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+    &::placeholder { color: rgba(245, 240, 232, 0.25); }
+    &:focus { border-color: rgba(201, 168, 76, 0.5); }
+  }
+}
+
+.pw-modal__msg {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: #e07070;
+  margin: 0;
+}
+.pw-modal__msg--ok { color: #7ec87e; }
+
+.pw-modal__submit {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  padding: 0.65rem 1.5rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.2s;
+  margin-top: 0.25rem;
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

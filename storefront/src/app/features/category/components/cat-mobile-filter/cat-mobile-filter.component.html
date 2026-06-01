@@ -1,0 +1,66 @@
+
+    <!-- Mobile fixed bottom bar -->
+    <div class="cat-page__mob-bar">
+      <button class="cat-page__mob-btn" (click)="openSheet('sort')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>
+        </svg>
+        <span>{{ sortBy() === 'newest' ? 'SORT' : sortShortLabel() }}</span>
+      </button>
+      @if (categoryOptions().length > 0) {
+        <div class="cat-page__mob-divider"></div>
+        <button
+          class="cat-page__mob-btn"
+          [class.cat-page__mob-btn--active]="hasCatFilter()"
+          (click)="openSheet('category')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/>
+          </svg>
+          <span>{{ hasCatFilter() ? mobCatLabel() : 'CATEGORIES' }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- Bottom sheet -->
+    @if (sheetOpen() !== 'none') {
+      <div class="cat-page__backdrop" (click)="closeSheet()"></div>
+      <div class="cat-page__sheet" role="dialog" [attr.aria-label]="sheetOpen() === 'sort' ? 'Sort options' : 'Filter by category'">
+        <div class="cat-page__sheet-handle"></div>
+
+        @if (sheetOpen() === 'sort') {
+          <div class="cat-page__sheet-title">SORT BY</div>
+          <div class="cat-page__sheet-rule"></div>
+          <div class="cat-page__sheet-scroll">
+            @for (opt of sortOptions; track opt.value) {
+              <button class="cat-page__sheet-opt" [class.cat-page__sheet-opt--active]="sortBy() === opt.value"
+                (click)="selectSortMobile(opt.value)">
+                <span class="cat-page__radio" [class.cat-page__radio--on]="sortBy() === opt.value"></span>
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="cat-page__sheet-title">CATEGORY</div>
+          <div class="cat-page__sheet-rule"></div>
+          <div class="cat-page__sheet-scroll">
+            <button class="cat-page__sheet-opt" [class.cat-page__sheet-opt--active]="pendingCat() === 'all'"
+              (click)="setPendingCat('all')">
+              <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === 'all'"></span>
+              All
+            </button>
+            @for (opt of categoryOptions(); track opt.slug) {
+              <button class="cat-page__sheet-opt" [class.cat-page__sheet-opt--active]="pendingCat() === opt.slug"
+                (click)="setPendingCat(opt.slug)">
+                <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === opt.slug"></span>
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+          <div class="cat-page__sheet-actions">
+            <button class="cat-page__sheet-clear" (click)="clearPending()">CLEAR</button>
+            <button class="cat-page__sheet-apply" (click)="applyCategory()">APPLY</button>
+          </div>
+        }
+      </div>
+    }

@@ -1,0 +1,147 @@
+@if (authService.currentUser(); as user) {
+  <div class="acct__panel">
+    <h2 class="acct__panel-title">PROFILE</h2>
+
+    <!-- Name -->
+    <div class="prof-section">
+      <label class="prof-label">Name</label>
+      <div class="prof-row">
+        <input class="prof-input" [ngModel]="profileName()"
+               (ngModelChange)="profileName.set($event)"
+               placeholder="Your name" maxlength="80" />
+        <button class="prof-save-btn" (click)="saveName()" [disabled]="nameSaving() || !profileName().trim()">
+          {{ nameSaving() ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+      @if (nameMsg()) {
+        <p class="prof-msg" [class.prof-msg--ok]="nameMsg()!.startsWith('✓')">{{ nameMsg() }}</p>
+      }
+    </div>
+
+    <!-- Email -->
+    <div class="prof-section">
+      <label class="prof-label">Email</label>
+      @if (emailState() === 'idle') {
+        <div class="prof-row">
+          <span class="prof-value">{{ user.email || '—' }}</span>
+          <button class="prof-change-btn" (click)="emailState.set('editing')">Change</button>
+        </div>
+      } @else {
+        <div class="prof-otp-block">
+          <div class="prof-row">
+            <input class="prof-input" [ngModel]="newEmail()" (ngModelChange)="newEmail.set($event)"
+                   type="email" placeholder="New email address"
+                   [disabled]="emailState() === 'otp-sent' || emailState() === 'saving'" />
+            @if (emailState() === 'editing') {
+              <button class="prof-save-btn" (click)="sendOtp('EMAIL')" [disabled]="!newEmail()">Send OTP</button>
+            }
+            @if (emailState() === 'otp-sent' || emailState() === 'saving') {
+              <span class="prof-otp-sent">OTP sent to current email</span>
+            }
+          </div>
+          @if (emailState() === 'otp-sent' || emailState() === 'saving') {
+            <div class="prof-row prof-row--mt">
+              <input class="prof-input prof-input--otp" [ngModel]="emailOtp()"
+                     (ngModelChange)="emailOtp.set($event)"
+                     placeholder="6-digit OTP" maxlength="6" />
+              <button class="prof-save-btn" (click)="verifyAndSave('EMAIL')"
+                      [disabled]="!emailOtp() || emailState() === 'saving'">
+                {{ emailState() === 'saving' ? 'Saving…' : 'Verify & Save' }}
+              </button>
+            </div>
+          }
+          <button class="prof-cancel" (click)="cancelField('email')">Cancel</button>
+        </div>
+      }
+      @if (emailMsg()) {
+        <p class="prof-msg" [class.prof-msg--ok]="emailMsg()!.startsWith('✓')">{{ emailMsg() }}</p>
+      }
+    </div>
+
+    <!-- Phone -->
+    <div class="prof-section">
+      <label class="prof-label">Mobile Number</label>
+      @if (phoneState() === 'idle') {
+        <div class="prof-row">
+          <span class="prof-value">{{ user.phone || '—' }}</span>
+          <button class="prof-change-btn" (click)="phoneState.set('editing')">{{ user.phone ? 'Change' : 'Add' }}</button>
+        </div>
+      } @else {
+        <div class="prof-otp-block">
+          <div class="prof-row">
+            <input class="prof-input" [ngModel]="newPhone()" (ngModelChange)="newPhone.set($event)"
+                   type="tel" placeholder="10-digit number" maxlength="10"
+                   [disabled]="phoneState() === 'otp-sent' || phoneState() === 'saving'" />
+            @if (phoneState() === 'editing') {
+              <button class="prof-save-btn" (click)="sendOtp('PHONE')" [disabled]="newPhone().length !== 10">Send OTP</button>
+            }
+            @if (phoneState() === 'otp-sent' || phoneState() === 'saving') {
+              <span class="prof-otp-sent">OTP sent to your email</span>
+            }
+          </div>
+          @if (phoneState() === 'otp-sent' || phoneState() === 'saving') {
+            <div class="prof-row prof-row--mt">
+              <input class="prof-input prof-input--otp" [ngModel]="phoneOtp()"
+                     (ngModelChange)="phoneOtp.set($event)"
+                     placeholder="6-digit OTP" maxlength="6" />
+              <button class="prof-save-btn" (click)="verifyAndSave('PHONE')"
+                      [disabled]="!phoneOtp() || phoneState() === 'saving'">
+                {{ phoneState() === 'saving' ? 'Saving…' : 'Verify & Save' }}
+              </button>
+            </div>
+          }
+          <button class="prof-cancel" (click)="cancelField('phone')">Cancel</button>
+        </div>
+      }
+      @if (phoneMsg()) {
+        <p class="prof-msg" [class.prof-msg--ok]="phoneMsg()!.startsWith('✓')">{{ phoneMsg() }}</p>
+      }
+    </div>
+
+    <!-- Password -->
+    <div class="prof-section">
+      <label class="prof-label">Password</label>
+      <div class="prof-row">
+        <span class="prof-value">••••••••</span>
+        <button class="prof-change-btn" (click)="showPwModal.set(true)">Change</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Change Password Modal -->
+  @if (showPwModal()) {
+    <div class="pw-modal-overlay" (click)="closePwModal()">
+      <div class="pw-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+        <div class="pw-modal__head">
+          <span class="pw-modal__title">CHANGE PASSWORD</span>
+          <button class="pw-modal__close" (click)="closePwModal()" aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pw-modal__body">
+          <div class="pw-modal__field">
+            <label>Current Password</label>
+            <input type="password" [ngModel]="pwCurrent()" (ngModelChange)="pwCurrent.set($event)" placeholder="••••••••" />
+          </div>
+          <div class="pw-modal__field">
+            <label>New Password</label>
+            <input type="password" [ngModel]="pwNew()" (ngModelChange)="pwNew.set($event)" placeholder="Min 8 characters" />
+          </div>
+          <div class="pw-modal__field">
+            <label>Confirm New Password</label>
+            <input type="password" [ngModel]="pwConfirm()" (ngModelChange)="pwConfirm.set($event)" placeholder="••••••••" />
+          </div>
+          @if (pwMsg()) {
+            <p class="pw-modal__msg" [class.pw-modal__msg--ok]="pwMsg()!.startsWith('✓')">{{ pwMsg() }}</p>
+          }
+          <button class="pw-modal__submit" (click)="changePassword()" [disabled]="pwSaving()">
+            {{ pwSaving() ? 'Updating…' : 'Update Password' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

@@ -1,0 +1,65 @@
+<form class="addr-form" (ngSubmit)="submitAddress()" novalidate>
+  <h3 class="addr-form__title">{{ isEditing ? 'Edit Address' : 'New Address' }}</h3>
+  <div class="addr-form__row">
+    <div class="addr-form__field">
+      <label>Full Name *</label>
+      <input [(ngModel)]="form().name" name="name" required placeholder="Recipient name" />
+    </div>
+    <div class="addr-form__field">
+      <label>Phone *</label>
+      <input [(ngModel)]="form().phone" name="phone" required placeholder="10-digit number" maxlength="10" />
+    </div>
+  </div>
+  <div class="addr-form__field">
+    <label>Address Line 1 *</label>
+    <input [(ngModel)]="form().line1" name="line1" required placeholder="House / flat / block no., street name" />
+  </div>
+  <div class="addr-form__field">
+    <label>Address Line 2</label>
+    <input [(ngModel)]="form().line2" name="line2" placeholder="Building, colony, area (optional)" />
+  </div>
+  <div class="addr-form__field">
+    <label>Landmark</label>
+    <input [(ngModel)]="form().landmark" name="landmark" placeholder="Near school, next to temple… (optional)" />
+  </div>
+  <div class="addr-form__field addr-form__field--sm">
+    <label class="addr-form__label-row">
+      Pincode *
+      @if (pincodeStatus() === 'loading') {
+        <span class="addr-form__pin-spinner"></span>
+      } @else if (pincodeStatus() === 'resolved') {
+        <span class="addr-form__pin-status addr-form__pin-status--ok">✓ Location found</span>
+      } @else if (pincodeStatus() === 'error') {
+        <span class="addr-form__pin-status addr-form__pin-status--err">Not found</span>
+      }
+    </label>
+    <input [ngModel]="form().pincode" name="pincode" required
+           placeholder="6 digits" maxlength="6"
+           (ngModelChange)="onPincodeInput($event)" />
+  </div>
+  <div class="addr-form__row">
+    <div class="addr-form__field">
+      <label>City *</label>
+      <input [(ngModel)]="form().city" name="city" required placeholder="Auto-filled from pincode"
+             [disabled]="pincodeStatus() !== 'resolved'" />
+    </div>
+    <div class="addr-form__field">
+      <label>State *</label>
+      <input [(ngModel)]="form().state" name="state" required placeholder="Auto-filled from pincode"
+             [disabled]="pincodeStatus() !== 'resolved'" />
+    </div>
+  </div>
+  <label class="addr-form__default">
+    <input type="checkbox" [(ngModel)]="form().isDefault" name="isDefault" />
+    <span>Set as default address</span>
+  </label>
+  @if (formError()) {
+    <p class="addr-form__error">{{ formError() }}</p>
+  }
+  <div class="addr-form__actions">
+    <button type="submit" class="addr-form__save" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : (isEditing ? 'Save Changes' : 'Save Address') }}
+    </button>
+    <button type="button" class="addr-form__cancel" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

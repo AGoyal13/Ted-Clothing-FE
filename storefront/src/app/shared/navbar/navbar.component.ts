@@ -9,7 +9,7 @@ import {
   computed,
   effect,
 } from '@angular/core';
-import { isPlatformBrowser, UpperCasePipe } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, filter } from 'rxjs';
@@ -17,14 +17,13 @@ import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
 import { AddressService } from '../../core/services/address.service';
-import { NavCategory } from '../../core/models/category.model';
-
-interface MegaGroup { label: string; slug: string; links: NavCategory[]; showBorder: boolean; }
+import { MegaMenuComponent } from './mega-menu/mega-menu.component';
+import { MobileDrawerComponent } from './mobile-drawer/mobile-drawer.component';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, UpperCasePipe],
+  imports: [RouterLink, RouterLinkActive, MegaMenuComponent, MobileDrawerComponent],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss',
 })
@@ -42,26 +41,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   readonly scrolled = signal(false);
   readonly mobileOpen = signal(false);
+  readonly activeMega = signal<string | null>(null);
+  readonly cartCount = this.cartService.count;
+
+  private openTimer: ReturnType<typeof setTimeout> | null = null;
+  private closeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     effect(() => {
       if (this.authService.isLoggedIn()) this.addressService.load();
     });
   }
-  readonly activeMega = signal<string | null>(null);
-  readonly expandedSections = signal<Set<string>>(new Set());
-  readonly collapsedDrawerGroups = signal<Set<string>>(new Set());
-  readonly cartCount = this.cartService.count;
-
-  private openTimer: ReturnType<typeof setTimeout> | null = null;
-  private closeTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly navTree = toSignal(
     this.categoryService.getNavTree().pipe(catchError(() => of([]))),
     { initialValue: [] }
   );
 
-  // Mega menu hover logic (desktop)
   onNavEnter(slug: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
@@ -86,65 +82,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.activeMega.set(null);
   }
 
-  // Collapsible mobile drawer sub-groups
-  toggleDrawerGroup(key: string): void {
-    this.collapsedDrawerGroups.update(s => {
-      const n = new Set(s);
-      n.has(key) ? n.delete(key) : n.add(key);
-      return n;
-    });
-  }
-
-  isDrawerGroupCollapsed(key: string): boolean {
-    return this.collapsedDrawerGroups().has(key);
-  }
-
-  // Build display groups for mega menu panel
-  buildGroups(root: NavCategory): MegaGroup[] {
-    const namedGroups: MegaGroup[] = [];
-    const flat: NavCategory[] = [];
-
-    for (const child of root.children ?? []) {
-      if (child.children?.length) {
-        // Named sub-group (e.g. Bags under Accessories): gets its own border
-        namedGroups.push({ label: child.name, slug: child.slug, links: child.children, showBorder: true });
-      } else {
-        flat.push(child);
-      }
-    }
-
-    const hasSubGroups = namedGroups.length > 0;
-    const groups: MegaGroup[] = [...namedGroups];
-
-    // Flat children chunked into columns of 7.
-    // showBorder = true only when there are NO named sub-groups (whole panel is one category).
-    const chunkSize = 7;
-    for (let i = 0; i < flat.length; i += chunkSize) {
-      groups.push({
-        label: i === 0 && !hasSubGroups ? root.name : '',
-        slug: root.slug,
-        links: flat.slice(i, i + chunkSize),
-        showBorder: !hasSubGroups,
-      });
-    }
-
-    return groups;
-  }
-
-  // Mobile root-section accordion (tracks expanded; empty = all collapsed by default)
-  toggleSection(slug: string): void {
-    this.expandedSections.update(set => {
-      const next = new Set(set);
-      next.has(slug) ? next.delete(slug) : next.add(slug);
-      return next;
-    });
-  }
-
-  isSectionCollapsed(slug: string): boolean {
-    return !this.expandedSections().has(slug);
-  }
-
-  // Scroll + lifecycle
   private scrollHandler = () => {
     this.scrolled.set(window.scrollY > 50);
     if (this.activeMega()) this.activeMega.set(null);
@@ -153,7 +90,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     window.addEventListener('scroll', this.scrollHandler, { passive: true });
-    // close mega on route navigation
     this.router.events.pipe(filter(e => e instanceof NavigationStart)).subscribe(() => {
       this.activeMega.set(null);
       this.closeMobileMenu();

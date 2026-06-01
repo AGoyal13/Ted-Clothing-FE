@@ -1,0 +1,35 @@
+<div class="acct__panel">
+  <h2 class="acct__panel-title">WISHLIST</h2>
+  @if (wishlistService.count() === 0) {
+    <p class="acct__empty">Your wishlist is empty. <a routerLink="/" class="acct__empty-link">Start browsing →</a></p>
+  } @else {
+    <div class="wl-list">
+      @for (item of wishlistService.items(); track item.skuId) {
+        <div class="wl-item">
+          <a [routerLink]="['/product', item.productSlug]" class="wl-item__img-wrap">
+            @if (item.image) {
+              <img class="wl-item__img" [src]="item.image" [alt]="item.productTitle" loading="lazy" />
+            } @else {
+              <div class="wl-item__img-placeholder"></div>
+            }
+          </a>
+          <button class="wl-item__remove" (click)="removeWishlist(item.productId, item.skuId)" aria-label="Remove from wishlist">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div class="wl-item__info">
+            <a [routerLink]="['/product', item.productSlug]" class="wl-item__title">{{ item.productTitle }}</a>
+            <span class="wl-item__meta">{{ item.colorName }} &middot; {{ item.sizeLabel }}</span>
+            <span class="wl-item__price">
+              ₹{{ wishlistService.effectivePrice(item) | number:'1.0-0' }}
+              @if (item.discountPercent > 0) {
+                <span class="wl-item__original">₹{{ item.basePrice | number:'1.0-0' }}</span>
+              }
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

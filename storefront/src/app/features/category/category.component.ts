@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
@@ -20,10 +19,11 @@ import { CategoryService } from '../../core/services/category.service';
 import { Product } from '../../core/models/product.model';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 import { AnimateOnScrollDirective } from '../../core/directives/animate-on-scroll.directive';
+import { CatFilterBarComponent } from './components/cat-filter-bar/cat-filter-bar.component';
+import { CatMobileFilterComponent } from './components/cat-mobile-filter/cat-mobile-filter.component';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
 type PageType = 'gender' | 'parent' | 'leaf';
-type SheetType = 'none' | 'sort' | 'category';
 
 interface FilterOption { label: string; slug: string; }
 
@@ -40,12 +40,10 @@ const GENDER_SLUGS: Record<string, 'MEN' | 'WOMEN' | 'KIDS'> = {
   men: 'MEN', women: 'WOMEN', kids: 'KIDS',
 };
 
-const CARET_SVG = `<svg width="10" height="7" viewBox="0 0 10 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l4 4 4-4"/></svg>`;
-
 @Component({
   selector: 'app-category',
   standalone: true,
-  imports: [ProductCardComponent, AnimateOnScrollDirective, RouterLink],
+  imports: [ProductCardComponent, AnimateOnScrollDirective, RouterLink, CatFilterBarComponent, CatMobileFilterComponent],
   templateUrl: './category.component.html',
   styleUrl: './category.component.scss',
 })
@@ -61,8 +59,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('scrollSentinel') private sentinel!: ElementRef<HTMLDivElement>;
   private observer: IntersectionObserver | null = null;
   private sentinelVisible = false;
-  // Captured in constructor (mid-navigation) — getCurrentNavigation() returns null
-  // by the time the combineLatest subscribe callback fires (after NavigationEnd).
   private readonly initialNavTrigger = this.router.getCurrentNavigation()?.trigger;
 
   readonly slug            = signal('');
@@ -75,11 +71,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly totalPages      = signal(1);
   readonly hasMore         = computed(() => this.currentPage() < this.totalPages());
   readonly sortBy          = signal<SortOption>('newest');
-  readonly sortOpen        = signal(false);
-  readonly catDdOpen       = signal(false);
   readonly activeCat       = signal<string>('all');
-  readonly pendingCat      = signal<string>('all');
-  readonly sheetOpen       = signal<SheetType>('none');
   readonly pageType        = signal<PageType>('leaf');
   readonly categoryOptions = signal<FilterOption[]>([]);
 
@@ -87,39 +79,9 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly skeletons = [1,2,3,4,5,6,7,8];
 
-  readonly sortOptions: { value: SortOption; label: string }[] = [
-    { value: 'newest',     label: 'Newest First' },
-    { value: 'price-asc',  label: 'Price: Low to High' },
-    { value: 'price-desc', label: 'Price: High to Low' },
-  ];
-
-  readonly sortLabel = computed(() =>
-    this.sortOptions.find(o => o.value === this.sortBy())?.label ?? 'Newest First'
-  );
-
-  readonly sortShortLabel = computed(() => {
-    const map: Record<SortOption, string> = {
-      'newest': 'NEWEST', 'price-asc': 'PRICE ↑', 'price-desc': 'PRICE ↓',
-    };
-    return map[this.sortBy()];
-  });
-
   readonly displayName = computed(() =>
     this.slug().replace(/-/g, ' ').toUpperCase()
   );
-
-  readonly hasCatFilter = computed(() => this.activeCat() !== 'all');
-
-  readonly catPillLabel = computed(() => {
-    if (!this.hasCatFilter()) return 'CATEGORY';
-    const opt = this.categoryOptions().find(o => o.slug === this.activeCat());
-    return (opt?.label ?? 'CATEGORY') + ' ×';
-  });
-
-  readonly mobCatLabel = computed(() => {
-    const opt = this.categoryOptions().find(o => o.slug === this.activeCat());
-    return opt?.label ?? 'CATEGORIES';
-  });
 
   ngOnInit(): void {
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, query]) => {
@@ -127,9 +89,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       const catFromUrl = (query['cat'] as string) ?? 'all';
 
       this.activeCat.set(catFromUrl);
-      this.pendingCat.set(catFromUrl);
 
-      // ── Scroll restoration (Option C) ───────────────────────────────
       const isBrowser   = isPlatformBrowser(this.platformId);
       const isBackNav   = this.initialNavTrigger === 'popstate';
       const stateKey    = `plp:${newSlug}:${catFromUrl}`;
@@ -148,7 +108,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
             this.total.set(state.total);
             this.loading.set(false);
             restoredFromState = true;
-            // Scroll after DOM paints — instant (no animation) to feel like native back
             setTimeout(() => {
               document.getElementById(state.scrollToId)
                 ?.scrollIntoView({ block: 'center', behavior: 'instant' });
@@ -158,7 +117,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       if (!restoredFromState) {
-        // Clear any stale saved state for this category on fresh (non-back) navigation
         if (isBrowser) {
           Object.keys(sessionStorage)
             .filter(k => k.startsWith(`plp:${newSlug}:`))
@@ -167,7 +125,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         this.currentPage.set(1);
         this.products.set([]);
       }
-      // ────────────────────────────────────────────────────────────────
 
       if (newSlug !== this.prevSlug) {
         this.prevSlug = newSlug;
@@ -257,8 +214,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           this.products.set(items);
           this.loading.set(false);
-          // Sentinel may have been visible during load (user scrolled fast or short page).
-          // Observer won't re-fire for persistent intersection — trigger manually.
           if (this.sentinelVisible) setTimeout(() => this.loadMore(), 0);
         }
         this.total.set(res.total ?? 0);
@@ -277,16 +232,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadProducts(true);
   }
 
-  // ── Desktop dropdown ──────────────────────────────────────────────
-
-  toggleCatDd(event: MouseEvent): void {
-    event.stopPropagation();
-    this.sortOpen.set(false);
-    this.catDdOpen.update(v => !v);
-  }
-
-  selectCat(slug: string): void {
-    this.catDdOpen.set(false);
+  onCatSelected(slug: string): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { cat: slug === 'all' ? null : slug },
@@ -294,58 +240,12 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  toggleSort(event: MouseEvent): void {
-    event.stopPropagation();
-    this.catDdOpen.set(false);
-    this.sortOpen.update(v => !v);
-  }
-
-  selectSort(value: SortOption): void {
+  onSortSelected(value: SortOption): void {
     this.sortBy.set(value);
-    this.sortOpen.set(false);
     this.currentPage.set(1);
     this.products.set([]);
     this.loadProducts();
   }
-
-  @HostListener('document:click')
-  closeDropdowns(): void {
-    this.sortOpen.set(false);
-    this.catDdOpen.set(false);
-  }
-
-  // ── Mobile bottom sheet ───────────────────────────────────────────
-
-  openSheet(type: 'sort' | 'category'): void {
-    this.pendingCat.set(this.activeCat());
-    this.sheetOpen.set(type);
-  }
-
-  closeSheet(): void { this.sheetOpen.set('none'); }
-
-  setPendingCat(slug: string): void { this.pendingCat.set(slug); }
-
-  clearPending(): void { this.pendingCat.set('all'); }
-
-  applyCategory(): void {
-    const cat = this.pendingCat();
-    this.sheetOpen.set('none');
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { cat: cat === 'all' ? null : cat },
-      queryParamsHandling: 'merge',
-    });
-  }
-
-  selectSortMobile(value: SortOption): void {
-    this.sortBy.set(value);
-    this.sheetOpen.set('none');
-    this.currentPage.set(1);
-    this.products.set([]);
-    this.loadProducts();
-  }
-
-  // ── Scroll state (Option C) ───────────────────────────────────────
 
   saveScrollState(productId: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -362,8 +262,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       sessionStorage.setItem(stateKey, JSON.stringify(state));
     } catch { /* quota exceeded — fail silently */ }
   }
-
-  // ── Infinite scroll ───────────────────────────────────────────────
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId) || !this.sentinel) return;

@@ -1,0 +1,29 @@
+
+    <div class="mega"
+         [class.mega--visible]="visible"
+         (mouseenter)="enter.emit()"
+         (mouseleave)="leave.emit()">
+      @let groups = buildGroups(root);
+      @let unified = groups[0]?.slug === root.slug;
+      <div class="mega__inner" [class.mega__inner--unified]="unified">
+        @for (group of groups; track $index) {
+          <div class="mega__group">
+            <div class="mega__group-header-row" [class.mega__group-header-row--bordered]="group.showBorder && !unified">
+              @if (group.label) {
+                <span class="mega__group-label">{{ group.label | uppercase }}</span>
+              }
+            </div>
+            @for (link of group.links; track link.slug) {
+              <a [routerLink]="['/category', link.slug]"
+                 class="mega__link"
+                 (click)="close.emit()">
+                @if (link.imageUrl) {
+                  <img class="mega__link-img" [src]="link.imageUrl" [alt]="link.name" loading="lazy" />
+                }
+                {{ link.name }}
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </div>

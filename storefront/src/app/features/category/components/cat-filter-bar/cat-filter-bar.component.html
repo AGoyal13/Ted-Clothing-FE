@@ -1,0 +1,78 @@
+
+    <div class="cat-page__bar">
+      <div class="cat-page__bar-inner">
+
+        <!-- Left: breadcrumb -->
+        <div class="cat-page__bar-left">
+          <nav class="cat-page__bc" aria-label="Breadcrumb">
+            <a routerLink="/" class="cat-page__bc-link">Home</a>
+            @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
+              <span class="cat-page__bc-sep">/</span>
+              @if (!last && crumb.slug) {
+                <a [routerLink]="['/category', crumb.slug]" class="cat-page__bc-link">{{ crumb.label }}</a>
+              } @else {
+                <span class="cat-page__bc-cur">{{ crumb.label }}</span>
+              }
+            }
+          </nav>
+        </div>
+
+        <!-- Right: pills -->
+        <div class="cat-page__bar-right" (click)="$event.stopPropagation()">
+
+          <!-- Category pill -->
+          @if (categoryOptions().length > 0) {
+            <div class="cat-page__pill-wrap">
+              <button
+                class="cat-page__pill"
+                [class.cat-page__pill--active]="hasCatFilter()"
+                (click)="toggleCatDd($event)"
+                [attr.aria-expanded]="catDdOpen()"
+              >
+                <span>{{ catPillLabel() }}</span>
+                <svg class="cat-page__caret" [class.cat-page__caret--open]="catDdOpen()"
+                  width="10" height="7" viewBox="0 0 10 7" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              @if (catDdOpen()) {
+                <ul class="cat-page__dd" role="listbox">
+                  <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="activeCat() === 'all'"
+                    (click)="selectCat('all')">All</li>
+                  @for (opt of categoryOptions(); track opt.slug) {
+                    <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="activeCat() === opt.slug"
+                      (click)="selectCat(opt.slug)">{{ opt.label }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+          <!-- Sort pill -->
+          <div class="cat-page__pill-wrap">
+            <button
+              class="cat-page__pill"
+              (click)="toggleSort($event)"
+              [attr.aria-expanded]="sortOpen()"
+            >
+              <span>{{ sortLabel() }}</span>
+              <svg class="cat-page__caret" [class.cat-page__caret--open]="sortOpen()"
+                width="10" height="7" viewBox="0 0 10 7" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            @if (sortOpen()) {
+              <ul class="cat-page__dd cat-page__dd--right" role="listbox">
+                @for (opt of sortOptions; track opt.value) {
+                  <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="sortBy() === opt.value"
+                    (click)="selectSort(opt.value)">{{ opt.label }}</li>
+                }
+              </ul>
+            }
+          </div>
+
+        </div>
+      </div>
+    </div>

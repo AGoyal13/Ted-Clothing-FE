@@ -1,0 +1,139 @@
+.addr-form {
+  background: rgba(245, 240, 232, 0.03);
+  border: 1px solid rgba(245, 240, 232, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.addr-form__title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  color: var(--cream);
+  margin-bottom: 1.25rem;
+}
+
+.addr-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.addr-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+
+  label {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  input {
+    background: rgba(245, 240, 232, 0.04);
+    border: 1px solid rgba(245, 240, 232, 0.12);
+    color: var(--cream);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &::placeholder { color: rgba(245, 240, 232, 0.25); }
+    &:focus { border-color: rgba(201, 168, 76, 0.5); }
+  }
+
+  input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.addr-form__field--sm { grid-column: span 1; }
+
+.addr-form__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addr-form__pin-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid rgba(245, 240, 232, 0.15);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: pinSpin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pinSpin {
+  to { transform: rotate(360deg); }
+}
+
+.addr-form__pin-status {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  font-family: var(--font-sans);
+}
+.addr-form__pin-status--ok  { color: #7ec87e; }
+.addr-form__pin-status--err { color: #e07070; }
+
+.addr-form__default {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--muted);
+
+  input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--gold); }
+}
+
+.addr-form__error {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: #e07070;
+  margin-bottom: 1rem;
+}
+
+.addr-form__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.addr-form__save {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.addr-form__cancel {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  &:hover { color: var(--cream); }
+}
+
+@media (max-width: 768px) {
+  .addr-form__row { grid-template-columns: 1fr; }
+}

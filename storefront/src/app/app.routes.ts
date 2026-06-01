@@ -21,10 +21,25 @@ export const routes: Routes = [
   {
     path: 'account',
     loadComponent: () => import('./features/account/account.component').then(m => m.AccountComponent),
-  },
-  {
-    path: 'account/:tab',
-    loadComponent: () => import('./features/account/account.component').then(m => m.AccountComponent),
+    children: [
+      { path: '', redirectTo: 'profile', pathMatch: 'full' },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/account/tabs/profile/profile-tab.component').then(m => m.ProfileTabComponent),
+      },
+      {
+        path: 'addresses',
+        loadComponent: () => import('./features/account/tabs/addresses/addresses-tab.component').then(m => m.AddressesTabComponent),
+      },
+      {
+        path: 'wishlist',
+        loadComponent: () => import('./features/account/tabs/wishlist/wishlist-tab.component').then(m => m.WishlistTabComponent),
+      },
+      {
+        path: 'preferences',
+        loadComponent: () => import('./features/account/tabs/preferences/preferences-tab.component').then(m => m.PreferencesTabComponent),
+      },
+    ],
   },
   {
     path: 'wishlist',
