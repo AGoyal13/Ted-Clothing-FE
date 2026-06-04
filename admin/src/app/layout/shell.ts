@@ -58,6 +58,14 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>receipt_long</mat-icon>
             <span matListItemTitle>Orders</span>
           </a>
+          <a mat-list-item routerLink="/warehouses" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>warehouse</mat-icon>
+            <span matListItemTitle>Warehouses</span>
+          </a>
+          <a mat-list-item routerLink="/shipping-cache" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+            <mat-icon matListItemIcon>cached</mat-icon>
+            <span matListItemTitle>ETD Cache</span>
+          </a>
           <a mat-list-item routerLink="/feedback" routerLinkActive="active" (click)="isMobile() && drawer.close()">
             <mat-icon matListItemIcon>rate_review</mat-icon>
             <span matListItemTitle>Feedback</span>

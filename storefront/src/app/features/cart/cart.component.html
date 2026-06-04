@@ -3,8 +3,8 @@
       <div class="cart-page__inner">
         <div class="cart-page__header">
           <h1 class="cart-page__title">YOUR BAG</h1>
-          @if (itemCount() > 0) {
-            <p class="cart-page__count">{{ itemCount() }} {{ itemCount() === 1 ? 'item' : 'items' }}</p>
+          @if (inStockCount() > 0) {
+            <p class="cart-page__count">{{ inStockCount() }} {{ inStockCount() === 1 ? 'item' : 'items' }}</p>
           }
         </div>
 
@@ -159,7 +159,7 @@
 
                 <div class="cart-page__summary-rows">
                   <div class="cart-page__summary-row">
-                    <span>Subtotal ({{ itemCount() }} {{ itemCount() === 1 ? 'item' : 'items' }})</span>
+                    <span>Subtotal ({{ inStockCount() }} {{ inStockCount() === 1 ? 'item' : 'items' }})</span>
                     <span>{{ subtotal() }}</span>
                   </div>
                   <div class="cart-page__summary-row">
@@ -173,6 +173,13 @@
                     }
                   </div>
                 </div>
+
+                @if (etdLabel()) {
+                  <div class="cart-page__etd">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    {{ etdLabel() }}
+                  </div>
+                }
 
                 <div class="cart-page__summary-divider"></div>
 

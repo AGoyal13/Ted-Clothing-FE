@@ -281,6 +281,17 @@
       font-family: var(--font-display);
     }
 
+    .cart-page__etd {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: rgba(245, 240, 232, 0.55);
+      margin-top: 0.5rem;
+
+      svg { flex-shrink: 0; }
+    }
+
     .cart-page__summary-divider {
       width: 100%;
       height: 1px;

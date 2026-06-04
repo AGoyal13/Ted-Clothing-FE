@@ -22,9 +22,14 @@ export class CartService {
 
   private readonly qtyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+  // Total items in bag including OOS — used for navbar badge so user sees all saved items.
   readonly count = computed(() =>
     this.items().reduce((sum, i) => sum + i.quantity, 0) +
     this.oosItems().reduce((sum, i) => sum + i.quantity, 0)
+  );
+  // In-stock items only — used for subtotal label and cart header count.
+  readonly inStockCount = computed(() =>
+    this.items().reduce((sum, i) => sum + i.quantity, 0)
   );
   readonly total = computed(() =>
     this.items().reduce((sum, i) => sum + i.price * i.quantity, 0)

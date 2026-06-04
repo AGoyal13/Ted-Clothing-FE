@@ -19,7 +19,6 @@
           @if (addressLoading()) {
             <div class="checkout__addr-skeleton"></div>
           } @else {
-            <!-- Saved addresses -->
             @if (addresses().length > 0) {
               <div class="checkout__addr-list">
                 @for (addr of addresses(); track addr.id) {
@@ -49,7 +48,6 @@
               </div>
             }
 
-            <!-- Add new address toggle -->
             <button
               class="checkout__add-addr-btn"
               [class.checkout__add-addr-btn--active]="showAddForm()"
@@ -59,7 +57,6 @@
               @if (!showAddForm()) { + ADD NEW ADDRESS } @else { − CANCEL }
             </button>
 
-            <!-- New address form -->
             @if (showAddForm()) {
               <form class="checkout__addr-form" #addrForm="ngForm" (ngSubmit)="saveAddress(addrForm)">
                 <div class="checkout__form-row">
@@ -113,6 +110,42 @@
           }
         </section>
 
+        <!-- Payment Method -->
+        @if (selectedAddressId()) {
+          <section class="checkout__section">
+            <h2 class="checkout__section-title">PAYMENT METHOD</h2>
+            <div class="checkout__pay-methods">
+              <button
+                class="checkout__pay-method"
+                [class.checkout__pay-method--selected]="paymentMethod() === 'PREPAID'"
+                (click)="paymentMethod.set('PREPAID')"
+                type="button"
+              >
+                <span class="checkout__pay-method-radio"></span>
+                <div class="checkout__pay-method-body">
+                  <div class="checkout__pay-method-label">Pay Online</div>
+                  <div class="checkout__pay-method-sub">UPI · Cards · Net Banking via Razorpay</div>
+                </div>
+              </button>
+              <button
+                class="checkout__pay-method"
+                [class.checkout__pay-method--selected]="paymentMethod() === 'COD'"
+                (click)="paymentMethod.set('COD')"
+                type="button"
+              >
+                <span class="checkout__pay-method-radio"></span>
+                <div class="checkout__pay-method-body">
+                  <div class="checkout__pay-method-label">Cash on Delivery</div>
+                  <div class="checkout__pay-method-sub">
+                    Pay when your order arrives
+                    @if (liveCodCharge() > 0) { · +{{ fmt(liveCodCharge()) }} COD fee }
+                  </div>
+                </div>
+              </button>
+            </div>
+          </section>
+        }
+
         <!-- Order Items -->
         <section class="checkout__section">
           <h2 class="checkout__section-title">ORDER ITEMS ({{ items().length }})</h2>
@@ -120,20 +153,14 @@
             @for (item of items(); track item.skuId) {
               <div class="checkout__item">
                 <div class="checkout__item-img-wrap">
-                  <img
-                    [src]="getImage(item)"
-                    [alt]="item.productTitle"
-                    class="checkout__item-img"
-                  />
+                  <img [src]="getImage(item)" [alt]="item.productTitle" class="checkout__item-img" />
                 </div>
                 <div class="checkout__item-info">
                   <div class="checkout__item-title">{{ item.productTitle }}</div>
                   <div class="checkout__item-meta">{{ item.colorName }} · {{ item.sizeLabel }}</div>
                   <div class="checkout__item-qty">Qty: {{ item.quantity }}</div>
                 </div>
-                <div class="checkout__item-price">
-                  {{ fmt(item.price * item.quantity) }}
-                </div>
+                <div class="checkout__item-price">{{ fmt(item.price * item.quantity) }}</div>
               </div>
             }
           </div>
@@ -152,18 +179,38 @@
           </div>
           <div class="checkout__summary-row">
             <span>Shipping</span>
-            @if (isFreeShipping()) {
+            @if (rateLoading()) {
+              <span class="checkout__rate-loading">—</span>
+            } @else if (isFreeShipping()) {
               <span class="checkout__free-ship">FREE</span>
             } @else {
-              <span>{{ fmt(shippingCharge()) }}</span>
+              <span>{{ fmt(liveShippingCharge()) }}</span>
             }
           </div>
+          @if (isCod() && liveCodCharge() > 0) {
+            <div class="checkout__summary-row">
+              <span>COD Fee</span>
+              <span>{{ fmt(liveCodCharge()) }}</span>
+            </div>
+          }
+          @if (etdDays()) {
+            <div class="checkout__summary-row checkout__summary-row--etd">
+              <span>Estimated Delivery</span>
+              <span>{{ etdDays() }}–{{ (etdDays() ?? 0) + 2 }} days</span>
+            </div>
+          }
           <div class="checkout__summary-divider"></div>
           <div class="checkout__summary-row checkout__summary-row--total">
             <span>TOTAL</span>
             <span>{{ fmt(total()) }}</span>
           </div>
         </div>
+
+        @if (!isServiceable() && shippingRate()) {
+          <div class="checkout__no-service">
+            Delivery not available to this pincode. Please use a different address.
+          </div>
+        }
 
         @if (formError()) {
           <div class="checkout__error">{{ formError() }}</div>
@@ -172,13 +219,14 @@
         <button
           class="checkout__pay-btn"
           (click)="pay()"
-          [disabled]="paying() || items().length === 0 || !selectedAddressId()"
+          [disabled]="paying() || items().length === 0 || !selectedAddressId() || !isServiceable()"
         >
           @if (paying()) {
             <span class="checkout__pay-spinner"></span>
-            PROCESSING...
+            @if (isCod()) { PLACING ORDER... } @else { PROCESSING... }
           } @else {
-            PAY {{ fmt(total()) }}
+            @if (isCod()) { PLACE ORDER · {{ fmt(total()) }} }
+            @else { PAY {{ fmt(total()) }} }
           }
         </button>
 
@@ -186,12 +234,14 @@
           <p class="checkout__pay-hint">Select a delivery address to continue</p>
         }
 
-        <div class="checkout__secure">
-          <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-            <path d="M6 0L0.5 2.5V7C0.5 10.25 2.5 12.5 6 13.5C9.5 12.5 11.5 10.25 11.5 7V2.5L6 0Z" stroke="currentColor" stroke-width="1" fill="none"/>
-          </svg>
-          Secured by Razorpay
-        </div>
+        @if (!isCod()) {
+          <div class="checkout__secure">
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+              <path d="M6 0L0.5 2.5V7C0.5 10.25 2.5 12.5 6 13.5C9.5 12.5 11.5 10.25 11.5 7V2.5L6 0Z" stroke="currentColor" stroke-width="1" fill="none"/>
+            </svg>
+            Secured by Razorpay
+          </div>
+        }
       </aside>
 
     </div>

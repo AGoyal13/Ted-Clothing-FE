@@ -28,6 +28,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/account/tabs/profile/profile-tab.component').then(m => m.ProfileTabComponent),
       },
       {
+        path: 'orders',
+        loadComponent: () => import('./features/account/tabs/orders/orders-tab.component').then(m => m.OrdersTabComponent),
+      },
+      {
         path: 'addresses',
         loadComponent: () => import('./features/account/tabs/addresses/addresses-tab.component').then(m => m.AddressesTabComponent),
       },

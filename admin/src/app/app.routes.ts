@@ -46,6 +46,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/orders/orders.component').then(m => m.OrdersComponent),
       },
       {
+        path: 'warehouses',
+        loadComponent: () => import('./features/shipping/warehouses.component').then(m => m.WarehousesComponent),
+      },
+      {
+        path: 'shipping-cache',
+        loadComponent: () => import('./features/shipping/shipping-cache.component').then(m => m.ShippingCacheComponent),
+      },
+      {
         path: 'feedback',
         loadComponent: () => import('./features/feedback/feedback.component').then(m => m.FeedbackComponent),
       },

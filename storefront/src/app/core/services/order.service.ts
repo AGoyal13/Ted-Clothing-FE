@@ -6,14 +6,15 @@ import {
   Order,
   OrderListItem,
   RazorpayPaymentResponse,
+  ShippingRate,
 } from '../models/order.model';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly api = inject(ApiService);
 
-  initiateOrder(addressId: string): Observable<InitiateOrderResponse> {
-    return this.api.post<InitiateOrderResponse>('/orders/initiate', { addressId });
+  initiateOrder(addressId: string, shippingCharge?: number): Observable<InitiateOrderResponse> {
+    return this.api.post<InitiateOrderResponse>('/orders/initiate', { addressId, shippingCharge });
   }
 
   verifyPayment(
@@ -26,6 +27,14 @@ export class OrderService {
       razorpayPaymentId: payment.razorpay_payment_id,
       razorpaySignature: payment.razorpay_signature,
     });
+  }
+
+  getShippingRate(pincode: string, cod: boolean): Observable<ShippingRate> {
+    return this.api.get<ShippingRate>(`/shipping/rate?pincode=${pincode}&cod=${cod}`);
+  }
+
+  initiateCodOrder(addressId: string, shippingCharge: number, codCharge: number, etdDays: number): Observable<Order> {
+    return this.api.post<Order>('/orders/initiate-cod', { addressId, shippingCharge, codCharge, etdDays });
   }
 
   getMyOrders(): Observable<OrderListItem[]> {

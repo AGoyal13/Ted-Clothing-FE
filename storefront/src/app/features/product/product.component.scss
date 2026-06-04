@@ -345,6 +345,16 @@
       }
     }
 
+    .pdp__etd {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+      svg { opacity: 0.6; flex-shrink: 0; }
+    }
+
     .pdp__description,
     .pdp__measurements {
       border-top: 1px solid rgba(245, 240, 232, 0.08);

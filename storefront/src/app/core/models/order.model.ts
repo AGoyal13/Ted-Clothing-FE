@@ -8,6 +8,14 @@ export type OrderStatus =
   | 'RETURNED';
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type PaymentMethod = 'PREPAID' | 'COD';
+
+export interface ShippingRate {
+  charge: number;
+  codCharge: number;
+  etdDays: number;
+  serviceable: boolean;
+}
 
 export interface OrderAddress {
   id: string;
@@ -39,9 +47,13 @@ export interface OrderItem {
 export interface Order {
   id: string;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   totalAmount: string;
   shippingCharge: string;
+  codCharge: string;
+  awb?: string;
+  etdDays?: number;
   createdAt: string;
   deliveredAt?: string;
   items: OrderItem[];

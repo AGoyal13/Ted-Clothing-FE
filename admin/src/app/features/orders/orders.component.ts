@@ -25,9 +25,12 @@ type OrderStatus =
 interface AdminOrder {
   id: string;
   status: OrderStatus;
+  paymentMethod: string;
   paymentStatus: string;
   totalAmount: string;
   shippingCharge: string;
+  awb?: string;
+  labelUrl?: string;
   createdAt: string;
   deliveredAt?: string;
   user: { id: string; name?: string; email?: string };
@@ -187,6 +190,33 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
             @if (expandedId() === row.id) {
               <div class="detail-panel">
                 <div class="detail-section">
+                  <div class="detail-label">Shipment</div>
+                  @if (row.awb) {
+                    <div class="awb-row">
+                      <span class="awb-label">AWB:</span>
+                      <span class="awb-value">{{ row.awb }}</span>
+                      @if (row.labelUrl) {
+                        <a [href]="row.labelUrl" target="_blank" class="label-link">
+                          <mat-icon style="font-size:16px;vertical-align:middle">open_in_new</mat-icon> Label
+                        </a>
+                      }
+                    </div>
+                  } @else if (row.status === 'CONFIRMED' || row.status === 'SHIPPED') {
+                    <button mat-stroked-button (click)="createShipment(row); $event.stopPropagation()"
+                      [disabled]="creatingShipment() === row.id">
+                      @if (creatingShipment() === row.id) {
+                        <mat-spinner diameter="16" style="display:inline-block;margin-right:6px" />
+                      } @else {
+                        <mat-icon>local_shipping</mat-icon>
+                      }
+                      Create Shipment
+                    </button>
+                    <div class="shipment-note">Requires Delhivery credentials in env</div>
+                  } @else {
+                    <span class="no-shipment">—</span>
+                  }
+                </div>
+                <div class="detail-section">
                   <div class="detail-label">Delivery Address</div>
                   <div class="detail-address">
                     <strong>{{ row.address.name }}</strong> · {{ row.address.phone }}<br>
@@ -285,6 +315,13 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     .empty { padding: 3rem; text-align: center; color: #999; }
     .pagination { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
     .page-info { font-size: 0.85rem; color: #666; }
+    .awb-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
+    .awb-label { font-weight: 600; color: #555; }
+    .awb-value { font-family: monospace; color: #333; }
+    .label-link { color: #1a237e; font-size: 0.82rem; text-decoration: none; display: flex; align-items: center; gap: 2px; }
+    .label-link:hover { text-decoration: underline; }
+    .shipment-note { font-size: 0.72rem; color: #999; margin-top: 4px; }
+    .no-shipment { color: #bbb; font-size: 0.82rem; }
   `],
 })
 export class OrdersComponent implements OnInit {
@@ -302,6 +339,7 @@ export class OrdersComponent implements OnInit {
   readonly page = signal(1);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly creatingShipment = signal<string | null>(null);
   readonly expandedId = signal<string | null>(null);
   filterStatus = '';
 
@@ -336,6 +374,24 @@ export class OrdersComponent implements OnInit {
 
   statusColor(status: OrderStatus): string {
     return STATUS_COLORS[status] ?? '#999';
+  }
+
+  createShipment(order: AdminOrder) {
+    this.creatingShipment.set(order.id);
+    this.api.post<{ awb: string; labelUrl?: string }>(`shipping/orders/${order.id}/shipment`, {}).subscribe({
+      next: res => {
+        this.creatingShipment.set(null);
+        this.orders.update(list =>
+          list.map(o => o.id === order.id ? { ...o, awb: res.awb, labelUrl: res.labelUrl } : o),
+        );
+        this.snackBar.open(`Shipment created — AWB: ${res.awb}`, 'OK', { duration: 5000 });
+      },
+      error: err => {
+        this.creatingShipment.set(null);
+        const msg = err?.error?.error?.message ?? 'Shipment creation failed — check Delhivery credentials';
+        this.snackBar.open(msg, 'OK', { duration: 6000 });
+      },
+    });
   }
 
   updateStatus(order: AdminOrder, newStatus: OrderStatus) {

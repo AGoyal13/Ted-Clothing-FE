@@ -16,6 +16,7 @@ import { Meta, Title } from '@angular/platform-browser';
 import { combineLatest } from 'rxjs';
 import { ProductService } from '../../core/services/product.service';
 import { CategoryService } from '../../core/services/category.service';
+import { ShippingService } from '../../core/services/shipping.service';
 import { Product } from '../../core/models/product.model';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 import { AnimateOnScrollDirective } from '../../core/directives/animate-on-scroll.directive';
@@ -51,10 +52,13 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly platformId     = inject(PLATFORM_ID);
   private readonly route          = inject(ActivatedRoute);
   private readonly router         = inject(Router);
-  private readonly productService = inject(ProductService);
-  private readonly categoryService= inject(CategoryService);
-  private readonly meta           = inject(Meta);
-  private readonly titleService   = inject(Title);
+  private readonly productService  = inject(ProductService);
+  private readonly categoryService = inject(CategoryService);
+  private readonly shippingService = inject(ShippingService);
+  private readonly meta            = inject(Meta);
+  private readonly titleService    = inject(Title);
+
+  readonly etdLabel = this.shippingService.etdLabel;
 
   @ViewChild('scrollSentinel') private sentinel!: ElementRef<HTMLDivElement>;
   private observer: IntersectionObserver | null = null;
@@ -84,6 +88,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   ngOnInit(): void {
+    this.shippingService.ensureAddresses();
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, query]) => {
       const newSlug    = params['slug'] ?? '';
       const catFromUrl  = (query['cat']  as string)     ?? 'all';

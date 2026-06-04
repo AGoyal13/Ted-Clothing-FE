@@ -4,6 +4,7 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   PLATFORM_ID,
   OnInit,
 } from '@angular/core';
@@ -18,7 +19,7 @@ import { OrderService } from '../../core/services/order.service';
 import { Address, AddressFormData } from '../../core/models/address.model';
 import { CartItem } from '../../core/models/cart.model';
 import { formatINR } from '../../core/models/product.model';
-import { RazorpayPaymentResponse } from '../../core/models/order.model';
+import { RazorpayPaymentResponse, ShippingRate } from '../../core/models/order.model';
 import { environment } from '../../../environments/environment';
 
 declare const Razorpay: any;
@@ -47,6 +48,12 @@ export class CheckoutComponent implements OnInit {
 
   readonly selectedAddressId = signal<string | null>(null);
   readonly showAddForm = signal(false);
+  readonly paymentMethod = signal<'PREPAID' | 'COD'>('PREPAID');
+
+  readonly shippingRate = signal<ShippingRate | null>(null);
+  readonly rateLoading = signal(false);
+
+  private rateTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     // Auto-select default address once addresses load
@@ -57,7 +64,31 @@ export class CheckoutComponent implements OnInit {
         this.selectedAddressId.set(def.id);
       }
     });
+
+    // Fetch real shipping rate when address or payment method changes
+    effect(() => {
+      const addrId = this.selectedAddressId();
+      const cod = this.paymentMethod() === 'COD';
+      const addrs = untracked(() => this.addresses());
+      const addr = addrs.find(a => a.id === addrId);
+      const pincode = addr?.pincode;
+
+      if (!pincode || pincode.length !== 6) {
+        this.shippingRate.set(null);
+        return;
+      }
+
+      if (this.rateTimer) clearTimeout(this.rateTimer);
+      this.rateTimer = setTimeout(() => {
+        this.rateLoading.set(true);
+        this.orderService.getShippingRate(pincode, cod).subscribe({
+          next: rate => { this.shippingRate.set(rate); this.rateLoading.set(false); },
+          error: () => this.rateLoading.set(false),
+        });
+      }, 300);
+    });
   }
+
   readonly formError = signal<string | null>(null);
   readonly paying = signal(false);
   readonly savingAddress = signal(false);
@@ -65,23 +96,28 @@ export class CheckoutComponent implements OnInit {
   readonly subtotal = computed(() =>
     this.items().reduce((sum, i) => sum + i.price * i.quantity, 0),
   );
-  readonly shippingCharge = this.cartService.shippingCharge;
-  readonly freeShippingThreshold = this.cartService.freeShippingThreshold;
-  readonly total = computed(() => this.subtotal() + this.shippingCharge());
-  readonly isFreeShipping = computed(() => this.subtotal() >= this.freeShippingThreshold());
+
+  // Use real Delhivery rate when available; fall back to SiteConfig cart charge while loading
+  readonly liveShippingCharge = computed(() => {
+    const rate = this.shippingRate();
+    if (rate) return rate.charge;
+    return this.cartService.shippingCharge(); // fallback while rate loads
+  });
+  readonly liveCodCharge = computed(() => this.shippingRate()?.codCharge ?? 0);
+  readonly etdDays = computed(() => this.shippingRate()?.etdDays ?? null);
+  readonly isServiceable = computed(() => this.shippingRate()?.serviceable ?? true);
+  readonly isCod = computed(() => this.paymentMethod() === 'COD');
+
+  readonly total = computed(() =>
+    this.subtotal() + this.liveShippingCharge() + (this.isCod() ? this.liveCodCharge() : 0),
+  );
+  readonly isFreeShipping = computed(() => this.liveShippingCharge() === 0);
 
   readonly fmt = formatINR;
 
   readonly newAddress: AddressFormData = {
-    name: '',
-    phone: '',
-    line1: '',
-    line2: '',
-    landmark: '',
-    city: '',
-    state: '',
-    pincode: '',
-    isDefault: false,
+    name: '', phone: '', line1: '', line2: '', landmark: '',
+    city: '', state: '', pincode: '', isDefault: false,
   };
 
   ngOnInit() {
@@ -126,7 +162,6 @@ export class CheckoutComponent implements OnInit {
         this.savingAddress.set(false);
         this.showAddForm.set(false);
         this.selectedAddressId.set(addr.id);
-        // Reset form fields
         Object.assign(this.newAddress, {
           name: '', phone: '', line1: '', line2: '', landmark: '',
           city: '', state: '', pincode: '', isDefault: false,
@@ -140,23 +175,49 @@ export class CheckoutComponent implements OnInit {
     return this.addresses().find(a => a.id === this.selectedAddressId());
   }
 
-  getImage(item: CartItem): string {
-    return item.image ?? '';
-  }
+  getImage(item: CartItem): string { return item.image ?? ''; }
 
   async pay() {
     const addressId = this.selectedAddressId();
-    if (!addressId) {
-      this.formError.set('Please select a delivery address.');
-      return;
-    }
-    if (this.items().length === 0) {
-      this.formError.set('Your cart is empty.');
-      return;
-    }
+    if (!addressId) { this.formError.set('Please select a delivery address.'); return; }
+    if (this.items().length === 0) { this.formError.set('Your cart is empty.'); return; }
+    if (!this.isServiceable()) { this.formError.set('Delivery is not available to this pincode.'); return; }
     this.formError.set(null);
     this.paying.set(true);
 
+    if (this.isCod()) {
+      this.placeCodOrder(addressId);
+    } else {
+      this.startRazorpayFlow(addressId);
+    }
+  }
+
+  private placeCodOrder(addressId: string) {
+    this.orderService.initiateCodOrder(
+      addressId,
+      this.liveShippingCharge(),
+      this.liveCodCharge(),
+      this.etdDays() ?? 0,
+    ).subscribe({
+      next: order => {
+        this.paying.set(false);
+        this.cartService.loadCart(); // clear local cart signals
+        this.router.navigate(['/order-confirmed', order.id]);
+      },
+      error: (err: any) => {
+        if (err?.status === 401) { this.paying.set(false); return; }
+        if (err?.error?.error?.oosSkuIds) {
+          this.formError.set('Some items are now out of stock. Please review your cart.');
+          this.cartService.loadCart();
+        } else {
+          this.formError.set(err?.error?.error?.message ?? 'Failed to place order. Please try again.');
+        }
+        this.paying.set(false);
+      },
+    });
+  }
+
+  private async startRazorpayFlow(addressId: string) {
     try {
       await this.loadRazorpayScript();
     } catch {
@@ -165,7 +226,7 @@ export class CheckoutComponent implements OnInit {
       return;
     }
 
-    this.orderService.initiateOrder(addressId).subscribe({
+    this.orderService.initiateOrder(addressId, this.liveShippingCharge()).subscribe({
       next: data => {
         const user = this.currentUser();
         const rzp = new Razorpay({
@@ -176,10 +237,7 @@ export class CheckoutComponent implements OnInit {
           name: 'Ted Clothing',
           description: 'Fashion Order',
           image: '',
-          prefill: {
-            name: user?.name ?? '',
-            email: user?.email ?? '',
-          },
+          prefill: { name: user?.name ?? '', email: user?.email ?? '' },
           theme: { color: '#c9a84c' },
           modal: { backdropclose: false, escape: false, ondismiss: () => this.paying.set(false) },
           handler: (response: RazorpayPaymentResponse) => {
@@ -193,17 +251,12 @@ export class CheckoutComponent implements OnInit {
         rzp.open();
       },
       error: (err: any) => {
-        if (err?.status === 401) {
-          // auth interceptor already called logout() + openModal()
-          this.paying.set(false);
-          return;
-        }
-        const msg = err?.error?.error?.message ?? 'Failed to initiate payment. Please try again.';
+        if (err?.status === 401) { this.paying.set(false); return; }
         if (err?.error?.error?.oosSkuIds) {
           this.formError.set('Some items in your cart are now out of stock. Please review your cart.');
           this.cartService.loadCart();
         } else {
-          this.formError.set(msg);
+          this.formError.set(err?.error?.error?.message ?? 'Failed to initiate payment. Please try again.');
         }
         this.paying.set(false);
       },
@@ -217,13 +270,8 @@ export class CheckoutComponent implements OnInit {
         this.router.navigate(['/order-confirmed', order.id]);
       },
       error: (err: any) => {
-        if (err?.status === 401) {
-          // auth interceptor already called logout() + openModal()
-          this.paying.set(false);
-          return;
-        }
+        if (err?.status === 401) { this.paying.set(false); return; }
         if (err?.status === 409) {
-          // stock went to zero between initiateOrder and verifyPayment; payment was captured
           this.formError.set(
             'An item sold out while your payment was processing. ' +
             'If your payment was charged, our team will reach out regarding a refund. ' +

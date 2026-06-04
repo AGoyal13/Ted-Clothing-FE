@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { WishlistService } from '../../core/services/wishlist.service';
 import { AddressService } from '../../core/services/address.service';
 
-type Tab = 'profile' | 'wishlist' | 'addresses' | 'preferences';
+type Tab = 'profile' | 'orders' | 'wishlist' | 'addresses' | 'preferences';
 
 @Component({
   selector: 'app-account',
@@ -35,13 +35,13 @@ export class AccountComponent implements OnInit {
   readonly activeTab = computed<Tab>(() => {
     const parts = this.currentUrl().split('/');
     const last = parts[parts.length - 1].split('?')[0] as Tab;
-    const valid = new Set<Tab>(['profile', 'wishlist', 'addresses', 'preferences']);
+    const valid = new Set<Tab>(['profile', 'orders', 'wishlist', 'addresses', 'preferences']);
     return valid.has(last) ? last : 'profile';
   });
 
   readonly tabLabel = computed(() => {
     const labels: Record<Tab, string> = {
-      profile: 'Profile', wishlist: 'Wishlist',
+      profile: 'Profile', orders: 'Orders', wishlist: 'Wishlist',
       addresses: 'Addresses', preferences: 'Preferences',
     };
     return labels[this.activeTab()];

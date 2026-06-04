@@ -1,0 +1,210 @@
+<div class="orders">
+
+  @if (loading()) {
+    <div class="orders__skeleton">
+      @for (n of [1,2,3]; track n) {
+        <div class="order-skeleton skeleton-pulse"></div>
+      }
+    </div>
+  } @else if (orders().length === 0) {
+    <div class="orders__empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <p class="orders__empty-title">No orders yet</p>
+      <p class="orders__empty-sub">Your placed orders will appear here.</p>
+      <a routerLink="/" class="orders__shop-link">Start Shopping →</a>
+    </div>
+  } @else {
+    <div class="orders__list">
+      @for (order of orders(); track order.id) {
+        <div class="order-card" [class.order-card--expanded]="expandedId() === order.id">
+
+          <!-- Order Header Row -->
+          <button class="order-card__header" (click)="toggleOrder(order)">
+            <div class="order-card__meta">
+              <span class="order-card__id">{{ shortId(order.id) }}</span>
+              <span class="order-card__date">{{ order.createdAt | date:'d MMM y' }}</span>
+            </div>
+            <div class="order-card__thumbs">
+              @for (item of order.items.slice(0, 3); track item.id) {
+                @if (item.sku.color.images?.[0]) {
+                  <img class="order-card__thumb" [src]="item.sku.color.images[0]" [alt]="item.sku.product.title" />
+                }
+              }
+              @if (order._count.items > 3) {
+                <span class="order-card__thumb-more">+{{ order._count.items - 3 }}</span>
+              }
+            </div>
+            <div class="order-card__right">
+              <span class="order-card__status" [style.color]="order.status === 'DELIVERED' ? '#4caf7d' :
+                order.status === 'SHIPPED' ? '#a78bfa' :
+                order.status === 'CANCELLED' ? 'var(--muted)' :
+                order.status === 'CONFIRMED' ? '#60a5fa' : 'var(--gold)'">
+                {{ STATUS_LABEL[order.status] }}
+              </span>
+              <span class="order-card__total">{{ formatINR(+order.totalAmount) }}</span>
+            </div>
+            <svg class="order-card__chevron" [class.order-card__chevron--open]="expandedId() === order.id"
+                 width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          <!-- Expanded Detail Panel -->
+          @if (expandedId() === order.id) {
+            <div class="order-card__detail">
+
+              @if (expandedLoading()) {
+                <div class="order-card__detail-loading">
+                  @for (n of [1,2]; track n) {
+                    <div class="detail-item-skeleton skeleton-pulse"></div>
+                  }
+                </div>
+              } @else if (expandedOrder(); as full) {
+
+                <!-- Items -->
+                <div class="detail-section">
+                  <h4 class="detail-section__title">Items ({{ full.items.length }})</h4>
+                  <div class="detail-items">
+                    @for (item of full.items; track item.id) {
+                      <div class="detail-item">
+                        <a [routerLink]="['/product', item.sku.product.slug]" class="detail-item__img-link">
+                          @if (item.sku.color.images?.[0]) {
+                            <img class="detail-item__img" [src]="item.sku.color.images[0]" [alt]="item.sku.product.title" />
+                          } @else {
+                            <div class="detail-item__img detail-item__img--placeholder"></div>
+                          }
+                        </a>
+                        <div class="detail-item__body">
+                          <a [routerLink]="['/product', item.sku.product.slug]" class="detail-item__title">
+                            {{ item.sku.product.title }}
+                          </a>
+                          <p class="detail-item__meta">
+                            {{ item.sku.color.colorName }} · {{ item.sku.sizeLabel }} · Qty {{ item.quantity }}
+                          </p>
+                          <p class="detail-item__price">{{ formatINR(+item.priceAtPurchase * item.quantity) }}</p>
+
+                          <!-- Review section -->
+                          @if (order.status === 'DELIVERED') {
+                            @if (reviewedProductIds().has(item.sku.product.id)) {
+                              <p class="review-done">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Review submitted
+                              </p>
+                            } @else if (reviewSuccessProductId() === item.sku.product.id) {
+                              <p class="review-done review-done--flash">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Review submitted — pending approval
+                              </p>
+                            } @else if (isReviewable(order, item.sku.product.id)) {
+                              <button class="review-btn"
+                                [class.review-btn--open]="openReviewKey() === (order.id + ':' + item.sku.product.id)"
+                                (click)="openReviewForm(order.id, item.sku.product.id)">
+                                Write a Review
+                              </button>
+
+                              @if (openReviewKey() === (order.id + ':' + item.sku.product.id)) {
+                                <div class="review-form">
+                                  <!-- Star picker -->
+                                  <div class="review-form__stars">
+                                    @for (s of STARS; track s) {
+                                      <button class="star-btn"
+                                        [class.star-btn--filled]="s <= (hoverRating() || reviewRating())"
+                                        (mouseenter)="hoverRating.set(s)"
+                                        (mouseleave)="hoverRating.set(0)"
+                                        (click)="reviewRating.set(s)">
+                                        ★
+                                      </button>
+                                    }
+                                    <span class="review-form__rating-label">{{ reviewRating() }}/5</span>
+                                  </div>
+
+                                  <!-- Title -->
+                                  <input class="review-form__input" type="text" placeholder="Title (optional, max 100 chars)"
+                                    [value]="reviewTitle()" (input)="reviewTitle.set($any($event.target).value)"
+                                    maxlength="100" />
+
+                                  <!-- Body -->
+                                  <textarea class="review-form__textarea"
+                                    placeholder="Share your experience (10–500 characters)"
+                                    [value]="reviewBody()"
+                                    (input)="reviewBody.set($any($event.target).value)"
+                                    rows="3" maxlength="500"></textarea>
+                                  <p class="review-form__char-count">{{ reviewBody().length }}/500</p>
+
+                                  @if (reviewError()) {
+                                    <p class="review-form__error">{{ reviewError() }}</p>
+                                  }
+
+                                  <div class="review-form__actions">
+                                    <button class="review-form__cancel" (click)="openReviewKey.set(null)">Cancel</button>
+                                    <button class="review-form__submit"
+                                      (click)="submitReview(order.id, item.sku.product.id)"
+                                      [disabled]="reviewSubmitting()">
+                                      {{ reviewSubmitting() ? 'Submitting…' : 'Submit Review' }}
+                                    </button>
+                                  </div>
+                                </div>
+                              }
+                            }
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Delivery Info -->
+                <div class="detail-cols">
+                  <div class="detail-section">
+                    <h4 class="detail-section__title">Delivery Address</h4>
+                    <address class="detail-address">
+                      <strong>{{ full.address.name }}</strong> · {{ full.address.phone }}<br>
+                      {{ full.address.line1 }}{{ full.address.line2 ? ', ' + full.address.line2 : '' }}
+                      {{ full.address.landmark ? ', ' + full.address.landmark : '' }}<br>
+                      {{ full.address.city }}, {{ full.address.state }} – {{ full.address.pincode }}
+                    </address>
+                  </div>
+
+                  <div class="detail-section">
+                    <h4 class="detail-section__title">Shipment</h4>
+                    @if (full.awb) {
+                      <div class="detail-tracking">
+                        <p class="detail-tracking__awb">
+                          <span class="detail-tracking__label">AWB</span>
+                          <span class="detail-tracking__value">{{ full.awb }}</span>
+                        </p>
+                        <a [href]="trackingUrl(full.awb)" target="_blank" rel="noopener" class="detail-tracking__link">
+                          Track Shipment →
+                        </a>
+                      </div>
+                    } @else if (full.etdDays) {
+                      <p class="detail-etd">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        Estimated {{ full.etdDays }} day{{ full.etdDays === 1 ? '' : 's' }} from dispatch
+                      </p>
+                    } @else {
+                      <p class="detail-no-shipment">Shipment details will appear once dispatched.</p>
+                    }
+                  </div>
+
+                  <div class="detail-section">
+                    <h4 class="detail-section__title">Payment</h4>
+                    <p class="detail-payment">
+                      {{ full.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Prepaid' }}
+                      @if (+full.shippingCharge > 0) {
+                        · Shipping {{ formatINR(+full.shippingCharge) }}
+                      }
+                    </p>
+                    <p class="detail-total">Total {{ formatINR(+full.totalAmount) }}</p>
+                  </div>
+                </div>
+
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { WishlistService } from '../../core/services/wishlist.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ShippingService } from '../../core/services/shipping.service';
 import { CartItem } from '../../core/models/cart.model';
 import { formatINR } from '../../core/models/product.model';
 
@@ -16,13 +17,16 @@ import { formatINR } from '../../core/models/product.model';
 export class CartComponent {
   private readonly cartService = inject(CartService);
   private readonly wishlistService = inject(WishlistService);
+  private readonly shippingService = inject(ShippingService);
   readonly authService = inject(AuthService);
+  readonly etdLabel = this.shippingService.etdLabel;
 
   readonly items = this.cartService.items;
   readonly oosItems = this.cartService.oosItems;
   readonly loading = this.cartService.loading;
   readonly total = this.cartService.total;
   readonly itemCount = this.cartService.count;
+  readonly inStockCount = this.cartService.inStockCount;
   readonly shippingCharge = this.cartService.shippingCharge;
   readonly freeShippingThreshold = this.cartService.freeShippingThreshold;
   readonly subtotal = computed(() => formatINR(this.total()));
