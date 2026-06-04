@@ -411,3 +411,16 @@
         color: var(--cream);
       }
     }
+
+    .pdp__size-guide-link {
+      display: inline-block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+
+      &:hover { color: var(--gold); }
+    }

@@ -1,3 +1,22 @@
+export interface SizeGuideMeasurement {
+  key: string;
+  label: string;
+  howTo: string;
+}
+
+export interface SizeGuideRow {
+  size: string;
+  values: Record<string, string>;
+}
+
+export interface SizeGuide {
+  id: string;
+  name: string;
+  measurements: SizeGuideMeasurement[];
+  rows: SizeGuideRow[];
+  fitTip: string | null;
+}
+
 export interface ProductColor {
   id: string;
   colorName: string;
@@ -27,6 +46,7 @@ export interface ProductCategory {
   id: string;
   name: string;
   slug: string;
+  sizeGuide: SizeGuide | null;
 }
 
 export interface Product {
@@ -46,6 +66,7 @@ export interface Product {
 export interface ProductDetail extends Omit<Product, 'skus'> {
   description: string;
   skus: ProductSku[];
+  sizeGuide: SizeGuide | null;
 }
 
 export interface ProductListResponse {

@@ -1,0 +1,65 @@
+<div class="sg-overlay" (click)="onOverlayClick($event)" role="dialog" aria-modal="true" aria-label="Size Guide">
+  <div class="sg-panel">
+    <div class="sg-header">
+      <span class="sg-title">{{ guide.name }}</span>
+      <button class="sg-close" (click)="close()" aria-label="Close size guide">×</button>
+    </div>
+
+    <!-- Unit toggle -->
+    <div class="sg-unit-toggle">
+      <button [class.sg-unit--active]="unit() === 'in'" (click)="unit.set('in')">inches</button>
+      <button [class.sg-unit--active]="unit() === 'cm'" (click)="unit.set('cm')">cm</button>
+    </div>
+
+    <div class="sg-body">
+      <!-- How to measure -->
+      @if (guide.measurements.length > 0) {
+        <div class="sg-section">
+          <h3 class="sg-section-title">HOW TO MEASURE</h3>
+          <div class="sg-measurements">
+            @for (m of guide.measurements; track m.key) {
+              <div class="sg-measure-item">
+                <span class="sg-measure-label">{{ m.label }}</span>
+                <span class="sg-measure-howto">{{ m.howTo }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Size chart -->
+      @if (guide.rows.length > 0) {
+        <div class="sg-section">
+          <h3 class="sg-section-title">SIZE CHART</h3>
+          <div class="sg-table-wrap">
+            <table class="sg-table">
+              <thead>
+                <tr>
+                  <th>SIZE</th>
+                  @for (m of guide.measurements; track m.key) {
+                    <th>{{ m.label }} ({{ unit() }})</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of guide.rows; track row.size) {
+                  <tr>
+                    <td class="sg-size-cell">{{ row.size }}</td>
+                    @for (m of guide.measurements; track m.key) {
+                      <td>{{ displayValue(row.values[m.key] ?? '—') }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Fit tip -->
+      @if (guide.fitTip) {
+        <p class="sg-fit-tip">💡 {{ guide.fitTip }}</p>
+      }
+    </div>
+  </div>
+</div>

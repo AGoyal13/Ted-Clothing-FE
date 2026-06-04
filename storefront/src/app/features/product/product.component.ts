@@ -27,11 +27,14 @@ import {
 import { PdpGalleryComponent } from './components/pdp-gallery/pdp-gallery.component';
 import { PdpReviewsComponent } from './components/pdp-reviews/pdp-reviews.component';
 import { PdpNotifyComponent } from './components/pdp-notify/pdp-notify.component';
+import { PdpSizeGuideComponent } from './components/pdp-size-guide/pdp-size-guide.component';
+import { SizeGuide } from '../../core/models/product.model';
+import { FALLBACK_GUIDES, getSizeGuideGroup } from './components/size-guide-fallback';
 
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [RouterLink, PdpGalleryComponent, PdpReviewsComponent, PdpNotifyComponent],
+  imports: [RouterLink, PdpGalleryComponent, PdpReviewsComponent, PdpNotifyComponent, PdpSizeGuideComponent],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss',
 })
@@ -56,6 +59,25 @@ export class ProductComponent implements OnInit, OnDestroy {
   readonly addedToCart = signal(false);
   readonly addingToCart = signal(false);
   readonly linkCopied = signal(false);
+  readonly sizeGuideOpen = signal(false);
+
+  private readonly sizeGuideGroup = computed(() => {
+    return getSizeGuideGroup(this.product()?.category?.slug ?? '');
+  });
+
+  readonly sizeGuide = computed<SizeGuide | null>(() => {
+    const p = this.product();
+    if (!p) return null;
+    if (p.sizeGuide) return p.sizeGuide;
+    if (p.category.sizeGuide) return p.category.sizeGuide;
+    const group = this.sizeGuideGroup();
+    return group ? FALLBACK_GUIDES[group] : null;
+  });
+
+  readonly hasSizeGuide = computed(() =>
+    !this.isFreeSize() && this.sizesForColor().length > 0 && this.sizeGuide() !== null,
+  );
+
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
   private addedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -268,6 +290,13 @@ export class ProductComponent implements OnInit, OnDestroy {
     const skuId = this.selectedSkuId() ?? this.sizesForColor()[0]?.id ?? p.skus[0]?.id;
     if (!skuId) return;
     this.wishlistService.toggle(p.id, skuId);
+  }
+
+  openSizeGuide(e: Event): void {
+    e.preventDefault();
+    if (isPlatformBrowser(this.platformId)) {
+      this.sizeGuideOpen.set(true);
+    }
   }
 
   async shareProduct(): Promise<void> {

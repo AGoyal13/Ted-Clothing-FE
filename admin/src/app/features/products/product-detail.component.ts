@@ -12,6 +12,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
 import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ColorDialogComponent } from './color-dialog.component';
@@ -19,10 +20,12 @@ import { AddColorVariantDialogComponent } from './add-color-variant-dialog.compo
 
 interface ProductColor { id: string; colorName: string; colorHex: string | null; images: string[]; }
 interface Sku { id: string; skuCode: string; colorId: string; sizeLabel: string; stockQty: number; priceOverride: number | null; }
+interface SizeGuideStub { id: string; name: string; }
 interface ProductDetail {
   id: string; title: string; slug: string; status: string; gender: string;
   basePrice: number; discountPercent: number; description: string;
   category: { id: string; name: string; slug: string };
+  sizeGuide: SizeGuideStub | null;
   colors: ProductColor[];
   skus: Sku[];
 }
@@ -33,7 +36,7 @@ interface ProductDetail {
   imports: [
     FormsModule,
     MatTabsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatChipsModule,
+    MatFormFieldModule, MatInputModule, MatChipsModule, MatSelectModule,
     MatProgressBarModule, MatSnackBarModule, MatDialogModule,
     MatTooltipModule, DecimalPipe,
   ],
@@ -192,6 +195,49 @@ interface ProductDetail {
             }
           </div>
         </mat-tab>
+
+        <!-- SIZE GUIDE TAB -->
+        <mat-tab label="Size Guide">
+          <div class="tab-content">
+            <div class="sg-section">
+              <p class="sg-desc">
+                Override the category-level size guide for this product only.
+                Leave unset to inherit from the category guide (or use the built-in fallback).
+              </p>
+
+              @if (product()!.sizeGuide) {
+                <div class="sg-current">
+                  <mat-icon class="sg-icon">table_chart</mat-icon>
+                  <span>Currently using: <strong>{{ product()!.sizeGuide!.name }}</strong></span>
+                  <button mat-stroked-button color="warn" style="margin-left:12px"
+                    [disabled]="savingSizeGuide()" (click)="clearSizeGuide()">
+                    Remove override
+                  </button>
+                </div>
+              } @else {
+                <p class="sg-none">No product-level override — inheriting from category or fallback.</p>
+              }
+
+              <mat-form-field appearance="outline" style="width:100%;max-width:400px;margin-top:1rem">
+                <mat-label>Assign a size guide</mat-label>
+                <mat-select [(value)]="selectedSizeGuideId">
+                  <mat-option [value]="null">— None (inherit from category) —</mat-option>
+                  @for (g of allSizeGuides(); track g.id) {
+                    <mat-option [value]="g.id">{{ g.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div style="margin-top:8px">
+                <button mat-flat-button color="primary"
+                  [disabled]="savingSizeGuide() || selectedSizeGuideId === (product()!.sizeGuide?.id ?? null)"
+                  (click)="saveSizeGuide()">
+                  {{ savingSizeGuide() ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
       </mat-tab-group>
     }
   `,
@@ -260,6 +306,12 @@ interface ProductDetail {
     .add-size-btn { font-size: 12px; color: #1a237e; }
 
     .muted { color: #999; font-style: italic; }
+    /* Size guide tab */
+    .sg-section { max-width: 600px; }
+    .sg-desc { font-size: 13px; color: #666; margin: 0 0 1rem; }
+    .sg-current { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #e8f5e9; border-radius: 6px; font-size: 14px; }
+    .sg-icon { color: #2e7d32; font-size: 20px; width: 20px; height: 20px; }
+    .sg-none { font-size: 13px; color: #999; font-style: italic; margin: 0 0 0.5rem; }
   `],
 })
 export class ProductDetailComponent implements OnInit {
@@ -272,6 +324,9 @@ export class ProductDetailComponent implements OnInit {
   product = signal<ProductDetail | null>(null);
   loading = signal(false);
   suggestedSizes = signal<string[]>([]);
+  allSizeGuides = signal<SizeGuideStub[]>([]);
+  savingSizeGuide = signal(false);
+  selectedSizeGuideId: string | null = null;
 
   addingForColorId = signal<string | null>(null);
   newSizeLabel = '';
@@ -293,7 +348,13 @@ export class ProductDetailComponent implements OnInit {
     });
   });
 
-  ngOnInit() { this.loadProduct(); }
+  ngOnInit() {
+    this.loadProduct();
+    this.api.get<SizeGuideStub[]>('size-guides').subscribe({
+      next: (gs) => this.allSizeGuides.set(gs),
+      error: () => {},
+    });
+  }
 
   loadProduct(bustCache = false) {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -302,6 +363,7 @@ export class ProductDetailComponent implements OnInit {
     this.api.get<ProductDetail>(`products/${id}`, params).subscribe({
       next: (p) => {
         this.product.set(p);
+        this.selectedSizeGuideId = p.sizeGuide?.id ?? null;
         this.loading.set(false);
         this.loadSizeTemplate(p.category.id);
       },
@@ -426,6 +488,25 @@ export class ProductDetailComponent implements OnInit {
       },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Error', '', { duration: 3000 }),
     });
+  }
+
+  // ─── Size Guide override ──────────────────────────────────────────────────
+
+  saveSizeGuide() {
+    this.savingSizeGuide.set(true);
+    this.api.patch(`products/${this.product()!.id}`, { sizeGuideId: this.selectedSizeGuideId }).subscribe({
+      next: () => {
+        this.savingSizeGuide.set(false);
+        this.loadProduct(true);
+        this.snack.open('Size guide saved', '', { duration: 1500 });
+      },
+      error: () => { this.savingSizeGuide.set(false); this.snack.open('Failed to save', '', { duration: 3000 }); },
+    });
+  }
+
+  clearSizeGuide() {
+    this.selectedSizeGuideId = null;
+    this.saveSizeGuide();
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────

@@ -96,6 +96,9 @@
                     <span class="pdp__field-value">{{ selectedSize() }}</span>
                   }
                 </p>
+                @if (hasSizeGuide()) {
+                  <a class="pdp__size-guide-link" href="#" (click)="openSizeGuide($event)">Size Guide ↗</a>
+                }
                 <div class="pdp__sizes" role="group" aria-label="Select size">
                   @for (sku of sizesForColor(); track sku.id) {
                     <button
@@ -246,3 +249,7 @@
         <pdp-reviews [productId]="product()!.id"></pdp-reviews>
       }
     </main>
+
+@if (sizeGuideOpen()) {
+  <pdp-size-guide [guide]="sizeGuide()!" (closed)="sizeGuideOpen.set(false)" />
+}

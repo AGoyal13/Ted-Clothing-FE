@@ -15,6 +15,7 @@ import { ReactiveFormsModule as RF } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { CategoryDialogComponent } from './category-dialog.component';
 import { SizeTemplateDialogComponent } from './size-template-dialog.component';
+import { SizeGuideDialogComponent } from './size-guide-dialog.component';
 
 export type ProductGender = 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
 
@@ -26,6 +27,7 @@ export interface Category {
   gender?: ProductGender | null;
   parent?: { id: string; name: string } | null;
   sizeTemplate?: { measurements: string[]; sizes: string[] } | null;
+  sizeGuide?: { id: string; name: string } | null;
   _count?: { products: number };
 }
 
@@ -35,6 +37,7 @@ export interface Category {
   imports: [
     MatTableModule, MatButtonModule, MatIconModule, MatDialogModule,
     MatCardModule, MatChipsModule, MatProgressBarModule, MatSnackBarModule,
+    SizeGuideDialogComponent,
   ],
   template: `
     <div class="page-header">
@@ -79,11 +82,22 @@ export interface Category {
             }
           </td>
         </ng-container>
+        <ng-container matColumnDef="sizeGuide">
+          <th mat-header-cell *matHeaderCellDef>Size Guide</th>
+          <td mat-cell *matCellDef="let c">
+            @if (c.sizeGuide) {
+              <mat-chip-set><mat-chip color="accent">{{ c.sizeGuide.name }}</mat-chip></mat-chip-set>
+            } @else {
+              <span class="muted">None</span>
+            }
+          </td>
+        </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let c">
             <button mat-icon-button title="Edit" (click)="openEdit(c)"><mat-icon>edit</mat-icon></button>
             <button mat-icon-button title="Size Template" (click)="openSizeTemplate(c)"><mat-icon>straighten</mat-icon></button>
+            <button mat-icon-button title="Size Guide" (click)="openSizeGuide(c)"><mat-icon>table_chart</mat-icon></button>
             <button mat-icon-button color="warn" title="Delete" (click)="delete(c)"><mat-icon>delete</mat-icon></button>
           </td>
         </ng-container>
@@ -107,7 +121,7 @@ export class CategoriesComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
 
-  cols = ['name', 'slug', 'parent', 'gender', 'sizeTemplate', 'actions'];
+  cols = ['name', 'slug', 'parent', 'gender', 'sizeTemplate', 'sizeGuide', 'actions'];
   categories = signal<Category[]>([]);
   loading = signal(false);
 
@@ -134,6 +148,11 @@ export class CategoriesComponent implements OnInit {
 
   openSizeTemplate(cat: Category) {
     this.dialog.open(SizeTemplateDialogComponent, { width: '500px', maxWidth: '95vw', data: { category: cat } })
+      .afterClosed().subscribe(result => { if (result) this.load(true); });
+  }
+
+  openSizeGuide(cat: Category) {
+    this.dialog.open(SizeGuideDialogComponent, { width: '700px', maxWidth: '95vw', data: { category: cat } })
       .afterClosed().subscribe(result => { if (result) this.load(true); });
   }
 
