@@ -37,7 +37,7 @@
             <div class="order-card__right">
               <span class="order-card__status" [style.color]="order.status === 'DELIVERED' ? '#4caf7d' :
                 order.status === 'SHIPPED' ? '#a78bfa' :
-                order.status === 'CANCELLED' ? 'var(--muted)' :
+                order.status === 'CANCELLED' ? '#e05252' :
                 order.status === 'CONFIRMED' ? '#60a5fa' : 'var(--gold)'">
                 {{ STATUS_LABEL[order.status] }}
               </span>
