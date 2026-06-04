@@ -78,6 +78,27 @@ import { ApiService } from '../../core/services/api.service';
             </button>
           </mat-card-actions>
         </mat-card>
+
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-card-title>Returns</mat-card-title>
+            <mat-card-subtitle>Controls the return window shown on PDP and account orders</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="fields">
+              <mat-form-field appearance="outline">
+                <mat-label>Return Window (days)</mat-label>
+                <input matInput type="number" [(ngModel)]="returnWindowDays" placeholder="2" min="0" max="30" />
+                <mat-hint>Set to 0 to disable returns. Max 30 days.</mat-hint>
+              </mat-form-field>
+            </div>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-flat-button color="primary" (click)="saveReturns()" [disabled]="savingReturns()">
+              {{ savingReturns() ? 'Saving…' : 'Save Changes' }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
       </div>
     }
   `,
@@ -98,11 +119,13 @@ export class SettingsComponent implements OnInit {
   readonly loading = signal(true);
   readonly savingStats = signal(false);
   readonly savingShipping = signal(false);
+  readonly savingReturns = signal(false);
 
   happyClients = 12000;
   satisfactionPct = 98;
   freeShippingMin = 999;
   shippingCharge = 99;
+  returnWindowDays = 2;
 
   ngOnInit() {
     this.api.get<Record<string, string>>('site-config').subscribe({
@@ -111,6 +134,7 @@ export class SettingsComponent implements OnInit {
         this.satisfactionPct = parseInt(cfg['satisfaction_pct'] ?? '98', 10);
         this.freeShippingMin = parseInt(cfg['free_shipping_threshold'] ?? '999', 10);
         this.shippingCharge = parseInt(cfg['shipping_charge'] ?? '99', 10);
+        this.returnWindowDays = parseInt(cfg['return_window_days'] ?? '2', 10);
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); },
@@ -130,6 +154,12 @@ export class SettingsComponent implements OnInit {
       return 'Free Shipping Minimum must be a whole number of at least ₹1';
     if (!Number.isInteger(this.shippingCharge) || this.shippingCharge < 0)
       return 'Shipping Charge must be 0 or greater';
+    return null;
+  }
+
+  private validateReturns(): string | null {
+    if (!Number.isInteger(this.returnWindowDays) || this.returnWindowDays < 0 || this.returnWindowDays > 30)
+      return 'Return Window must be a whole number between 0 and 30';
     return null;
   }
 
@@ -160,6 +190,18 @@ export class SettingsComponent implements OnInit {
     }).subscribe({
       next: () => { this.savingShipping.set(false); this.snack.open('Shipping saved', 'OK', { duration: 3000 }); },
       error: (e) => { this.savingShipping.set(false); this.snack.open(e?.error?.message ?? 'Failed to save', 'OK', { duration: 3000 }); },
+    });
+  }
+
+  saveReturns() {
+    const error = this.validateReturns();
+    if (error) { this.snack.open(error, 'OK', { duration: 4000 }); return; }
+    this.savingReturns.set(true);
+    this.api.patch<Record<string, string>>('site-config', {
+      updates: { return_window_days: String(this.returnWindowDays) },
+    }).subscribe({
+      next: () => { this.savingReturns.set(false); this.snack.open('Return policy saved', 'OK', { duration: 3000 }); },
+      error: (e) => { this.savingReturns.set(false); this.snack.open(e?.error?.message ?? 'Failed to save', 'OK', { duration: 3000 }); },
     });
   }
 }

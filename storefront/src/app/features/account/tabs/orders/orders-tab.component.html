@@ -37,6 +37,7 @@
             <div class="order-card__right">
               <span class="order-card__status" [style.color]="order.status === 'DELIVERED' ? '#4caf7d' :
                 order.status === 'SHIPPED' ? '#a78bfa' :
+                order.status === 'OUT_FOR_DELIVERY' ? '#818cf8' :
                 order.status === 'CANCELLED' ? '#e05252' :
                 order.status === 'RETURN_REQUESTED' ? '#f97316' :
                 order.status === 'RETURNED' ? 'var(--muted)' :
@@ -214,6 +215,43 @@
                     }
                   </div>
                 </div>
+
+                <!-- Return section — shown only for DELIVERED orders within window -->
+                @if (isReturnable(order)) {
+                  <div class="detail-section detail-section--return">
+                    <p class="detail-return__window">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+                      </svg>
+                      Return by {{ returnDeadline(order) | date:'d MMM y' }} ({{ returnWindowDays() }}-day window)
+                    </p>
+                    @if (returnSuccessId() === order.id) {
+                      <p class="detail-return__success">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Return request submitted successfully
+                      </p>
+                    } @else {
+                      <button
+                        class="detail-return__btn"
+                        (click)="requestReturn(order.id)"
+                        [disabled]="returningId() === order.id">
+                        {{ returningId() === order.id ? 'Submitting…' : 'Request Return' }}
+                      </button>
+                      @if (returnErrorId() === order.id) {
+                        <p class="detail-return__error">Failed to submit — please try again</p>
+                      }
+                    }
+                  </div>
+                } @else if (order.status === 'RETURN_REQUESTED') {
+                  <div class="detail-section detail-section--return">
+                    <p class="detail-return__pending">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+                      </svg>
+                      Return requested — our team will arrange pickup shortly
+                    </p>
+                  </div>
+                }
 
               }
             </div>

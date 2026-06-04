@@ -31,6 +31,7 @@ import { PdpSizeGuideComponent } from './components/pdp-size-guide/pdp-size-guid
 import { SizeGuide } from '../../core/models/product.model';
 import { FALLBACK_GUIDES, getSizeGuideGroup } from './components/size-guide-fallback';
 import { ShippingService } from '../../core/services/shipping.service';
+import { SiteConfigService } from '../../core/services/site-config.service';
 
 @Component({
   selector: 'app-product',
@@ -46,11 +47,13 @@ export class ProductComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly wishlistService = inject(WishlistService);
   private readonly shippingService = inject(ShippingService);
+  private readonly siteConfig = inject(SiteConfigService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
   private readonly platformId = inject(PLATFORM_ID);
 
   readonly etdLabel = this.shippingService.etdLabel;
+  readonly returnWindowDays = this.siteConfig.returnWindowDays;
 
   readonly loading = signal(true);
   readonly notFound = signal(false);
@@ -222,6 +225,7 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.shippingService.ensureAddresses();
+    this.siteConfig.load();
     this.route.params.subscribe(params => {
       const slug = params['slug'];
       if (slug) this.loadProduct(slug);

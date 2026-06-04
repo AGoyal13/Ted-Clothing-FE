@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { OrderService } from '../../../../core/services/order.service';
 import { ApiService } from '../../../../core/services/api.service';
+import { SiteConfigService } from '../../../../core/services/site-config.service';
 import { Order, OrderListItem, OrderStatus } from '../../../../core/models/order.model';
 import { formatINR } from '../../../../core/models/product.model';
 
@@ -10,6 +11,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING: 'Pending',
   CONFIRMED: 'Confirmed',
   SHIPPED: 'Shipped',
+  OUT_FOR_DELIVERY: 'Out for Delivery',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
   RETURN_REQUESTED: 'Return Requested',
@@ -26,6 +28,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 export class OrdersTabComponent implements OnInit {
   private readonly orderService = inject(OrderService);
   private readonly api = inject(ApiService);
+  private readonly siteConfig = inject(SiteConfigService);
 
   readonly orders = signal<OrderListItem[]>([]);
   readonly loading = signal(true);
@@ -43,11 +46,17 @@ export class OrdersTabComponent implements OnInit {
   readonly reviewedProductIds = signal(new Set<string>());
   readonly reviewSuccessProductId = signal<string | null>(null);
 
+  readonly returningId = signal<string | null>(null);
+  readonly returnSuccessId = signal<string | null>(null);
+  readonly returnErrorId = signal<string | null>(null);
+
   readonly formatINR = formatINR;
   readonly STATUS_LABEL = STATUS_LABEL;
   readonly STARS = [1, 2, 3, 4, 5];
+  readonly returnWindowDays = this.siteConfig.returnWindowDays;
 
   ngOnInit() {
+    this.siteConfig.load();
     this.orderService.getMyOrders().subscribe({
       next: list => { this.orders.set(list); this.loading.set(false); },
       error: () => this.loading.set(false),
@@ -78,6 +87,42 @@ export class OrdersTabComponent implements OnInit {
     if (this.reviewedProductIds().has(productId)) return false;
     const elapsed = Date.now() - new Date(order.deliveredAt).getTime();
     return elapsed <= 90 * 24 * 60 * 60 * 1000;
+  }
+
+  isReturnable(order: OrderListItem): boolean {
+    if (order.status !== 'DELIVERED' || !order.deliveredAt) return false;
+    const windowDays = this.returnWindowDays();
+    if (windowDays <= 0) return false;
+    const elapsed = (Date.now() - new Date(order.deliveredAt).getTime()) / (1000 * 60 * 60 * 24);
+    return elapsed <= windowDays;
+  }
+
+  returnDeadline(order: OrderListItem): Date | null {
+    if (!order.deliveredAt) return null;
+    const d = new Date(order.deliveredAt);
+    d.setDate(d.getDate() + this.returnWindowDays());
+    return d;
+  }
+
+  requestReturn(orderId: string): void {
+    if (this.returningId()) return;
+    this.returningId.set(orderId);
+    this.returnErrorId.set(null);
+    this.api.post<{ id: string; status: string }>(`orders/${orderId}/request-return`, {}).subscribe({
+      next: () => {
+        this.returningId.set(null);
+        this.returnSuccessId.set(orderId);
+        this.orders.update(list =>
+          list.map(o => o.id === orderId ? { ...o, status: 'RETURN_REQUESTED' as const } : o)
+        );
+      },
+      error: (err) => {
+        this.returningId.set(null);
+        this.returnErrorId.set(orderId);
+        setTimeout(() => this.returnErrorId.update(id => id === orderId ? null : id), 4000);
+        console.error('Return request failed:', err?.error?.error?.message);
+      },
+    });
   }
 
   openReviewForm(orderId: string, productId: string) {
