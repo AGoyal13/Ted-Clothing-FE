@@ -58,6 +58,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/order-confirmed/order-confirmed.component').then(m => m.OrderConfirmedComponent),
   },
   {
+    path: 'return-policy',
+    loadComponent: () => import('./features/return-policy/return-policy.component').then(m => m.ReturnPolicyComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

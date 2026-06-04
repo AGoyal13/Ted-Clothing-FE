@@ -362,7 +362,14 @@
       font-size: 0.75rem;
       color: var(--muted);
       margin-top: 0.4rem;
-      svg { opacity: 0.6; flex-shrink: 0; }
+      text-decoration: none;
+      transition: color 0.15s;
+      svg { opacity: 0.6; flex-shrink: 0; transition: opacity 0.15s; }
+
+      &:hover {
+        color: var(--gold);
+        svg { opacity: 1; }
+      }
     }
 
     .pdp__description,

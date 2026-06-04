@@ -167,6 +167,15 @@
       flex-shrink: 0;
       &:hover { color: var(--gold); }
       &--active { color: var(--gold); }
+      &--labeled { flex-direction: column; gap: 3px; align-items: center; }
+    }
+
+    .navbar__icon-label {
+      font-size: 0.48rem;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      line-height: 1;
+      color: inherit;
     }
 
     .navbar__account--active { color: var(--gold); }
@@ -183,9 +192,8 @@
       cursor: pointer;
       padding: 0;
 
-      &:hover {
-        color: var(--gold);
-      }
+      &:hover { color: var(--gold); }
+      &--labeled { flex-direction: column; gap: 3px; align-items: center; text-decoration: none; }
     }
 
     .navbar__hamburger {
