@@ -2,6 +2,7 @@ import { Component, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ApiService } from '../../../../core/services/api.service';
+import { AddressService } from '../../../../core/services/address.service';
 
 interface FeedbackPayload {
   name: string;
@@ -18,8 +19,9 @@ interface FeedbackPayload {
   styleUrl: './feedback-form.component.scss',
 })
 export class FeedbackFormComponent {
-  private auth = inject(AuthService);
-  private api  = inject(ApiService);
+  private auth           = inject(AuthService);
+  private api            = inject(ApiService);
+  private addressService = inject(AddressService);
 
   readonly stars = [1, 2, 3, 4, 5];
 
@@ -39,6 +41,15 @@ export class FeedbackFormComponent {
     effect(() => {
       const user = this.auth.currentUser();
       if (user?.name) this.name = user.name;
+      if (user) this.addressService.load();
+    });
+
+    effect(() => {
+      const addrs = this.addressService.addresses();
+      if (addrs.length > 0 && !this.location) {
+        const def = addrs.find(a => a.isDefault) ?? addrs[0];
+        this.location = def.city;
+      }
     });
   }
 

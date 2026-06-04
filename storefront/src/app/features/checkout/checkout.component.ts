@@ -8,6 +8,7 @@ import {
   OnInit,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
 import { CartService } from '../../core/services/cart.service';
@@ -32,6 +33,7 @@ declare const Razorpay: any;
 export class CheckoutComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   private readonly cartService = inject(CartService);
   private readonly addressService = inject(AddressService);
   private readonly authService = inject(AuthService);
@@ -104,14 +106,15 @@ export class CheckoutComponent implements OnInit {
 
   onPincodeChange(pincode: string) {
     if (pincode.length !== 6) return;
-    // endpoint added in Phase 5 — silently no-ops until then
-    fetch(`${environment.apiUrl}/pincode/${pincode}`)
-      .then(r => r.json())
-      .then(r => {
-        if (r.data?.city) this.newAddress.city = r.data.city;
-        if (r.data?.state) this.newAddress.state = r.data.state;
-      })
-      .catch(() => {});
+    this.http.get<{ success: boolean; data: { city: string; state: string } }>(
+      `${environment.apiUrl}/pincode/${pincode}`
+    ).subscribe({
+      next: res => {
+        if (res.data?.city) this.newAddress.city = res.data.city;
+        if (res.data?.state) this.newAddress.state = res.data.state;
+      },
+      error: () => {},
+    });
   }
 
   saveAddress(form: NgForm) {

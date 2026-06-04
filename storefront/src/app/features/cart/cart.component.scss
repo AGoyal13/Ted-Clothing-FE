@@ -324,11 +324,14 @@
     .cart-page__checkout-btn {
       width: 100%;
       margin-top: 1.5rem;
-      opacity: 0.5;
-      cursor: not-allowed;
 
-      &::after {
-        display: none;
+      &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &::after {
+          display: none;
+        }
       }
     }
 
