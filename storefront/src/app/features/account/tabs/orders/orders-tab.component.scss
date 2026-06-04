@@ -58,6 +58,11 @@
     border-color: rgba(201, 168, 76, 0.4);
   }
 
+  &--cancelled {
+    opacity: 0.72;
+    border-color: rgba(224, 82, 82, 0.18);
+  }
+
   &__header {
     width: 100%;
     display: flex;
@@ -242,6 +247,11 @@
   font-style: normal;
 
   strong { color: var(--cream); }
+
+  &--cancelled {
+    color: var(--muted);
+    strong { color: var(--muted); }
+  }
 }
 
 .detail-tracking {
@@ -279,6 +289,19 @@
   font-size: 0.8rem;
   color: var(--muted);
   margin: 0;
+}
+
+.detail-refund {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  margin: 6px 0 0;
+  letter-spacing: 0.03em;
+
+  &--ok { color: #4caf7d; }
+  &--warn { color: #e05252; }
+  &--muted { color: var(--muted); }
 }
 
 .detail-payment {
