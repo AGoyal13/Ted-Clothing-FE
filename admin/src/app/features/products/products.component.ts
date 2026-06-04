@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -56,7 +56,7 @@ export interface Product {
     </div>
 
     <div class="filters">
-      <mat-select [(ngModel)]="statusFilter" (ngModelChange)="page.set(1); load()" placeholder="All statuses">
+      <mat-select [(ngModel)]="statusFilter" (ngModelChange)="page.set(1); pushParams(); load()" placeholder="All statuses">
         <mat-option value="">All statuses</mat-option>
         <mat-option value="DRAFT">Draft</mat-option>
         <mat-option value="ACTIVE">Active</mat-option>
@@ -71,7 +71,7 @@ export interface Product {
       </mat-select>
 
       @if (childCategories().length) {
-        <mat-select [(ngModel)]="selectedChild" (ngModelChange)="page.set(1); load()" placeholder="All sub-categories">
+        <mat-select [(ngModel)]="selectedChild" (ngModelChange)="page.set(1); pushParams(); load()" placeholder="All sub-categories">
           <mat-option value="">All sub-categories</mat-option>
           @for (c of childCategories(); track c.id) {
             <mat-option [value]="c.slug">{{ c.name }}</mat-option>
@@ -207,6 +207,7 @@ export class ProductsComponent implements OnInit {
   private api = inject(ApiService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
   cols = ['select', 'title', 'category', 'price', 'status', 'skus', 'actions'];
@@ -243,6 +244,11 @@ export class ProductsComponent implements OnInit {
   });
 
   ngOnInit() {
+    const q = this.route.snapshot.queryParamMap;
+    this.statusFilter = q.get('status') ?? '';
+    this.selectedParent = q.get('parent') ?? '';
+    this.selectedChild = q.get('cat') ?? '';
+    this.page.set(Number(q.get('page') ?? '1'));
     this.loadCategories();
     this.load();
   }
@@ -253,9 +259,24 @@ export class ProductsComponent implements OnInit {
     });
   }
 
+  pushParams() {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        status: this.statusFilter || null,
+        parent: this.selectedParent || null,
+        cat: this.selectedChild || null,
+        page: this.page() > 1 ? this.page() : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
   onParentChange() {
     this.selectedChild = '';
     this.page.set(1);
+    this.pushParams();
     this.load();
   }
 
@@ -313,6 +334,7 @@ export class ProductsComponent implements OnInit {
   onPage(e: PageEvent) {
     this.pageSize = e.pageSize;
     this.page.set(e.pageIndex + 1);
+    this.pushParams();
     this.load();
   }
 

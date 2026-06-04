@@ -2,30 +2,27 @@
     <header class="navbar" [class.navbar--scrolled]="scrolled()">
       <div class="navbar__inner">
 
-        <!-- Logo + mobile delivery chip -->
+        <!-- Logo -->
         <div class="navbar__left">
           <a routerLink="/" class="navbar__logo" aria-label="Ted Clothing Home">
             <span class="navbar__logo-ted">TED</span>
             <span class="navbar__logo-clothing">CLOTHING</span>
           </a>
           @if (authService.isLoggedIn() && defaultAddress()) {
-            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--mobile" aria-label="Delivery address">
-              <svg class="navbar__delivery-pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--inline" aria-label="Delivery address">
+              <svg class="navbar__delivery-pin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
-            </a>
-            <a routerLink="/account/addresses" class="navbar__delivery navbar__delivery--desktop" aria-label="Delivery address">
               <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
             </a>
           }
         </div>
 
         <!-- Desktop Nav -->
-        <nav class="navbar__nav" aria-label="Main navigation">
-          @for (root of navTree(); track root.slug) {
-            <div class="nav-item"
+        <nav #navEl class="navbar__nav" aria-label="Main navigation">
+          @for (root of navTree(); track root.slug; let i = $index) {
+            <div class="nav-item" data-nav-item
                  (mouseenter)="onNavEnter(root.slug)"
                  (mouseleave)="onNavLeave()">
               <a [routerLink]="['/category', root.slug]"
@@ -38,13 +35,34 @@
               </a>
             </div>
           }
+
+          <!-- More overflow button — always in DOM for measurement -->
+          <div class="nav-item nav-item--more" [class.nav-item--more-active]="overflowItems().length > 0">
+            <button class="navbar__link navbar__more-btn"
+                    (click)="moreOpen.update(v => !v); activeMega.set(null)"
+                    [class.navbar__link--mega-open]="moreOpen()">
+              MORE
+              <svg class="navbar__link-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            @if (moreOpen()) {
+              <div class="navbar__more-dropdown">
+                @for (item of overflowItems(); track item.slug) {
+                  <a [routerLink]="['/category', item.slug]" class="navbar__more-item"
+                     (click)="moreOpen.set(false)">
+                    {{ item.name }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
         </nav>
 
         <!-- Right Actions -->
         <div class="navbar__actions">
 
-
-          <button class="navbar__icon-btn" aria-label="Search">
+          <button class="navbar__icon-btn" aria-label="Search" (click)="toggleSearch()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -117,6 +135,24 @@
 
     </header>
 
+    <!-- Search overlay -->
+    @if (searchOpen()) {
+      <div class="search-overlay" (click)="searchOpen.set(false)">
+        <div class="search-overlay__box" (click)="$event.stopPropagation()">
+          <svg class="search-overlay__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input class="search-overlay__input" type="search" placeholder="Search products…"
+                 autofocus (keydown.escape)="searchOpen.set(false)">
+          <button class="search-overlay__close" (click)="searchOpen.set(false)" aria-label="Close search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+
     <!-- Mobile Drawer -->
     @if (mobileOpen()) {
       <navbar-mobile-drawer
@@ -127,4 +163,15 @@
         (signedOut)="signOut()"
         (openModal)="authService.openModal()">
       </navbar-mobile-drawer>
+    }
+
+    <!-- Floating delivery chip -->
+    @if (authService.isLoggedIn() && defaultAddress()) {
+      <a routerLink="/account/addresses" class="navbar__delivery" aria-label="Delivery address">
+        <svg class="navbar__delivery-pin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+      </a>
     }
