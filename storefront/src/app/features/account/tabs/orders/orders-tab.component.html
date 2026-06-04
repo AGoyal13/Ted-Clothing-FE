@@ -167,7 +167,9 @@
 
                   <div class="detail-section">
                     <h4 class="detail-section__title">Shipment</h4>
-                    @if (full.awb) {
+                    @if (full.status === 'CANCELLED') {
+                      <p class="detail-no-shipment">—</p>
+                    } @else if (full.awb) {
                       <div class="detail-tracking">
                         <p class="detail-tracking__awb">
                           <span class="detail-tracking__label">AWB</span>

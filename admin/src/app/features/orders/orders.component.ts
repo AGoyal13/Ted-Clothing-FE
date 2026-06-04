@@ -61,7 +61,7 @@ interface OrdersPage {
 
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['SHIPPED', 'CANCELLED'],
+  CONFIRMED: ['CANCELLED'],
   SHIPPED: ['DELIVERED'],
   DELIVERED: ['RETURN_REQUESTED'],
   RETURN_REQUESTED: ['RETURNED', 'CONFIRMED'],
@@ -110,21 +110,25 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     @if (loading()) {
       <div class="center"><mat-spinner diameter="40" /></div>
     } @else {
-      <mat-table [dataSource]="orders()" class="orders-table">
+      <mat-table [dataSource]="orders()" class="orders-table" multiTemplateDataRows>
 
         <ng-container matColumnDef="order">
           <mat-header-cell *matHeaderCellDef>Order</mat-header-cell>
           <mat-cell *matCellDef="let row">
-            <div class="order-id">#{{ row.id.slice(-8).toUpperCase() }}</div>
-            <div class="order-date">{{ row.createdAt | date:'d MMM y, h:mm a' }}</div>
+            <div class="cell-stack">
+              <div class="order-id">#{{ row.id.slice(-8).toUpperCase() }}</div>
+              <div class="order-date">{{ row.createdAt | date:'d MMM y, h:mm a' }}</div>
+            </div>
           </mat-cell>
         </ng-container>
 
         <ng-container matColumnDef="customer">
           <mat-header-cell *matHeaderCellDef>Customer</mat-header-cell>
           <mat-cell *matCellDef="let row">
-            <div class="customer-name">{{ row.user.name || '—' }}</div>
-            <div class="customer-email">{{ row.user.email || '—' }}</div>
+            <div class="cell-stack">
+              <div class="customer-name">{{ row.user.name || '—' }}</div>
+              <div class="customer-email">{{ row.user.email || '—' }}</div>
+            </div>
           </mat-cell>
         </ng-container>
 
@@ -149,10 +153,12 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
         <ng-container matColumnDef="amount">
           <mat-header-cell *matHeaderCellDef>Amount</mat-header-cell>
           <mat-cell *matCellDef="let row">
-            <div class="amount">₹{{ (+row.totalAmount).toFixed(2) }}</div>
-            @if (+row.shippingCharge > 0) {
-              <div class="shipping-note">+₹{{ row.shippingCharge }} ship</div>
-            }
+            <div class="cell-stack">
+              <div class="amount">₹{{ (+row.totalAmount).toFixed(2) }}</div>
+              @if (+row.shippingCharge > 0) {
+                <div class="shipping-note">+₹{{ row.shippingCharge }} ship</div>
+              }
+            </div>
           </mat-cell>
         </ng-container>
 
@@ -322,6 +328,15 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     .label-link:hover { text-decoration: underline; }
     .shipment-note { font-size: 0.72rem; color: #999; margin-top: 4px; }
     .no-shipment { color: #bbb; font-size: 0.82rem; }
+    .mat-column-order { flex: 0 0 160px; max-width: 160px; }
+    .mat-column-customer { flex: 1 1 160px; min-width: 140px; overflow: hidden; }
+    .mat-column-items { flex: 0 0 90px; max-width: 90px; }
+    .mat-column-amount { flex: 0 0 110px; max-width: 110px; }
+    .mat-column-status { flex: 0 0 140px; max-width: 140px; }
+    .mat-column-actions { flex: 0 0 48px; max-width: 48px; }
+    .mat-column-expandedDetail { flex: 1 1 100%; max-width: 100%; }
+    .detail-row { overflow: hidden; }
+    .cell-stack { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
   `],
 })
 export class OrdersComponent implements OnInit {
@@ -396,11 +411,20 @@ export class OrdersComponent implements OnInit {
 
   updateStatus(order: AdminOrder, newStatus: OrderStatus) {
     this.saving.set(true);
-    this.api.patch(`admin/orders/${order.id}/status`, { status: newStatus }).subscribe({
-      next: () => {
-        this.orders.update(list => list.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
+    this.api.patch<{ id: string; status: OrderStatus; paymentStatus: string }>(`admin/orders/${order.id}/status`, { status: newStatus }).subscribe({
+      next: (updated) => {
+        this.orders.update(list => list.map(o =>
+          o.id === order.id
+            ? { ...o, status: updated.status, paymentStatus: updated.paymentStatus ?? o.paymentStatus }
+            : o,
+        ));
         this.saving.set(false);
-        this.snackBar.open(`Order updated to ${newStatus}`, 'OK', { duration: 3000 });
+        const msg = newStatus === 'CANCELLED' && updated.paymentStatus === 'REFUNDED'
+          ? 'Order cancelled — refund initiated'
+          : newStatus === 'CANCELLED'
+            ? 'Order cancelled — no refund (COD or unpaid)'
+            : `Order updated to ${newStatus}`;
+        this.snackBar.open(msg, 'OK', { duration: 4000 });
       },
       error: () => {
         this.saving.set(false);
