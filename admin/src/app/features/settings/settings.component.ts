@@ -46,8 +46,8 @@ import { ApiService } from '../../core/services/api.service';
             </div>
           </mat-card-content>
           <mat-card-actions align="end">
-            <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
-              {{ saving() ? 'Saving…' : 'Save Changes' }}
+            <button mat-flat-button color="primary" (click)="saveStats()" [disabled]="savingStats()">
+              {{ savingStats() ? 'Saving…' : 'Save Changes' }}
             </button>
           </mat-card-actions>
         </mat-card>
@@ -73,8 +73,8 @@ import { ApiService } from '../../core/services/api.service';
             </div>
           </mat-card-content>
           <mat-card-actions align="end">
-            <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
-              {{ saving() ? 'Saving…' : 'Save Changes' }}
+            <button mat-flat-button color="primary" (click)="saveShipping()" [disabled]="savingShipping()">
+              {{ savingShipping() ? 'Saving…' : 'Save Changes' }}
             </button>
           </mat-card-actions>
         </mat-card>
@@ -96,7 +96,8 @@ export class SettingsComponent implements OnInit {
   private snack = inject(MatSnackBar);
 
   readonly loading = signal(true);
-  readonly saving = signal(false);
+  readonly savingStats = signal(false);
+  readonly savingShipping = signal(false);
 
   happyClients = 12000;
   satisfactionPct = 98;
@@ -116,21 +117,49 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  save() {
-    this.saving.set(true);
+  private validateStats(): string | null {
+    if (!Number.isInteger(this.happyClients) || this.happyClients < 1)
+      return 'Happy Clients must be a whole number of at least 1';
+    if (!Number.isInteger(this.satisfactionPct) || this.satisfactionPct < 0 || this.satisfactionPct > 100)
+      return 'Satisfaction % must be a whole number between 0 and 100';
+    return null;
+  }
+
+  private validateShipping(): string | null {
+    if (!Number.isInteger(this.freeShippingMin) || this.freeShippingMin < 1)
+      return 'Free Shipping Minimum must be a whole number of at least ₹1';
+    if (!Number.isInteger(this.shippingCharge) || this.shippingCharge < 0)
+      return 'Shipping Charge must be 0 or greater';
+    return null;
+  }
+
+  saveStats() {
+    const error = this.validateStats();
+    if (error) { this.snack.open(error, 'OK', { duration: 4000 }); return; }
+    this.savingStats.set(true);
     this.api.patch<Record<string, string>>('site-config', {
       updates: {
         happy_clients: String(this.happyClients),
         satisfaction_pct: String(this.satisfactionPct),
+      },
+    }).subscribe({
+      next: () => { this.savingStats.set(false); this.snack.open('Stats saved', 'OK', { duration: 3000 }); },
+      error: (e) => { this.savingStats.set(false); this.snack.open(e?.error?.message ?? 'Failed to save', 'OK', { duration: 3000 }); },
+    });
+  }
+
+  saveShipping() {
+    const error = this.validateShipping();
+    if (error) { this.snack.open(error, 'OK', { duration: 4000 }); return; }
+    this.savingShipping.set(true);
+    this.api.patch<Record<string, string>>('site-config', {
+      updates: {
         free_shipping_threshold: String(this.freeShippingMin),
         shipping_charge: String(this.shippingCharge),
       },
     }).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.snack.open('Settings saved', 'OK', { duration: 3000 });
-      },
-      error: () => { this.saving.set(false); this.snack.open('Failed to save', 'OK', { duration: 3000 }); },
+      next: () => { this.savingShipping.set(false); this.snack.open('Shipping saved', 'OK', { duration: 3000 }); },
+      error: (e) => { this.savingShipping.set(false); this.snack.open(e?.error?.message ?? 'Failed to save', 'OK', { duration: 3000 }); },
     });
   }
 }

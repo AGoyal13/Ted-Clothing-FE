@@ -26,6 +26,7 @@ export interface Category {
   gender?: ProductGender | null;
   parent?: { id: string; name: string } | null;
   sizeTemplate?: { measurements: string[]; sizes: string[] } | null;
+  _count?: { products: number };
 }
 
 @Component({
@@ -137,7 +138,11 @@ export class CategoriesComponent implements OnInit {
   }
 
   delete(cat: Category) {
-    if (!confirm(`Delete "${cat.name}"?`)) return;
+    const productCount = cat._count?.products ?? 0;
+    const productWarning = productCount > 0
+      ? `\n\n⚠️ ${productCount} product${productCount === 1 ? '' : 's'} belong to this category and will need to be reassigned.`
+      : '';
+    if (!confirm(`Delete "${cat.name}"?${productWarning}`)) return;
     this.api.delete(`categories/${cat.id}`).subscribe({
       next: () => { this.snack.open('Deleted', '', { duration: 2000 }); this.load(true); },
       error: (e) => this.snack.open(e?.error?.error?.message ?? 'Delete failed', '', { duration: 3000 }),

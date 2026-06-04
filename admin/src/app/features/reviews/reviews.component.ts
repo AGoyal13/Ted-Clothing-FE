@@ -1,9 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTabsModule } from '@angular/material/tabs';
+import { MatTabsModule, MatTabChangeEvent } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,9 +18,18 @@ interface AdminReview {
   body: string;
   verified: boolean;
   approved: boolean;
+  approvedAt?: string;
   createdAt: string;
   user: { id: string; name: string | null; email: string | null };
   product: { id: string; title: string; slug: string };
+}
+
+interface ReviewsPage {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  data: AdminReview[];
 }
 
 @Component({
@@ -34,14 +43,15 @@ interface AdminReview {
   template: `
     <div class="page-header">
       <h1>Reviews</h1>
-      <span class="header-count">{{ all().length }} total</span>
+      <span class="header-count">{{ pendingTotal() + approvedTotal() }} total</span>
     </div>
 
     @if (loading()) {
       <div class="center"><mat-spinner diameter="40" /></div>
     } @else {
-      <mat-tab-group>
-        <mat-tab [label]="'Pending (' + pending().length + ')'">
+      <mat-tab-group (selectedTabChange)="onTabChange($event)">
+
+        <mat-tab [label]="'Pending (' + pendingTotal() + ')'">
           @if (pending().length === 0) {
             <p class="empty">No pending reviews. All caught up!</p>
           } @else {
@@ -93,10 +103,17 @@ interface AdminReview {
               <tr mat-header-row *matHeaderRowDef="cols"></tr>
               <tr mat-row *matRowDef="let row; columns: cols;"></tr>
             </table>
+            @if (pendingTotalPages() > 1) {
+              <div class="pagination">
+                <button mat-button [disabled]="pendingPage() === 1" (click)="changePendingPage(pendingPage() - 1)">← Prev</button>
+                <span class="page-info">Page {{ pendingPage() }} of {{ pendingTotalPages() }}</span>
+                <button mat-button [disabled]="pendingPage() >= pendingTotalPages()" (click)="changePendingPage(pendingPage() + 1)">Next →</button>
+              </div>
+            }
           }
         </mat-tab>
 
-        <mat-tab [label]="'Approved (' + approved().length + ')'">
+        <mat-tab [label]="'Approved (' + approvedTotal() + ')'">
           @if (approved().length === 0) {
             <p class="empty">No approved reviews yet.</p>
           } @else {
@@ -132,7 +149,7 @@ interface AdminReview {
               </ng-container>
               <ng-container matColumnDef="submitted">
                 <th mat-header-cell *matHeaderCellDef>Approved on</th>
-                <td mat-cell *matCellDef="let r">{{ r.createdAt | date:'d MMM y' }}</td>
+                <td mat-cell *matCellDef="let r">{{ (r.approvedAt ?? r.createdAt) | date:'d MMM y' }}</td>
               </ng-container>
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
@@ -145,8 +162,16 @@ interface AdminReview {
               <tr mat-header-row *matHeaderRowDef="cols"></tr>
               <tr mat-row *matRowDef="let row; columns: cols;"></tr>
             </table>
+            @if (approvedTotalPages() > 1) {
+              <div class="pagination">
+                <button mat-button [disabled]="approvedPage() === 1" (click)="changeApprovedPage(approvedPage() - 1)">← Prev</button>
+                <span class="page-info">Page {{ approvedPage() }} of {{ approvedTotalPages() }}</span>
+                <button mat-button [disabled]="approvedPage() >= approvedTotalPages()" (click)="changeApprovedPage(approvedPage() + 1)">Next →</button>
+              </div>
+            }
           }
         </mat-tab>
+
       </mat-tab-group>
     }
   `,
@@ -169,6 +194,8 @@ interface AdminReview {
     .product-link:hover { text-decoration: underline; }
     td button { margin-left: 4px; }
     mat-tab-group { margin-top: 8px; }
+    .pagination { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
+    .page-info { font-size: 0.85rem; color: #666; }
   `],
 })
 export class ReviewsComponent implements OnInit {
@@ -177,30 +204,68 @@ export class ReviewsComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly all = signal<AdminReview[]>([]);
+
+  readonly pending = signal<AdminReview[]>([]);
+  readonly pendingTotal = signal(0);
+  readonly pendingPage = signal(1);
+  readonly pendingTotalPages = signal(1);
+
+  readonly approved = signal<AdminReview[]>([]);
+  readonly approvedTotal = signal(0);
+  readonly approvedPage = signal(1);
+  readonly approvedTotalPages = signal(1);
+
+  private approvedLoaded = false;
 
   readonly cols = ['product', 'author', 'rating', 'body', 'submitted', 'actions'];
-
-  readonly pending = () => this.all().filter(r => !r.approved);
-  readonly approved = () => this.all().filter(r => r.approved);
+  private readonly limit = 25;
 
   ngOnInit() {
-    this.load();
+    this.loadPending();
   }
 
-  private load() {
+  onTabChange(event: MatTabChangeEvent) {
+    if (event.index === 1 && !this.approvedLoaded) {
+      this.loadApproved();
+    }
+  }
+
+  private loadPending() {
     this.loading.set(true);
-    this.api.get<AdminReview[]>('admin/reviews').subscribe({
-      next: data => { this.all.set(data); this.loading.set(false); },
+    this.api.get<ReviewsPage>('admin/reviews', { status: 'pending', page: String(this.pendingPage()), limit: String(this.limit) }).subscribe({
+      next: res => {
+        this.pending.set(res.data);
+        this.pendingTotal.set(res.total);
+        this.pendingTotalPages.set(res.totalPages);
+        this.loading.set(false);
+      },
       error: () => { this.loading.set(false); this.snack.open('Failed to load reviews', 'OK', { duration: 3000 }); },
     });
   }
 
+  private loadApproved() {
+    this.api.get<ReviewsPage>('admin/reviews', { status: 'approved', page: String(this.approvedPage()), limit: String(this.limit) }).subscribe({
+      next: res => {
+        this.approved.set(res.data);
+        this.approvedTotal.set(res.total);
+        this.approvedTotalPages.set(res.totalPages);
+        this.approvedLoaded = true;
+      },
+      error: () => this.snack.open('Failed to load approved reviews', 'OK', { duration: 3000 }),
+    });
+  }
+
+  changePendingPage(p: number) { this.pendingPage.set(p); this.loadPending(); }
+  changeApprovedPage(p: number) { this.approvedPage.set(p); this.loadApproved(); }
+
   approve(r: AdminReview) {
     this.saving.set(true);
     this.api.patch<AdminReview>(`admin/reviews/${r.id}/approve`, {}).subscribe({
-      next: updated => {
-        this.all.update(list => list.map(item => item.id === updated.id ? updated : item));
+      next: () => {
+        this.pending.update(list => list.filter(item => item.id !== r.id));
+        this.pendingTotal.update(n => n - 1);
+        this.approvedTotal.update(n => n + 1);
+        this.approvedLoaded = false;
         this.saving.set(false);
         this.snack.open('Review approved — now visible on storefront', 'OK', { duration: 3000 });
       },
@@ -214,7 +279,13 @@ export class ReviewsComponent implements OnInit {
     this.saving.set(true);
     this.api.delete<void>(`admin/reviews/${r.id}`).subscribe({
       next: () => {
-        this.all.update(list => list.filter(item => item.id !== r.id));
+        if (r.approved) {
+          this.approved.update(list => list.filter(item => item.id !== r.id));
+          this.approvedTotal.update(n => n - 1);
+        } else {
+          this.pending.update(list => list.filter(item => item.id !== r.id));
+          this.pendingTotal.update(n => n - 1);
+        }
         this.saving.set(false);
         this.snack.open('Review deleted', 'OK', { duration: 3000 });
       },

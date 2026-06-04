@@ -88,7 +88,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   template: `
     <div class="page-header">
       <h1>Orders</h1>
-      <span class="header-count">{{ total() }} total</span>
+      <span class="header-count">{{ total() }} {{ filterStatus ? 'results' : 'total' }}</span>
     </div>
 
     <!-- Filters -->
@@ -181,12 +181,48 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
           </mat-cell>
         </ng-container>
 
+        <!-- Expanded detail row -->
+        <ng-container matColumnDef="expandedDetail">
+          <td mat-cell *matCellDef="let row" [attr.colspan]="columns.length" class="detail-cell">
+            @if (expandedId() === row.id) {
+              <div class="detail-panel">
+                <div class="detail-section">
+                  <div class="detail-label">Delivery Address</div>
+                  <div class="detail-address">
+                    <strong>{{ row.address.name }}</strong> · {{ row.address.phone }}<br>
+                    {{ row.address.line1 }}{{ row.address.line2 ? ', ' + row.address.line2 : '' }}<br>
+                    {{ row.address.city }}, {{ row.address.state }} – {{ row.address.pincode }}
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <div class="detail-label">Items ({{ row.items.length }})</div>
+                  <div class="detail-items">
+                    @for (item of row.items; track item.id) {
+                      <div class="detail-item">
+                        @if (item.sku.color.images?.[0]) {
+                          <img [src]="item.sku.color.images[0]" [alt]="item.sku.product.title" class="detail-thumb" />
+                        }
+                        <div class="detail-item-info">
+                          <div class="detail-item-title">{{ item.sku.product.title }}</div>
+                          <div class="detail-item-meta">{{ item.sku.color.colorName }} · {{ item.sku.sizeLabel }} · qty {{ item.quantity }}</div>
+                          <div class="detail-item-price">₹{{ (+item.priceAtPurchase * item.quantity).toFixed(2) }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </td>
+        </ng-container>
+
         <mat-header-row *matHeaderRowDef="columns"></mat-header-row>
         <mat-row *matRowDef="let row; columns: columns;"
           (click)="toggleExpanded(row)"
           class="order-row"
           [class.order-row--expanded]="expandedId() === row.id"
         ></mat-row>
+        <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
 
       </mat-table>
 
@@ -228,6 +264,24 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     }
     .order-row { cursor: pointer; }
     .order-row:hover { background: #fafafa; }
+    .order-row--expanded { background: #f5f5f5; }
+    .detail-row { height: 0; }
+    .detail-cell { padding: 0 !important; border-bottom: none; }
+    .detail-panel {
+      display: flex; gap: 2.5rem; padding: 1rem 1.5rem 1.25rem;
+      background: #fafafa; border-bottom: 1px solid #e0e0e0;
+      overflow: hidden;
+    }
+    .detail-section { flex: 1; min-width: 0; }
+    .detail-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; color: #888; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .detail-address { font-size: 0.82rem; line-height: 1.6; color: #333; }
+    .detail-items { display: flex; flex-direction: column; gap: 0.75rem; }
+    .detail-item { display: flex; gap: 0.75rem; align-items: flex-start; }
+    .detail-thumb { width: 40px; height: 53px; object-fit: cover; border-radius: 2px; flex-shrink: 0; background: #eee; }
+    .detail-item-info { font-size: 0.82rem; }
+    .detail-item-title { font-weight: 500; }
+    .detail-item-meta { color: #888; font-size: 0.75rem; margin-top: 1px; }
+    .detail-item-price { font-weight: 600; margin-top: 2px; }
     .empty { padding: 3rem; text-align: center; color: #999; }
     .pagination { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
     .page-info { font-size: 0.85rem; color: #666; }

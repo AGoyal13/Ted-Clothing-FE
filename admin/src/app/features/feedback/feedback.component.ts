@@ -3,11 +3,11 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTabsModule } from '@angular/material/tabs';
+import { MatTabsModule, MatTabChangeEvent } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../core/services/api.service';
 
@@ -18,7 +18,16 @@ interface Feedback {
   quote: string;
   rating: number;
   approved: boolean;
+  approvedAt?: string;
   createdAt: string;
+}
+
+interface FeedbackPage {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  data: Feedback[];
 }
 
 @Component({
@@ -33,14 +42,15 @@ interface Feedback {
   template: `
     <div class="page-header">
       <h1>Feedback</h1>
-      <span class="header-count">{{ all().length }} total</span>
+      <span class="header-count">{{ pendingTotal() + approvedTotal() }} total</span>
     </div>
 
     @if (loading()) {
       <div class="center"><mat-spinner diameter="40" /></div>
     } @else {
-      <mat-tab-group>
-        <mat-tab [label]="'Pending (' + pending().length + ')'">
+      <mat-tab-group (selectedTabChange)="onTabChange($event)">
+
+        <mat-tab [label]="'Pending (' + pendingTotal() + ')'">
           @if (pending().length === 0) {
             <p class="empty">No pending feedback. All caught up!</p>
           } @else {
@@ -79,13 +89,20 @@ interface Feedback {
                   </button>
                 </td>
               </ng-container>
-              <tr mat-header-row *matHeaderRowDef="pendingCols"></tr>
-              <tr mat-row *matRowDef="let row; columns: pendingCols;"></tr>
+              <tr mat-header-row *matHeaderRowDef="cols"></tr>
+              <tr mat-row *matRowDef="let row; columns: cols;"></tr>
             </table>
+            @if (pendingTotalPages() > 1) {
+              <div class="pagination">
+                <button mat-button [disabled]="pendingPage() === 1" (click)="changePendingPage(pendingPage() - 1)">← Prev</button>
+                <span class="page-info">Page {{ pendingPage() }} of {{ pendingTotalPages() }}</span>
+                <button mat-button [disabled]="pendingPage() >= pendingTotalPages()" (click)="changePendingPage(pendingPage() + 1)">Next →</button>
+              </div>
+            }
           }
         </mat-tab>
 
-        <mat-tab [label]="'Approved (' + approved().length + ')'">
+        <mat-tab [label]="'Approved (' + approvedTotal() + ')'">
           @if (approved().length === 0) {
             <p class="empty">No approved feedback yet.</p>
           } @else {
@@ -111,7 +128,7 @@ interface Feedback {
               </ng-container>
               <ng-container matColumnDef="submitted">
                 <th mat-header-cell *matHeaderCellDef>Approved on</th>
-                <td mat-cell *matCellDef="let f">{{ f.createdAt | date:'d MMM y' }}</td>
+                <td mat-cell *matCellDef="let f">{{ (f.approvedAt ?? f.createdAt) | date:'d MMM y' }}</td>
               </ng-container>
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
@@ -121,11 +138,19 @@ interface Feedback {
                   </button>
                 </td>
               </ng-container>
-              <tr mat-header-row *matHeaderRowDef="pendingCols"></tr>
-              <tr mat-row *matRowDef="let row; columns: pendingCols;"></tr>
+              <tr mat-header-row *matHeaderRowDef="cols"></tr>
+              <tr mat-row *matRowDef="let row; columns: cols;"></tr>
             </table>
+            @if (approvedTotalPages() > 1) {
+              <div class="pagination">
+                <button mat-button [disabled]="approvedPage() === 1" (click)="changeApprovedPage(approvedPage() - 1)">← Prev</button>
+                <span class="page-info">Page {{ approvedPage() }} of {{ approvedTotalPages() }}</span>
+                <button mat-button [disabled]="approvedPage() >= approvedTotalPages()" (click)="changeApprovedPage(approvedPage() + 1)">Next →</button>
+              </div>
+            }
           }
         </mat-tab>
+
       </mat-tab-group>
     }
   `,
@@ -141,6 +166,8 @@ interface Feedback {
     .muted { color: #888; }
     td mat-icon-button, td button { margin-left: 4px; }
     mat-tab-group { margin-top: 8px; }
+    .pagination { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
+    .page-info { font-size: 0.85rem; color: #666; }
   `],
 })
 export class FeedbackComponent implements OnInit {
@@ -149,30 +176,68 @@ export class FeedbackComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly saving = signal(false);
-  readonly all = signal<Feedback[]>([]);
 
-  readonly pendingCols = ['author', 'rating', 'quote', 'submitted', 'actions'];
+  readonly pending = signal<Feedback[]>([]);
+  readonly pendingTotal = signal(0);
+  readonly pendingPage = signal(1);
+  readonly pendingTotalPages = signal(1);
 
-  readonly pending = () => this.all().filter(f => !f.approved);
-  readonly approved = () => this.all().filter(f => f.approved);
+  readonly approved = signal<Feedback[]>([]);
+  readonly approvedTotal = signal(0);
+  readonly approvedPage = signal(1);
+  readonly approvedTotalPages = signal(1);
+
+  private approvedLoaded = false;
+
+  readonly cols = ['author', 'rating', 'quote', 'submitted', 'actions'];
+  private readonly limit = 25;
 
   ngOnInit() {
-    this.load();
+    this.loadPending();
   }
 
-  private load() {
+  onTabChange(event: MatTabChangeEvent) {
+    if (event.index === 1 && !this.approvedLoaded) {
+      this.loadApproved();
+    }
+  }
+
+  private loadPending() {
     this.loading.set(true);
-    this.api.get<Feedback[]>('feedback/all').subscribe({
-      next: data => { this.all.set(data); this.loading.set(false); },
+    this.api.get<FeedbackPage>('feedback/all', { status: 'pending', page: String(this.pendingPage()), limit: String(this.limit) }).subscribe({
+      next: res => {
+        this.pending.set(res.data);
+        this.pendingTotal.set(res.total);
+        this.pendingTotalPages.set(res.totalPages);
+        this.loading.set(false);
+      },
       error: () => { this.loading.set(false); this.snack.open('Failed to load feedback', 'OK', { duration: 3000 }); },
     });
   }
 
+  private loadApproved() {
+    this.api.get<FeedbackPage>('feedback/all', { status: 'approved', page: String(this.approvedPage()), limit: String(this.limit) }).subscribe({
+      next: res => {
+        this.approved.set(res.data);
+        this.approvedTotal.set(res.total);
+        this.approvedTotalPages.set(res.totalPages);
+        this.approvedLoaded = true;
+      },
+      error: () => this.snack.open('Failed to load approved feedback', 'OK', { duration: 3000 }),
+    });
+  }
+
+  changePendingPage(p: number) { this.pendingPage.set(p); this.loadPending(); }
+  changeApprovedPage(p: number) { this.approvedPage.set(p); this.loadApproved(); }
+
   approve(f: Feedback) {
     this.saving.set(true);
     this.api.patch<Feedback>(`feedback/${f.id}/approve`, {}).subscribe({
-      next: updated => {
-        this.all.update(list => list.map(item => item.id === updated.id ? updated : item));
+      next: () => {
+        this.pending.update(list => list.filter(item => item.id !== f.id));
+        this.pendingTotal.update(n => n - 1);
+        this.approvedTotal.update(n => n + 1);
+        this.approvedLoaded = false;
         this.saving.set(false);
         this.snack.open('Feedback approved — now visible on storefront', 'OK', { duration: 3000 });
       },
@@ -185,7 +250,13 @@ export class FeedbackComponent implements OnInit {
     this.saving.set(true);
     this.api.delete<void>(`feedback/${f.id}`).subscribe({
       next: () => {
-        this.all.update(list => list.filter(item => item.id !== f.id));
+        if (f.approved) {
+          this.approved.update(list => list.filter(item => item.id !== f.id));
+          this.approvedTotal.update(n => n - 1);
+        } else {
+          this.pending.update(list => list.filter(item => item.id !== f.id));
+          this.pendingTotal.update(n => n - 1);
+        }
         this.saving.set(false);
         this.snack.open('Feedback deleted', 'OK', { duration: 3000 });
       },

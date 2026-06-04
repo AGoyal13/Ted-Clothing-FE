@@ -158,9 +158,9 @@ export interface Product {
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let p">
-            <button mat-icon-button title="Manage" (click)="go(p)"><mat-icon>open_in_new</mat-icon></button>
-            <button mat-icon-button title="Edit" (click)="openEdit(p)"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button color="warn" title="Delete" (click)="delete(p)"><mat-icon>delete</mat-icon></button>
+            <button mat-icon-button title="Manage" (click)="go(p); $event.stopPropagation()"><mat-icon>open_in_new</mat-icon></button>
+            <button mat-icon-button title="Edit" (click)="openEdit(p); $event.stopPropagation()"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button color="warn" title="Delete" (click)="delete(p); $event.stopPropagation()"><mat-icon>delete</mat-icon></button>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="cols"></tr>

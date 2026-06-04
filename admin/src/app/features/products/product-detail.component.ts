@@ -287,6 +287,8 @@ export class ProductDetailComponent implements OnInit {
       if (ai !== -1 && bi !== -1) return ai - bi;
       if (ai !== -1) return -1;
       if (bi !== -1) return 1;
+      const an = parseFloat(a), bn = parseFloat(b);
+      if (!isNaN(an) && !isNaN(bn)) return an - bn;
       return a.localeCompare(b);
     });
   });
@@ -325,7 +327,9 @@ export class ProductDetailComponent implements OnInit {
   // ─── Stock inline edit ────────────────────────────────────────────────────
 
   updateStock(sku: Sku, event: Event) {
-    const qty = Math.max(0, parseInt((event.target as HTMLInputElement).value, 10) || 0);
+    const input = event.target as HTMLInputElement;
+    const qty = Math.max(0, parseInt(input.value, 10) || 0);
+    input.value = String(qty);
     if (qty === sku.stockQty) return;
     this.api.patch(`skus/${sku.id}`, { stockQty: qty }).subscribe({
       next: () => {

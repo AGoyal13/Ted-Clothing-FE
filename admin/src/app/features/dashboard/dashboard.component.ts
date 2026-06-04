@@ -23,7 +23,7 @@ interface AdminStats {
   wishlist: { customersWithWishlist: number; topProducts: TopProduct[]; };
   cart: { customersWithCart: number; topProducts: TopProduct[]; };
   orders: { total: number; byStatus: Record<string, number>; pending: number; };
-  revenue: { total: number; avgOrderValue: number; };
+  revenue: { total: number; shippingRevenue: number; avgOrderValue: number; };
   waitlist: WaitlistItem[];
 }
 
@@ -122,7 +122,7 @@ interface AdminStats {
         </div>
 
         <!-- Registrations Sparkline -->
-        @if (stats()!.users.dailyRegistrations.length > 1) {
+        @if (stats()!.users.dailyRegistrations.length >= 1) {
           <div class="section-card">
             <h2 class="section-card__title">
               <mat-icon>show_chart</mat-icon>
@@ -260,6 +260,10 @@ interface AdminStats {
             <div class="revenue-item">
               <span class="revenue-item__label">Total Revenue</span>
               <span class="revenue-item__value">{{ formatINR(stats()!.revenue.total) }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Shipping Revenue</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.revenue.shippingRevenue) }}</span>
             </div>
             <div class="revenue-item">
               <span class="revenue-item__label">Avg. Order Value</span>
@@ -570,12 +574,13 @@ export class DashboardComponent implements OnInit {
   }
 
   formatINR(value: number): string {
-    if (value === 0) return '₹0';
+    const n = Number(value ?? 0);
+    if (!n || isNaN(n)) return '₹0';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(n);
   }
 
   private load(): void {
