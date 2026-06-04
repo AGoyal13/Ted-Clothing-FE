@@ -224,8 +224,8 @@ export class ProductComponent implements OnInit, OnDestroy {
   }
 
   selectColor(colorId: string): void {
+    this.selectedSkuId.set(null);
     this.selectedColorId.set(colorId);
-    this.autoSelectSku();
   }
 
   private autoSelectSku(): void {

@@ -23,7 +23,8 @@ export class CartService {
   private readonly qtyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly count = computed(() =>
-    this.items().reduce((sum, i) => sum + i.quantity, 0)
+    this.items().reduce((sum, i) => sum + i.quantity, 0) +
+    this.oosItems().reduce((sum, i) => sum + i.quantity, 0)
   );
   readonly total = computed(() =>
     this.items().reduce((sum, i) => sum + i.price * i.quantity, 0)
@@ -75,7 +76,11 @@ export class CartService {
         this.freeShippingThreshold.set(res.summary.freeShippingThreshold ?? 999);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.shippingCharge.set(0);
+        this.freeShippingThreshold.set(999);
+        this.loading.set(false);
+      },
     });
   }
 

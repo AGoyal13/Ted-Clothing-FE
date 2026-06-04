@@ -86,9 +86,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, query]) => {
       const newSlug    = params['slug'] ?? '';
-      const catFromUrl = (query['cat'] as string) ?? 'all';
+      const catFromUrl  = (query['cat']  as string)     ?? 'all';
+      const sortFromUrl = (query['sort'] as SortOption) ?? 'newest';
 
       this.activeCat.set(catFromUrl);
+      this.sortBy.set(sortFromUrl);
 
       const isBrowser   = isPlatformBrowser(this.platformId);
       const isBackNav   = this.initialNavTrigger === 'popstate';
@@ -214,7 +216,12 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           this.products.set(items);
           this.loading.set(false);
-          if (this.sentinelVisible) setTimeout(() => this.loadMore(), 0);
+          // Guard: only trigger loadMore if the route context hasn't changed while this
+          // request was in flight. Without this, a filter tap mid-load causes page 2 of
+          // the old filter to append to page 1 of the new filter.
+          if (this.sentinelVisible) setTimeout(() => {
+            if (this.slug() === slug && this.activeCat() === activeCat) this.loadMore();
+          }, 0);
         }
         this.total.set(res.total ?? 0);
         this.totalPages.set(res.totalPages ?? 1);
@@ -241,10 +248,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSortSelected(value: SortOption): void {
-    this.sortBy.set(value);
-    this.currentPage.set(1);
-    this.products.set([]);
-    this.loadProducts();
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sort: value === 'newest' ? null : value },
+      queryParamsHandling: 'merge',
+    });
   }
 
   saveScrollState(productId: string): void {

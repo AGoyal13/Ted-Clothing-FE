@@ -18,6 +18,7 @@ import { Address, AddressFormData } from '../../core/models/address.model';
 import { CartItem } from '../../core/models/cart.model';
 import { formatINR } from '../../core/models/product.model';
 import { RazorpayPaymentResponse } from '../../core/models/order.model';
+import { environment } from '../../../environments/environment';
 
 declare const Razorpay: any;
 
@@ -103,7 +104,8 @@ export class CheckoutComponent implements OnInit {
 
   onPincodeChange(pincode: string) {
     if (pincode.length !== 6) return;
-    fetch(`/api/v1/pincode/${pincode}`)
+    // endpoint added in Phase 5 — silently no-ops until then
+    fetch(`${environment.apiUrl}/pincode/${pincode}`)
       .then(r => r.json())
       .then(r => {
         if (r.data?.city) this.newAddress.city = r.data.city;
@@ -113,7 +115,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   saveAddress(form: NgForm) {
-    if (form.invalid) return;
+    if (form.invalid) { form.form.markAllAsTouched(); return; }
     this.savingAddress.set(true);
     this.addressService.create(this.newAddress).subscribe({
       next: (r: any) => {
@@ -176,7 +178,7 @@ export class CheckoutComponent implements OnInit {
             email: user?.email ?? '',
           },
           theme: { color: '#c9a84c' },
-          modal: { backdropclose: false, escape: false },
+          modal: { backdropclose: false, escape: false, ondismiss: () => this.paying.set(false) },
           handler: (response: RazorpayPaymentResponse) => {
             this.onPaymentSuccess(addressId, response);
           },
@@ -188,6 +190,11 @@ export class CheckoutComponent implements OnInit {
         rzp.open();
       },
       error: (err: any) => {
+        if (err?.status === 401) {
+          // auth interceptor already called logout() + openModal()
+          this.paying.set(false);
+          return;
+        }
         const msg = err?.error?.error?.message ?? 'Failed to initiate payment. Please try again.';
         if (err?.error?.error?.oosSkuIds) {
           this.formError.set('Some items in your cart are now out of stock. Please review your cart.');
@@ -206,8 +213,23 @@ export class CheckoutComponent implements OnInit {
         this.paying.set(false);
         this.router.navigate(['/order-confirmed', order.id]);
       },
-      error: () => {
-        this.formError.set('Payment received but order creation failed. Contact support.');
+      error: (err: any) => {
+        if (err?.status === 401) {
+          // auth interceptor already called logout() + openModal()
+          this.paying.set(false);
+          return;
+        }
+        if (err?.status === 409) {
+          // stock went to zero between initiateOrder and verifyPayment; payment was captured
+          this.formError.set(
+            'An item sold out while your payment was processing. ' +
+            'If your payment was charged, our team will reach out regarding a refund. ' +
+            'Please review your cart below.'
+          );
+          this.cartService.loadCart();
+        } else {
+          this.formError.set('Payment received but order creation failed. Contact support.');
+        }
         this.paying.set(false);
       },
     });
