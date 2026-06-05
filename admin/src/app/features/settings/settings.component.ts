@@ -6,7 +6,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-settings',
@@ -15,6 +18,7 @@ import { ApiService } from '../../core/services/api.service';
     FormsModule,
     MatFormFieldModule, MatInputModule, MatButtonModule,
     MatSnackBarModule, MatProgressSpinnerModule, MatCardModule,
+    MatIconModule, MatDividerModule,
   ],
   template: `
     <div class="page-header">
@@ -99,6 +103,78 @@ import { ApiService } from '../../core/services/api.service';
             </button>
           </mat-card-actions>
         </mat-card>
+
+        <!-- ── MFA Card ── -->
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-card-title>Two-Factor Authentication</mat-card-title>
+            <mat-card-subtitle>Adds a TOTP code requirement on every admin login</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+
+            @if (mfaLoading()) {
+              <div class="mfa-center"><mat-spinner diameter="32" /></div>
+            }
+
+            <!-- Enabled state -->
+            @if (!mfaLoading() && mfaEnabled()) {
+              <div class="mfa-status mfa-status--on">
+                <mat-icon>verified_user</mat-icon>
+                <span>2FA is active — your account is protected</span>
+              </div>
+              <button mat-stroked-button color="warn" class="mfa-btn" (click)="disableMfa()" [disabled]="mfaSaving()">
+                {{ mfaSaving() ? 'Disabling…' : 'Disable 2FA' }}
+              </button>
+            }
+
+            <!-- Not set up -->
+            @if (!mfaLoading() && !mfaEnabled() && mfaStep() === 'idle') {
+              <div class="mfa-status mfa-status--off">
+                <mat-icon>security</mat-icon>
+                <span>2FA is not enabled</span>
+              </div>
+              <button mat-flat-button color="primary" class="mfa-btn" (click)="startMfaSetup()" [disabled]="mfaSaving()">
+                Set Up 2FA
+              </button>
+            }
+
+            <!-- Setup: QR + backup codes -->
+            @if (mfaStep() === 'setup') {
+              <p class="mfa-hint">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.</p>
+              <div class="mfa-qr">
+                <img [src]="mfaQr()" alt="MFA QR code" width="180" height="180" />
+              </div>
+              <p class="mfa-secret-label">Or enter manually:</p>
+              <code class="mfa-secret">{{ mfaSecret() }}</code>
+              <mat-divider class="mfa-divider" />
+              <p class="mfa-backup-title">
+                <mat-icon class="mfa-backup-icon">key</mat-icon>
+                Save your backup codes — shown once only
+              </p>
+              <div class="mfa-backup-grid">
+                @for (code of mfaBackupCodes(); track code) {
+                  <code class="mfa-backup-code">{{ code }}</code>
+                }
+              </div>
+              <mat-divider class="mfa-divider" />
+              <mat-form-field appearance="outline" class="mfa-code-field">
+                <mat-label>Enter code from app to activate</mat-label>
+                <input matInput type="text" [(ngModel)]="mfaConfirmCode"
+                  maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                  placeholder="000000" />
+              </mat-form-field>
+              <div class="mfa-actions">
+                <button mat-flat-button color="primary" (click)="confirmMfaSetup()"
+                  [disabled]="mfaSaving() || mfaConfirmCode.length !== 6">
+                  {{ mfaSaving() ? 'Verifying…' : 'Activate 2FA' }}
+                </button>
+                <button mat-button (click)="cancelMfaSetup()">Cancel</button>
+              </div>
+            }
+
+          </mat-card-content>
+        </mat-card>
+
       </div>
     }
   `,
@@ -110,16 +186,47 @@ import { ApiService } from '../../core/services/api.service';
     .settings-card { width: 100%; }
     .fields { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; }
     mat-form-field { width: 100%; }
+
+    .mfa-center { display: flex; justify-content: center; padding: 24px 0; }
+    .mfa-status { display: flex; align-items: center; gap: 10px; padding: 12px 0; font-size: 15px; }
+    .mfa-status--on { color: #2e7d32; }
+    .mfa-status--off { color: #616161; }
+    .mfa-btn { margin-bottom: 8px; }
+    .mfa-hint { font-size: 13px; color: #555; margin: 12px 0; }
+    .mfa-qr { display: flex; justify-content: center; margin: 12px 0; }
+    .mfa-secret-label { font-size: 12px; color: #888; margin: 4px 0 2px; }
+    .mfa-secret { display: block; background: #f5f5f5; padding: 8px 12px; border-radius: 4px;
+                  font-size: 13px; letter-spacing: 2px; word-break: break-all; margin-bottom: 12px; }
+    .mfa-divider { margin: 16px 0; }
+    .mfa-backup-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+                        color: #333; margin: 0 0 10px; }
+    .mfa-backup-icon { font-size: 18px; width: 18px; height: 18px; color: #b45309; }
+    .mfa-backup-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 4px; }
+    .mfa-backup-code { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px;
+                       padding: 6px 4px; text-align: center; font-size: 12px; letter-spacing: 1px; }
+    .mfa-code-field { width: 100%; margin-top: 8px; }
+    .mfa-actions { display: flex; gap: 8px; margin-top: 4px; }
   `],
 })
 export class SettingsComponent implements OnInit {
-  private api = inject(ApiService);
+  private api  = inject(ApiService);
+  private auth = inject(AuthService);
   private snack = inject(MatSnackBar);
 
-  readonly loading = signal(true);
-  readonly savingStats = signal(false);
+  readonly loading        = signal(true);
+  readonly savingStats    = signal(false);
   readonly savingShipping = signal(false);
-  readonly savingReturns = signal(false);
+  readonly savingReturns  = signal(false);
+
+  // MFA
+  readonly mfaLoading  = signal(true);
+  readonly mfaEnabled  = signal(false);
+  readonly mfaSaving   = signal(false);
+  readonly mfaStep     = signal<'idle' | 'setup'>('idle');
+  readonly mfaQr       = signal('');
+  readonly mfaSecret   = signal('');
+  readonly mfaBackupCodes = signal<string[]>([]);
+  mfaConfirmCode = '';
 
   happyClients = 12000;
   satisfactionPct = 98;
@@ -128,6 +235,11 @@ export class SettingsComponent implements OnInit {
   returnWindowDays = 2;
 
   ngOnInit() {
+    this.auth.getMfaStatus().subscribe({
+      next: res => { this.mfaEnabled.set(res.data.enabled); this.mfaLoading.set(false); },
+      error: ()  => { this.mfaLoading.set(false); },
+    });
+
     this.api.get<Record<string, string>>('site-config').subscribe({
       next: cfg => {
         this.happyClients = parseInt(cfg['happy_clients'] ?? '12000', 10);
@@ -138,6 +250,68 @@ export class SettingsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); },
+    });
+  }
+
+  startMfaSetup() {
+    this.mfaSaving.set(true);
+    this.auth.setupMfa().subscribe({
+      next: res => {
+        this.mfaSaving.set(false);
+        this.mfaQr.set(res.data.qrDataUrl);
+        this.mfaSecret.set(res.data.secret);
+        this.mfaBackupCodes.set(res.data.backupCodes);
+        this.mfaStep.set('setup');
+      },
+      error: () => {
+        this.mfaSaving.set(false);
+        this.snack.open('Failed to start MFA setup', 'OK', { duration: 3000 });
+      },
+    });
+  }
+
+  confirmMfaSetup() {
+    if (this.mfaConfirmCode.length !== 6) return;
+    this.mfaSaving.set(true);
+    this.auth.confirmMfa(this.mfaConfirmCode).subscribe({
+      next: () => {
+        this.mfaSaving.set(false);
+        this.mfaEnabled.set(true);
+        this.mfaStep.set('idle');
+        this.mfaConfirmCode = '';
+        this.mfaQr.set('');
+        this.mfaSecret.set('');
+        this.mfaBackupCodes.set([]);
+        this.snack.open('2FA activated ✓', 'OK', { duration: 3000 });
+      },
+      error: (e) => {
+        this.mfaSaving.set(false);
+        this.snack.open(e?.error?.error?.message ?? 'Invalid code — try again', 'OK', { duration: 3000 });
+      },
+    });
+  }
+
+  cancelMfaSetup() {
+    this.mfaStep.set('idle');
+    this.mfaConfirmCode = '';
+    this.mfaQr.set('');
+    this.mfaSecret.set('');
+    this.mfaBackupCodes.set([]);
+  }
+
+  disableMfa() {
+    if (!confirm('Are you sure you want to disable 2FA? Your account will be less secure.')) return;
+    this.mfaSaving.set(true);
+    this.auth.disableMfa().subscribe({
+      next: () => {
+        this.mfaSaving.set(false);
+        this.mfaEnabled.set(false);
+        this.snack.open('2FA disabled', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.mfaSaving.set(false);
+        this.snack.open('Failed to disable 2FA', 'OK', { duration: 3000 });
+      },
     });
   }
 

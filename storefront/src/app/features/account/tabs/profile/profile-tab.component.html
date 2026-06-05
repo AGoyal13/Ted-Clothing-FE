@@ -33,10 +33,22 @@
                    type="email" placeholder="New email address"
                    [disabled]="emailState() === 'otp-sent' || emailState() === 'saving'" />
             @if (emailState() === 'editing') {
-              <button class="prof-save-btn" (click)="sendOtp('EMAIL')" [disabled]="!newEmail()">Send OTP</button>
+              <button class="prof-save-btn" (click)="sendOtp('EMAIL')"
+                      [disabled]="!newEmail() || emailSending() || emailCooldown() > 0">
+                {{ emailSending() ? 'Sending OTP' : emailCooldown() > 0 ? 'Resend in ' + emailCooldown() + 's' : 'Send OTP' }}
+              </button>
             }
             @if (emailState() === 'otp-sent' || emailState() === 'saving') {
-              <span class="prof-otp-sent">OTP sent to current email</span>
+              <span class="prof-otp-sent">
+                OTP sent to current email &nbsp;·&nbsp;
+                @if (emailCooldown() > 0) {
+                  <span class="prof-cooldown">resend in {{ emailCooldown() }}s</span>
+                } @else {
+                  <button class="prof-resend-btn" type="button" (click)="resendOtp('EMAIL')" [disabled]="emailSending()">
+                    {{ emailSending() ? 'sending…' : 'Resend' }}
+                  </button>
+                }
+              </span>
             }
           </div>
           @if (emailState() === 'otp-sent' || emailState() === 'saving') {
@@ -73,10 +85,22 @@
                    type="tel" placeholder="10-digit number" maxlength="10"
                    [disabled]="phoneState() === 'otp-sent' || phoneState() === 'saving'" />
             @if (phoneState() === 'editing') {
-              <button class="prof-save-btn" (click)="sendOtp('PHONE')" [disabled]="newPhone().length !== 10">Send OTP</button>
+              <button class="prof-save-btn" (click)="sendOtp('PHONE')"
+                      [disabled]="newPhone().length !== 10 || phoneSending() || phoneCooldown() > 0">
+                {{ phoneSending() ? 'Sending OTP' : phoneCooldown() > 0 ? 'Resend in ' + phoneCooldown() + 's' : 'Send OTP' }}
+              </button>
             }
             @if (phoneState() === 'otp-sent' || phoneState() === 'saving') {
-              <span class="prof-otp-sent">OTP sent to your email</span>
+              <span class="prof-otp-sent">
+                OTP sent to your email &nbsp;·&nbsp;
+                @if (phoneCooldown() > 0) {
+                  <span class="prof-cooldown">resend in {{ phoneCooldown() }}s</span>
+                } @else {
+                  <button class="prof-resend-btn" type="button" (click)="resendOtp('PHONE')" [disabled]="phoneSending()">
+                    {{ phoneSending() ? 'sending…' : 'Resend' }}
+                  </button>
+                }
+              </span>
             }
           </div>
           @if (phoneState() === 'otp-sent' || phoneState() === 'saving') {

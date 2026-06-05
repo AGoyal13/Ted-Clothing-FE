@@ -8,5 +8,6 @@ export interface AuthUser {
 
 export interface AuthResponse {
   accessToken: string;
+  csrfToken: string;
   user: AuthUser;
 }

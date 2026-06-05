@@ -1,11 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe } from '@angular/common';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -17,64 +16,65 @@ import { AuthService } from '../core/services/auth.service';
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatListModule,
-    MatIconModule, MatButtonModule, AsyncPipe,
+    MatIconModule, MatButtonModule,
   ],
   template: `
     <mat-sidenav-container class="shell">
-      <mat-sidenav #drawer
+      <mat-sidenav
         [mode]="isMobile() ? 'over' : 'side'"
-        [opened]="!isMobile()"
+        [opened]="sidenavOpen()"
+        (openedChange)="sidenavOpen.set($event)"
         class="sidenav">
         <div class="sidenav-header">
           <span class="brand">Ted Clothing</span>
           <span class="role">Admin</span>
         </div>
         <mat-nav-list>
-          <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>dashboard</mat-icon>
             <span matListItemTitle>Dashboard</span>
           </a>
-          <a mat-list-item routerLink="/categories" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/categories" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categories</span>
           </a>
-          <a mat-list-item routerLink="/products" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/products" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>inventory_2</mat-icon>
             <span matListItemTitle>Products</span>
           </a>
-          <a mat-list-item routerLink="/skus" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/skus" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>qr_code</mat-icon>
             <span matListItemTitle>SKUs</span>
           </a>
-          <a mat-list-item routerLink="/inventory" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/inventory" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>upload_file</mat-icon>
             <span matListItemTitle>Inventory Upload</span>
           </a>
-          <a mat-list-item routerLink="/product-import" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/product-import" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>cloud_upload</mat-icon>
             <span matListItemTitle>Product Import</span>
           </a>
-          <a mat-list-item routerLink="/orders" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/orders" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>receipt_long</mat-icon>
             <span matListItemTitle>Orders</span>
           </a>
-          <a mat-list-item routerLink="/warehouses" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/warehouses" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>warehouse</mat-icon>
             <span matListItemTitle>Warehouses</span>
           </a>
-          <a mat-list-item routerLink="/shipping-cache" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/shipping-cache" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>cached</mat-icon>
             <span matListItemTitle>ETD Cache</span>
           </a>
-          <a mat-list-item routerLink="/feedback" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/feedback" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>rate_review</mat-icon>
             <span matListItemTitle>Feedback</span>
           </a>
-          <a mat-list-item routerLink="/reviews" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/reviews" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>star_rate</mat-icon>
             <span matListItemTitle>Reviews</span>
           </a>
-          <a mat-list-item routerLink="/settings" routerLinkActive="active" (click)="isMobile() && drawer.close()">
+          <a mat-list-item routerLink="/settings" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>tune</mat-icon>
             <span matListItemTitle>Settings</span>
           </a>
@@ -89,13 +89,13 @@ import { AuthService } from '../core/services/auth.service';
       <mat-sidenav-content class="content">
         <mat-toolbar color="primary" class="toolbar">
           @if (isMobile()) {
-            <button mat-icon-button (click)="drawer.toggle()" aria-label="Open menu">
+            <button mat-icon-button (click)="sidenavOpen.set(!sidenavOpen())" aria-label="Open menu">
               <mat-icon>menu</mat-icon>
             </button>
             <span class="toolbar-brand">Ted Clothing</span>
           }
           <span class="spacer"></span>
-          <span class="user-label">{{ (auth.user$ | async)?.email ?? (auth.user$ | async)?.phone }}</span>
+          <span class="user-label">{{ auth.user$()?.email ?? auth.user$()?.phone }}</span>
         </mat-toolbar>
         <div class="page">
           <router-outlet />
@@ -131,4 +131,12 @@ export class ShellComponent {
     this.bp.observe('(max-width: 768px)').pipe(map(r => r.matches)),
     { initialValue: this.bp.isMatched('(max-width: 768px)') },
   );
+
+  // Owned signal — avoids one-way [opened] fighting Angular Material's internal state
+  sidenavOpen = signal(!this.bp.isMatched('(max-width: 768px)'));
+
+  constructor() {
+    // When viewport crosses the mobile breakpoint, snap the drawer open/closed
+    effect(() => this.sidenavOpen.set(!this.isMobile()));
+  }
 }

@@ -105,6 +105,28 @@
   font-size: 0.75rem;
   color: #7ec87e;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.prof-cooldown {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.prof-resend-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: underline;
+  &:disabled { color: var(--muted); cursor: not-allowed; text-decoration: none; }
 }
 
 .prof-otp-block { display: flex; flex-direction: column; }

@@ -1,7 +1,11 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
+  inject,
+  PLATFORM_ID,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import {
   provideRouter,
   withComponentInputBinding,
@@ -17,6 +21,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { AuthService } from './core/services/auth.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,5 +30,15 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideClientHydration(withEventReplay()),
     provideAnimationsAsync(),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => {
+        const authService = inject(AuthService);
+        const platformId  = inject(PLATFORM_ID);
+        // Only attempt refresh in the browser — SSR has no cookie access
+        return () => isPlatformBrowser(platformId) ? authService.tryRefresh() : Promise.resolve();
+      },
+      multi: true,
+    },
   ],
 };

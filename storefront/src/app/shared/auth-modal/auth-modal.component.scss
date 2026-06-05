@@ -206,3 +206,25 @@
       transition: opacity 0.2s ease;
       &:hover { opacity: 0.75; }
     }
+
+    .modal__hint {
+      font-family: var(--font-sans, 'DM Sans', sans-serif);
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .modal__confirm {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 1rem 0;
+    }
+
+    .modal__confirm-text {
+      font-family: var(--font-sans, 'DM Sans', sans-serif);
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+      strong { color: var(--cream, #f5f0e8); }
+    }

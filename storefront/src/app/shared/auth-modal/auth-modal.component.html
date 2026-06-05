@@ -14,7 +14,8 @@
           <span class="modal__brand-clothing">CLOTHING</span>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs (hidden during forgot-password flow) -->
+        @if (!forgotStep()) {
         <div class="modal__tabs">
           <button
             class="modal__tab"
@@ -27,14 +28,75 @@
             (click)="setTab('register')"
           >CREATE ACCOUNT</button>
         </div>
+        }
 
         <!-- Error -->
         @if (errorMsg()) {
           <p class="modal__error">{{ errorMsg() }}</p>
         }
 
+        <!-- Forgot Password Flow -->
+        @if (forgotStep()) {
+          @if (forgotStep() === 'input') {
+            <form class="modal__form" (ngSubmit)="submitForgotEmail()">
+              <p class="modal__hint">Enter your email and we'll send you a 6-digit reset code.</p>
+              <div class="modal__field">
+                <label class="modal__label" for="forgot-email">Email</label>
+                <input id="forgot-email" class="modal__input" type="email"
+                  [(ngModel)]="forgotEmail" name="email" placeholder="your@email.com"
+                  required autocomplete="email" />
+              </div>
+              <button class="modal__submit" type="submit" [disabled]="loading() || forgotCooldown() > 0">
+                {{ loading() ? 'SENDING…' : forgotCooldown() > 0 ? 'RESEND IN ' + forgotCooldown() + 'S' : 'SEND CODE' }}
+              </button>
+              <button type="button" class="modal__link-btn" (click)="closeForgot()">Back to sign in</button>
+            </form>
+          }
+          @if (forgotStep() === 'otp') {
+            <form class="modal__form" (ngSubmit)="submitForgotOtp()">
+              <p class="modal__hint">Enter the 6-digit code sent to <strong style="color:var(--cream)">{{ forgotEmail }}</strong>. It expires in 15 minutes.</p>
+              <div class="modal__field">
+                <label class="modal__label" for="forgot-otp">Reset Code</label>
+                <input id="forgot-otp" class="modal__input" type="text"
+                  [(ngModel)]="forgotOtp" name="otp" placeholder="000000"
+                  maxlength="6" inputmode="numeric" required autocomplete="one-time-code" />
+              </div>
+              <button class="modal__submit" type="submit" [disabled]="loading() || forgotOtp.length !== 6">
+                VERIFY CODE
+              </button>
+              <button type="button" class="modal__link-btn" (click)="forgotStep.set('input'); forgotOtp = ''">Resend code</button>
+            </form>
+          }
+          @if (forgotStep() === 'password') {
+            <form class="modal__form" (ngSubmit)="submitNewPassword()">
+              <p class="modal__hint">Choose a new password for your account.</p>
+              <div class="modal__field">
+                <label class="modal__label" for="forgot-new-pw">New Password</label>
+                <input id="forgot-new-pw" class="modal__input" type="password"
+                  [(ngModel)]="forgotNewPassword" name="newPassword"
+                  placeholder="Min 8 characters" minlength="8" required autocomplete="new-password" />
+              </div>
+              <div class="modal__field">
+                <label class="modal__label" for="forgot-confirm-pw">Confirm Password</label>
+                <input id="forgot-confirm-pw" class="modal__input" type="password"
+                  [(ngModel)]="forgotConfirmPassword" name="confirmPassword"
+                  placeholder="••••••••" required autocomplete="new-password" />
+              </div>
+              <button class="modal__submit" type="submit" [disabled]="loading()">
+                {{ loading() ? 'SAVING…' : 'SET NEW PASSWORD' }}
+              </button>
+            </form>
+          }
+          @if (forgotStep() === 'done') {
+            <div class="modal__confirm">
+              <p class="modal__confirm-text">Your password has been reset. You can now sign in with your new password.</p>
+              <button type="button" class="modal__submit" (click)="closeForgot()">SIGN IN</button>
+            </div>
+          }
+        }
+
         <!-- Login Form -->
-        @if (tab() === 'login') {
+        @if (!forgotStep() && tab() === 'login') {
           <div class="modal__method-switch">
             <button
               class="modal__method-btn"
@@ -79,6 +141,7 @@
               <button class="modal__submit" type="submit" [disabled]="loading()">
                 {{ loading() ? 'SIGNING IN…' : 'SIGN IN' }}
               </button>
+              <button type="button" class="modal__link-btn" (click)="openForgot()">Forgot password?</button>
             </form>
           }
 
@@ -114,8 +177,9 @@
                   />
                 </div>
               }
-              <button class="modal__submit" type="submit" [disabled]="loading()">
-                @if (loading()) { SENDING… }
+              <button class="modal__submit" type="submit" [disabled]="loading() || (otpStep() === 'email' && otpCooldown() > 0)">
+                @if (loading()) { SENDING OTP }
+                @else if (otpStep() === 'email' && otpCooldown() > 0) { RESEND IN {{ otpCooldown() }}S }
                 @else if (otpStep() === 'email') { SEND OTP }
                 @else { VERIFY OTP }
               </button>
@@ -127,7 +191,7 @@
         }
 
         <!-- Register Form -->
-        @if (tab() === 'register') {
+        @if (!forgotStep() && tab() === 'register') {
           <form class="modal__form" (ngSubmit)="submitRegister()">
             <div class="modal__field">
               <label class="modal__label" for="reg-name">Name</label>
@@ -165,7 +229,8 @@
           </form>
         }
 
-        <!-- Footer switch -->
+        <!-- Footer switch (hidden during forgot-password flow) -->
+        @if (!forgotStep()) {
         <p class="modal__footer">
           @if (tab() === 'login') {
             New here?
@@ -175,6 +240,7 @@
             <button class="modal__link-btn" (click)="setTab('login')">Sign in</button>
           }
         </p>
+        }
 
       </div>
     </div>
