@@ -68,7 +68,7 @@ export class AuthModalComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Invalid credentials');
+        this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Invalid credentials');
       },
     });
   }
@@ -84,7 +84,7 @@ export class AuthModalComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Failed to send OTP');
+        this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Failed to send OTP');
       },
     });
   }
@@ -101,7 +101,7 @@ export class AuthModalComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Invalid or expired OTP');
+        this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Invalid or expired OTP');
       },
     });
   }
@@ -126,7 +126,7 @@ export class AuthModalComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Registration failed');
+        this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Registration failed');
       },
     });
   }

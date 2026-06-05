@@ -108,7 +108,7 @@ export class OrdersTabComponent implements OnInit {
     if (this.returningId()) return;
     this.returningId.set(orderId);
     this.returnErrorId.set(null);
-    this.api.post<{ id: string; status: string }>(`orders/${orderId}/request-return`, {}).subscribe({
+    this.api.post<{ id: string; status: string }>(`/orders/${orderId}/request-return`, {}).subscribe({
       next: () => {
         this.returningId.set(null);
         this.returnSuccessId.set(orderId);

@@ -28,6 +28,7 @@ import { PdpGalleryComponent } from './components/pdp-gallery/pdp-gallery.compon
 import { PdpReviewsComponent } from './components/pdp-reviews/pdp-reviews.component';
 import { PdpNotifyComponent } from './components/pdp-notify/pdp-notify.component';
 import { PdpSizeGuideComponent } from './components/pdp-size-guide/pdp-size-guide.component';
+import { PdpSimilarComponent } from './components/pdp-similar/pdp-similar.component';
 import { SizeGuide } from '../../core/models/product.model';
 import { FALLBACK_GUIDES, getSizeGuideGroup } from './components/size-guide-fallback';
 import { ShippingService } from '../../core/services/shipping.service';
@@ -36,7 +37,7 @@ import { SiteConfigService } from '../../core/services/site-config.service';
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [RouterLink, PdpGalleryComponent, PdpReviewsComponent, PdpNotifyComponent, PdpSizeGuideComponent],
+  imports: [RouterLink, PdpGalleryComponent, PdpReviewsComponent, PdpNotifyComponent, PdpSizeGuideComponent, PdpSimilarComponent],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss',
 })

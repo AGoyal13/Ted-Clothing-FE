@@ -1,0 +1,19 @@
+@if (loading() || hasItems()) {
+  <section class="pdp-similar">
+    <h2 class="pdp-similar__title">YOU MAY ALSO LIKE</h2>
+
+    <div class="pdp-similar__scroll">
+      @if (loading()) {
+        @for (s of skeletons; track s) {
+          <div class="pdp-similar__skeleton skeleton"></div>
+        }
+      } @else {
+        @for (item of items(); track item.id) {
+          <div class="pdp-similar__card-wrap">
+            <app-product-card [product]="item" />
+          </div>
+        }
+      }
+    </div>
+  </section>
+}

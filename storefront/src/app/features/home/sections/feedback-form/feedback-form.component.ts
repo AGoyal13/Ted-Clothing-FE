@@ -87,7 +87,7 @@ export class FeedbackFormComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.error ?? 'Failed to submit. Please try again.');
+        this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Failed to submit. Please try again.');
       },
     });
   }

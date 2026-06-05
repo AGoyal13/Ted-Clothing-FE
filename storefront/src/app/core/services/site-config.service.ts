@@ -16,7 +16,7 @@ export class SiteConfigService {
   load(): void {
     if (this._loaded) return;
     this._loaded = true;
-    this.api.get<Record<string, string>>('site-config').subscribe({
+    this.api.get<Record<string, string>>('/site-config').subscribe({
       next: cfg => this._config.set(cfg),
       error: () => this._config.set({}),
     });

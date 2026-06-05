@@ -46,6 +46,7 @@ export interface ProductCategory {
   id: string;
   name: string;
   slug: string;
+  parent: { id: string; slug: string } | null;
   sizeGuide: SizeGuide | null;
 }
 

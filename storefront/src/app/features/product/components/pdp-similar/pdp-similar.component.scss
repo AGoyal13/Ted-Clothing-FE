@@ -1,0 +1,77 @@
+.pdp-similar {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 3rem 5% 4rem;
+  border-top: 1px solid rgba(201, 168, 76, 0.12);
+
+  @media (max-width: 768px) {
+    padding: 2rem 4% 3rem;
+  }
+}
+
+.pdp-similar__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  letter-spacing: 0.18em;
+  color: var(--cream);
+  margin: 0 0 1.75rem;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* ── Scroll container ───────────────────────────────────── */
+.pdp-similar__scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem; /* prevent shadow clipping */
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Card wrapper: fixed width keeps cards uniform ─────── */
+.pdp-similar__card-wrap {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
+
+  app-product-card {
+    display: block;
+    height: 100%;
+  }
+
+  @media (max-width: 900px) {
+    flex: 0 0 185px;
+  }
+
+  @media (max-width: 600px) {
+    flex: 0 0 46%;
+  }
+
+  @media (max-width: 400px) {
+    flex: 0 0 58%;
+  }
+}
+
+/* ── Skeleton cards ─────────────────────────────────────── */
+.pdp-similar__skeleton {
+  flex: 0 0 220px;
+  aspect-ratio: 3 / 5;
+  border-radius: 2px;
+  scroll-snap-align: start;
+
+  @media (max-width: 900px) {
+    flex: 0 0 185px;
+  }
+
+  @media (max-width: 600px) {
+    flex: 0 0 46%;
+  }
+}
