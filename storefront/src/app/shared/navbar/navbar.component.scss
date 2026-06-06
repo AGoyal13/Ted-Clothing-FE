@@ -416,19 +416,27 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 5rem;
+      padding-top: 120px; /* clears ~103px navbar + 17px gap */
       animation: searchFadeIn 0.18s ease;
+
+      @media (max-width: 900px) {
+        padding-top: 88px; /* clears ~78px mobile navbar + 10px gap */
+      }
     }
 
     .search-overlay__box {
+      width: min(680px, 90vw);
+      background: var(--surface);
+      border: 1px solid rgba(201, 168, 76, 0.25);
+      overflow: hidden; /* contain Phase 7 results panel */
+      animation: searchSlideDown 0.18s ease;
+    }
+
+    .search-overlay__input-row {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      width: min(680px, 90vw);
       padding: 0.85rem 1.25rem;
-      background: var(--surface);
-      border: 1px solid rgba(201, 168, 76, 0.25);
-      animation: searchSlideDown 0.18s ease;
     }
 
     .search-overlay__icon {

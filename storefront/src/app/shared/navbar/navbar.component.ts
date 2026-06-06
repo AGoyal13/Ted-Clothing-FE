@@ -74,6 +74,15 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
         requestAnimationFrame(() => this.scheduleRecalculate());
       }
     });
+    // Scroll-lock body when search overlay is open
+    effect(() => {
+      if (!isPlatformBrowser(this.platformId)) return;
+      if (this.searchOpen()) {
+        document.body.style.overflow = 'hidden';
+      } else if (!this.mobileOpen()) {
+        document.body.style.overflow = '';
+      }
+    });
   }
 
   readonly navTree = toSignal(
