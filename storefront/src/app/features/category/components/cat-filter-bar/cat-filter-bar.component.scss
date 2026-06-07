@@ -2,13 +2,13 @@
     /* Desktop sticky bar (hidden ≤768px) */
     .cat-page__bar {
       position: sticky;
-      top: 78px;
+      top: var(--nav-offset, 78px);
       background: rgba(13,13,13,.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(245,240,232,.06);
       z-index: 100;
 
-      @media (max-width: 900px) { top: 100px; }
+      @media (max-width: 900px) { top: var(--nav-offset-mobile, 100px); }
       @media (max-width: 768px) { display: none; }
     }
 

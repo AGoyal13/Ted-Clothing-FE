@@ -25,6 +25,7 @@ export interface Category {
   slug: string;
   parentId: string | null;
   gender?: ProductGender | null;
+  imageUrl?: string | null;
   parent?: { id: string; name: string } | null;
   sizeTemplate?: { measurements: string[]; sizes: string[] } | null;
   sizeGuide?: { id: string; name: string } | null;
@@ -52,6 +53,16 @@ export interface Category {
     <mat-card>
       <div class="table-wrap">
       <table mat-table [dataSource]="categories()" class="full-width">
+        <ng-container matColumnDef="image">
+          <th mat-header-cell *matHeaderCellDef>Image</th>
+          <td mat-cell *matCellDef="let c">
+            @if (c.imageUrl) {
+              <img [src]="c.imageUrl" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;display:block;" />
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+        </ng-container>
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Name</th>
           <td mat-cell *matCellDef="let c">{{ c.name }}</td>
@@ -121,7 +132,7 @@ export class CategoriesComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
 
-  cols = ['name', 'slug', 'parent', 'gender', 'sizeTemplate', 'sizeGuide', 'actions'];
+  cols = ['image', 'name', 'slug', 'parent', 'gender', 'sizeTemplate', 'sizeGuide', 'actions'];
   categories = signal<Category[]>([]);
   loading = signal(false);
 

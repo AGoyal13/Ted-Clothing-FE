@@ -1,0 +1,171 @@
+
+    <!-- Category strip: mobile-only, sticky below the fixed navbar -->
+    <nav class="strip-wrap"
+         [class.strip-wrap--scrolled]="stripScrolled"
+         aria-label="Shop by category">
+      <div class="strip-inner" role="list">
+        @for (cat of navTree; track cat.slug) {
+          <button
+            class="chip"
+            [class.chip--active]="activeCategory()?.slug === cat.slug && drawerOpen()"
+            [class.chip--sale]="isSale(cat.slug)"
+            (click)="openDrawer(cat)"
+            [attr.aria-label]="cat.name"
+            [attr.aria-expanded]="activeCategory()?.slug === cat.slug && drawerOpen()"
+            role="listitem">
+            <!-- Art zone -->
+            <div class="chip-art" [style.background]="getCategoryBg(cat.slug)">
+              @if (cat.imageUrl) {
+                <img [src]="cat.imageUrl" [alt]="" loading="lazy" class="chip-art-img" aria-hidden="true" />
+              }
+            </div>
+            <!-- Label zone -->
+            <span class="chip-label">{{ cat.name }}</span>
+          </button>
+        }
+      </div>
+    </nav>
+
+    <!-- Slide-up drawer -->
+    @if (drawerOpen()) {
+      <div class="drawer-overlay"
+           (click)="closeDrawer()"
+           role="presentation">
+
+        <div class="drawer-panel"
+             (click)="$event.stopPropagation()"
+             (touchstart)="onSwipeStart($event)"
+             (touchmove)="onSwipeMove($event)"
+             (touchend)="onSwipeEnd($event)"
+             role="dialog"
+             aria-modal="true"
+             [attr.aria-label]="(activeCategory()?.name ?? '') + ' navigation'">
+
+          <!-- Drag handle -->
+          <div class="drawer-handle" aria-hidden="true"></div>
+
+          <!-- Header: category name + "Shop All" + close -->
+          <div class="drawer-header">
+            <span class="drawer-header-name"
+                  [class.drawer-header-name--sale]="isSale(activeCategory()?.slug ?? '')">
+              {{ activeCategory()?.name }}
+            </span>
+            <button class="drawer-close" (click)="closeDrawer()" aria-label="Close navigation">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Body: left item list + right sub-panel -->
+          <div class="drawer-body"
+               [class.drawer-body--full]="activeGroupLinks().length === 0">
+
+            <!-- LEFT: all direct children of the active category.
+                 Children WITH sub-categories → group button (reveals right panel).
+                 Children WITHOUT sub-categories → direct nav link (one tap to page). -->
+            <nav class="drawer-groups" aria-label="Category groups">
+
+              <!-- Pinned "All [Category]" row -->
+              <a [routerLink]="['/category', activeCategory()?.slug]"
+                 class="drawer-group-all"
+                 [class.drawer-group-all--sale]="isSale(activeCategory()?.slug ?? '')"
+                 (click)="closeDrawer()">
+                <div class="drawer-group-bg"
+                     [style.background]="getCategoryBg(activeCategory()?.slug ?? '')">
+                </div>
+                <span class="drawer-group-all-label">All {{ activeCategory()?.name }}</span>
+              </a>
+
+              @for (child of allChildren(); track child.slug) {
+                @if (hasChildren(child)) {
+                  <!-- Group item: has sub-categories, tapping loads them on the right -->
+                  <button
+                    class="drawer-group-item"
+                    [class.drawer-group-item--active]="activeGroupSlug() === child.slug"
+                    [class.drawer-group-item--sale]="isSale(child.slug)"
+                    (click)="setActiveGroup(child.slug)"
+                    [attr.aria-pressed]="activeGroupSlug() === child.slug">
+                    <div class="drawer-group-bg"
+                         [style.background]="getCategoryBg(child.slug)">
+                      @if (child.imageUrl) {
+                        <img [src]="child.imageUrl" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
+                      }
+                    </div>
+                    <div class="drawer-group-tint"></div>
+                    <span class="drawer-group-label">{{ child.name }}</span>
+                  </button>
+                } @else {
+                  <!-- Leaf item: no sub-categories, navigates directly -->
+                  <a [routerLink]="['/category', child.slug]"
+                     class="drawer-group-link"
+                     [class.drawer-group-link--sale]="isSale(child.slug)"
+                     (click)="closeDrawer()">
+                    <div class="drawer-group-bg" [style.background]="getCategoryBg(child.slug)">
+                      @if (child.imageUrl) {
+                        <img [src]="child.imageUrl" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
+                      }
+                    </div>
+                    <div class="drawer-group-tint"></div>
+                    <span class="drawer-group-label">{{ child.name }}</span>
+                  </a>
+                }
+              }
+            </nav>
+
+            <!-- RIGHT: sub-categories of the selected group.
+                 Empty when no group is selected (all-flat category like Men/Kids). -->
+            <div class="drawer-sub">
+
+              <!-- Horizontal image-chip scroll row -->
+              @if (activeGroupLinks().length > 0) {
+                <div class="drawer-chip-row" aria-label="Quick links">
+                  @for (link of activeGroupLinks().slice(0, 5); track link.slug) {
+                    <a [routerLink]="['/category', link.slug]"
+                       class="drawer-chip"
+                       (click)="closeDrawer()">
+                      <div class="drawer-chip-thumb"
+                           [style.background]="getCategoryBg(link.slug)">
+                        @if (link.imageUrl) {
+                          <img [src]="link.imageUrl" [alt]="" loading="lazy" class="drawer-chip-img" aria-hidden="true" />
+                        }
+                      </div>
+                      <span class="drawer-chip-label">{{ link.name }}</span>
+                    </a>
+                  }
+                </div>
+              }
+
+              <!-- Link list -->
+              @if (activeGroupLinks().length > 0) {
+                <div class="drawer-link-section">
+                  @if (activeGroupName()) {
+                    <div class="drawer-link-section-title"
+                         [class.drawer-link-section-title--sale]="isSale(activeCategory()?.slug ?? '')">
+                      {{ activeGroupName() | uppercase }}
+                    </div>
+                  }
+                  <ul class="drawer-link-list">
+                    @for (link of activeGroupLinks(); track link.slug; let first = $first) {
+                      <li [class.drawer-link-item--feat]="first">
+                        <a [routerLink]="['/category', link.slug]"
+                           class="drawer-link"
+                           [class.drawer-link--sale]="isSale(link.slug)"
+                           (click)="closeDrawer()">
+                          {{ link.name }}
+                          <svg class="drawer-link-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+            </div><!-- /drawer-sub -->
+          </div><!-- /drawer-body -->
+
+        </div><!-- /drawer-panel -->
+      </div><!-- /drawer-overlay -->
+    }

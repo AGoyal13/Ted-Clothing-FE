@@ -78,6 +78,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly activeCat       = signal<string>('all');
   readonly pageType        = signal<PageType>('leaf');
   readonly categoryOptions = signal<FilterOption[]>([]);
+  readonly leafParentSlug  = signal('');
 
   private prevSlug = '';
 
@@ -140,6 +141,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.categoryOptions.set([]);
           this.breadcrumbs.set([]);
           this.pageType.set('leaf');
+          this.leafParentSlug.set('');
         }
         this.loadCategoryMeta();
         this.titleService.setTitle(`${this.displayName()} — Ted Clothing`);
@@ -156,7 +158,21 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     const slug       = this.slug();
     const genderEnum = GENDER_SLUGS[slug.toLowerCase()];
 
-    if (genderEnum) {
+    if (slug === 'sale') {
+      this.pageType.set('leaf');
+      this.breadcrumbs.set([{ label: 'SALE' }]);
+      this.categoryService.getNavTree().subscribe({
+        next: (tree) => this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))),
+        error: () => {},
+      });
+    } else if (slug === 'new-arrivals') {
+      this.pageType.set('leaf');
+      this.breadcrumbs.set([{ label: 'NEW ARRIVALS' }]);
+      this.categoryService.getNavTree().subscribe({
+        next: (tree) => this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))),
+        error: () => {},
+      });
+    } else if (genderEnum) {
       this.pageType.set('gender');
       this.breadcrumbs.set([{ label: slug.toUpperCase() }]);
       this.categoryService.getNavTreeByGender(genderEnum).subscribe({
@@ -183,7 +199,17 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
             );
           } else {
             this.pageType.set('leaf');
-            this.categoryOptions.set([]);
+            if (cat.parent) {
+              this.leafParentSlug.set(cat.parent.slug);
+              this.categoryService.getBySlug(cat.parent.slug).subscribe({
+                next: (parent) => this.categoryOptions.set(
+                  (parent.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
+                ),
+                error: () => this.categoryOptions.set([]),
+              });
+            } else {
+              this.categoryOptions.set([]);
+            }
           }
         },
         error: () => this.pageType.set('leaf'),
@@ -205,7 +231,12 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       sort: this.sortBy(),
     };
 
-    if (genderEnum) {
+    if (slug === 'sale') {
+      params['onSale'] = true;
+      if (activeCat !== 'all') params['categorySlug'] = activeCat;
+    } else if (slug === 'new-arrivals') {
+      if (activeCat !== 'all') params['categorySlug'] = activeCat;
+    } else if (genderEnum) {
       if (activeCat !== 'all') params['categorySlug'] = activeCat;
       else                      params['gender']       = genderEnum;
     } else {
@@ -245,6 +276,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCatSelected(slug: string): void {
+    if (this.pageType() === 'leaf') {
+      const dest = slug === 'all' ? this.leafParentSlug() : slug;
+      if (dest) this.router.navigate(['/category', dest]);
+      return;
+    }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { cat: slug === 'all' ? null : slug },

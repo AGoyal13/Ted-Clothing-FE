@@ -1,6 +1,11 @@
 .acct {
   min-height: 100vh;
-  padding: 6.5rem 5% 4rem;
+  padding: 0 5% 4rem;
+  padding-top: var(--nav-offset, 6.5rem);
+
+  @media (max-width: 900px) {
+    padding-top: var(--nav-offset-mobile, 6.5rem);
+  }
 }
 
 .acct__layout {
@@ -15,7 +20,7 @@
 /* ── Sidebar ─────────────────────────────────────────────── */
 .acct__sidebar {
   position: sticky;
-  top: 114px;
+  top: var(--nav-offset, 114px);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -130,7 +135,8 @@
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .acct {
-    padding: 6.5rem 1.25rem 5rem;
+    padding: 0 1.25rem 5rem;
+    padding-top: var(--nav-offset-mobile, 6.5rem);
   }
 
   .acct__layout {

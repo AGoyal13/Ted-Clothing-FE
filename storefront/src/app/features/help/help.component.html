@@ -1,0 +1,79 @@
+<main class="help">
+  <div class="help__layout">
+
+    <!-- Sidebar -->
+    <aside class="help__sidebar">
+      <div class="help__sidebar-header">
+        <p class="help__sidebar-eyebrow">SUPPORT</p>
+        <p class="help__sidebar-title">Help Centre</p>
+      </div>
+
+      <!-- Desktop nav -->
+      <nav class="help__nav">
+        <a class="help__nav-item" [routerLink]="['/help', 'size-guide']" routerLinkActive="help__nav-item--active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          </svg>
+          Size Guide
+        </a>
+        <a class="help__nav-item" [routerLink]="['/help', 'returns']" routerLinkActive="help__nav-item--active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+          </svg>
+          Returns &amp; Exchanges
+        </a>
+        <a class="help__nav-item" [routerLink]="['/help', 'track-order']" routerLinkActive="help__nav-item--active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Track Your Order
+        </a>
+        <a class="help__nav-item" [routerLink]="['/help', 'contact']" routerLinkActive="help__nav-item--active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Contact Us
+        </a>
+        <a class="help__nav-item" [routerLink]="['/help', 'faqs']" routerLinkActive="help__nav-item--active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          FAQs
+        </a>
+      </nav>
+
+      <!-- Mobile dropdown -->
+      <div class="help__nav-mob" (click)="$event.stopPropagation()">
+        <button class="help__nav-mob-trigger" (click)="navOpen.update(v => !v)"
+                [attr.aria-expanded]="navOpen()">
+          <span>Help Menu</span>
+          <svg class="help__nav-mob-chevron" [class.help__nav-mob-chevron--open]="navOpen()"
+               width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        @if (navOpen()) {
+          <div class="help__nav-mob-options">
+            <a class="help__nav-mob-opt" [routerLink]="['/help', 'size-guide']"
+               routerLinkActive="help__nav-mob-opt--active" (click)="navOpen.set(false)">Size Guide</a>
+            <a class="help__nav-mob-opt" [routerLink]="['/help', 'returns']"
+               routerLinkActive="help__nav-mob-opt--active" (click)="navOpen.set(false)">Returns &amp; Exchanges</a>
+            <a class="help__nav-mob-opt" [routerLink]="['/help', 'track-order']"
+               routerLinkActive="help__nav-mob-opt--active" (click)="navOpen.set(false)">Track Your Order</a>
+            <a class="help__nav-mob-opt" [routerLink]="['/help', 'contact']"
+               routerLinkActive="help__nav-mob-opt--active" (click)="navOpen.set(false)">Contact Us</a>
+            <a class="help__nav-mob-opt" [routerLink]="['/help', 'faqs']"
+               routerLinkActive="help__nav-mob-opt--active" (click)="navOpen.set(false)">FAQs</a>
+          </div>
+        }
+      </div>
+    </aside>
+
+    <!-- Routed child content -->
+    <div class="help__content">
+      <router-outlet />
+    </div>
+
+  </div>
+</main>

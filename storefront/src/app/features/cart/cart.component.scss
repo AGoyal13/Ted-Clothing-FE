@@ -1,10 +1,10 @@
 
     .cart-page {
       min-height: 100vh;
-      padding-top: 104px;
+      padding-top: var(--nav-offset, 104px);
 
       @media (max-width: 900px) {
-        padding-top: 100px;
+        padding-top: var(--nav-offset-mobile, 100px);
       }
     }
 
@@ -241,7 +241,7 @@
       border: 1px solid rgba(245, 240, 232, 0.06);
       padding: 2rem;
       position: sticky;
-      top: 114px;
+      top: var(--nav-offset, 114px);
     }
 
     .cart-page__summary-title {

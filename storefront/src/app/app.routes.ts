@@ -59,7 +59,39 @@ export const routes: Routes = [
   },
   {
     path: 'return-policy',
-    loadComponent: () => import('./features/return-policy/return-policy.component').then(m => m.ReturnPolicyComponent),
+    redirectTo: 'help/returns',
+  },
+  {
+    path: 'help',
+    loadComponent: () => import('./features/help/help.component').then(m => m.HelpComponent),
+    children: [
+      { path: '', redirectTo: 'size-guide', pathMatch: 'full' },
+      {
+        path: 'size-guide',
+        loadComponent: () => import('./features/help/size-guide/size-guide.component').then(m => m.SizeGuideComponent),
+        title: 'Size Guide — Ted Clothing',
+      },
+      {
+        path: 'returns',
+        loadComponent: () => import('./features/return-policy/return-policy.component').then(m => m.ReturnPolicyComponent),
+        title: 'Returns & Exchanges — Ted Clothing',
+      },
+      {
+        path: 'track-order',
+        loadComponent: () => import('./features/help/track-order/track-order.component').then(m => m.TrackOrderComponent),
+        title: 'Track Your Order — Ted Clothing',
+      },
+      {
+        path: 'contact',
+        loadComponent: () => import('./features/help/contact/contact.component').then(m => m.ContactComponent),
+        title: 'Contact Us — Ted Clothing',
+      },
+      {
+        path: 'faqs',
+        loadComponent: () => import('./features/help/faqs/faqs.component').then(m => m.FaqsComponent),
+        title: 'FAQs — Ted Clothing',
+      },
+    ],
   },
   {
     path: '**',

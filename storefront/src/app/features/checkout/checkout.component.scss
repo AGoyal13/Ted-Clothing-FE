@@ -1,6 +1,10 @@
 .checkout {
   min-height: 100vh;
-  padding-top: 110px;
+  padding-top: var(--nav-offset, 110px);
+
+  @media (max-width: 900px) {
+    padding-top: var(--nav-offset-mobile, 110px);
+  }
   padding-bottom: 4rem;
   background: var(--bg);
 }

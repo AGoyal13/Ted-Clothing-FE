@@ -1,7 +1,11 @@
 
     .pdp {
       min-height: 100vh;
-      padding-top: 104px;
+      padding-top: var(--nav-offset, 104px);
+
+      @media (max-width: 900px) {
+        padding-top: var(--nav-offset-mobile, 104px);
+      }
     }
 
     .pdp__inner {

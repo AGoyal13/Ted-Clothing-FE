@@ -1,0 +1,200 @@
+
+    <header class="navbar" [class.navbar--scrolled]="scrolled()" #headerEl>
+      <div class="navbar__inner">
+
+        <!-- LEFT: Logo only -->
+        <div class="navbar__left">
+          <a routerLink="/" class="navbar__logo" aria-label="Ted Clothing Home">
+            <span class="navbar__logo-ted">TED</span>
+            <span class="navbar__logo-clothing">CLOTHING</span>
+          </a>
+        </div>
+
+        <!-- MIDDLE: Primary nav (desktop) -->
+        <nav #navEl class="navbar__nav" aria-label="Main navigation">
+          @for (root of navTree(); track root.slug) {
+            <div class="nav-item" data-nav-item
+                 (mouseenter)="onNavEnter(root.slug)"
+                 (mouseleave)="onNavLeave()">
+              <a [routerLink]="['/category', root.slug]"
+                 class="navbar__link"
+                 [class.navbar__link--mega-open]="activeMega() === root.slug">
+                {{ root.name }}
+                <svg class="navbar__link-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </a>
+            </div>
+          }
+
+          <!-- Overflow "More" button — always in DOM for measurement -->
+          <div class="nav-item nav-item--more" [class.nav-item--more-active]="overflowItems().length > 0">
+            <button class="navbar__link navbar__more-btn"
+                    (click)="moreOpen.update(v => !v); activeMega.set(null)"
+                    [class.navbar__link--mega-open]="moreOpen()"
+                    aria-label="More categories"
+                    [attr.aria-expanded]="moreOpen()">
+              MORE
+              <svg class="navbar__link-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            @if (moreOpen()) {
+              <div class="navbar__more-dropdown">
+                @for (item of overflowItems(); track item.slug) {
+                  <a [routerLink]="['/category', item.slug]"
+                     class="navbar__more-item"
+                     (click)="moreOpen.set(false)">
+                    {{ item.name }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        </nav>
+
+        <!-- MIDDLE (mobile only): delivery address — sits between logo and icons -->
+        <a routerLink="/account/addresses"
+           class="navbar__mobile-addr"
+           aria-label="Delivery address">
+          @if (authService.isLoggedIn() && defaultAddress()) {
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="navbar__mobile-addr-pin" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <div class="navbar__mobile-addr-body">
+              <span class="navbar__mobile-addr-label">Deliver to</span>
+              <span class="navbar__mobile-addr-value">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+            </div>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          }
+        </a>
+
+        <!-- RIGHT: Icon actions -->
+        <div class="navbar__actions">
+
+          <button class="navbar__icon-btn navbar__icon-btn--labeled"
+                  [class.navbar__icon-btn--active]="searchOpen()"
+                  aria-label="Search"
+                  [attr.aria-expanded]="searchOpen()"
+                  (click)="toggleSearch()">
+            <span class="navbar__icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <span class="navbar__icon-label">SEARCH</span>
+          </button>
+
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/wishlist"
+               routerLinkActive="navbar__icon-btn--active"
+               class="navbar__icon-btn navbar__icon-btn--labeled"
+               aria-label="Wishlist">
+              <span class="navbar__icon-wrap">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                @if (wishlistCount() > 0) {
+                  <span class="navbar__icon-badge">{{ wishlistCount() }}</span>
+                }
+              </span>
+              <span class="navbar__icon-label">WISHLIST</span>
+            </a>
+          }
+
+          <a routerLink="/cart" class="navbar__cart-btn" aria-label="Shopping cart">
+            <span class="navbar__cart-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              @if (cartCount() > 0) {
+                <span class="navbar__cart-badge">{{ cartCount() }}</span>
+              }
+            </span>
+            <span class="navbar__cart-label">CART ({{ cartCount() }})</span>
+          </a>
+
+          @if (authService.isLoggedIn()) {
+            <a routerLink="/account"
+               routerLinkActive="navbar__account--active"
+               class="navbar__account navbar__account--labeled"
+               aria-label="My account">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span class="navbar__icon-label">ACCOUNT</span>
+            </a>
+          } @else {
+            <button class="navbar__login navbar__login--labeled"
+                    (click)="authService.openModal()"
+                    aria-label="Sign in">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span class="navbar__icon-label">ACCOUNT</span>
+            </button>
+          }
+
+        </div>
+      </div><!-- /navbar__inner -->
+
+      <!-- V2 Mega-menu panels (desktop) -->
+      @for (root of navTree(); track root.slug) {
+        <navbar-mega-v2
+          [root]="root"
+          [visible]="activeMega() === root.slug"
+          (enter)="onMegaEnter()"
+          (leave)="onMegaLeave()"
+          (close)="closeMega()">
+        </navbar-mega-v2>
+      }
+
+    </header>
+
+    <!-- Search overlay -->
+    @if (searchOpen()) {
+      <div class="search-overlay" (click)="searchOpen.set(false)">
+        <div class="search-overlay__box" (click)="$event.stopPropagation()">
+          <div class="search-overlay__input-row">
+            <svg class="search-overlay__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input class="search-overlay__input"
+                   type="search"
+                   placeholder="Search products…"
+                   autofocus
+                   aria-label="Search products"
+                   (keydown.escape)="searchOpen.set(false)">
+            <button class="search-overlay__close" (click)="searchOpen.set(false)" aria-label="Close search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Floating delivery chip (desktop) -->
+    @if (authService.isLoggedIn() && defaultAddress()) {
+      <a routerLink="/account/addresses" class="navbar__delivery" aria-label="Delivery address">
+        <svg class="navbar__delivery-pin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span class="navbar__delivery-city">{{ defaultAddress()!.city }}, {{ defaultAddress()!.pincode }}</span>
+      </a>
+    }
+
+    <!-- Mobile category strip (new sibling, below header, mobile only) -->
+    <app-category-strip-v2
+      [navTree]="navTree()"
+      [stripScrolled]="stripScrolled()">
+    </app-category-strip-v2>

@@ -2,9 +2,14 @@
     .wl-page {
       min-height: 100vh;
       background: var(--bg);
-      padding: 7rem 5% 5rem;
+      padding: 0 5% 5rem;
+      padding-top: var(--nav-offset, 7rem);
       max-width: 1440px;
       margin: 0 auto;
+
+      @media (max-width: 900px) {
+        padding-top: var(--nav-offset-mobile, 7rem);
+      }
     }
 
     /* ── Header ─────────────────────────────────────────────────── */
@@ -219,6 +224,6 @@
 
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 600px) {
-      .wl-page { padding: 7.5rem 4% 4rem; }
+      .wl-page { padding: 0 4% 4rem; padding-top: var(--nav-offset-mobile, 7.5rem); }
       .wl-page__grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem 0.75rem; }
     }

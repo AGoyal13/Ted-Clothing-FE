@@ -2,10 +2,10 @@
     /* Base */
     .cat-page {
       min-height: 100vh;
-      padding-top: 78px;
+      padding-top: var(--nav-offset, 78px);
 
       @media (max-width: 900px) {
-        padding-top: 100px;
+        padding-top: var(--nav-offset-mobile, 100px);
       }
     }
 

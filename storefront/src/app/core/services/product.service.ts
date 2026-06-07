@@ -11,6 +11,7 @@ export interface ProductQueryParams {
   categorySlug?: string;
   gender?: 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
   sort?: 'newest' | 'price-asc' | 'price-desc';
+  onSale?: boolean;
 }
 
 const PLP_TTL = 60_000;    // 1 min — category page lists
@@ -30,6 +31,7 @@ export class ProductService {
     if (params.categorySlug) queryParams['categorySlug'] = params.categorySlug;
     if (params.gender) queryParams['gender'] = params.gender;
     if (params.sort) queryParams['sort'] = params.sort;
+    if (params.onSale) queryParams['onSale'] = true;
 
     // Build a stable cache key from sorted query params so all callers with same params share one entry
     const cacheKey = 'products:' + Object.entries(queryParams).sort().map(([k, v]) => `${k}=${v}`).join('&');

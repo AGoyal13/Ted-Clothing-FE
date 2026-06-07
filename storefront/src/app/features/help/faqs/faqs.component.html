@@ -1,0 +1,33 @@
+<div class="faqs">
+
+  <header class="faqs__header">
+    <p class="faqs__breadcrumb">Help &rsaquo; FAQs</p>
+    <h1 class="faqs__title">Frequently Asked Questions</h1>
+    <p class="faqs__subtitle">Quick answers to the questions we hear most often.</p>
+  </header>
+
+  <div class="faqs__list">
+    @for (faq of faqs; track faq.q; let i = $index) {
+      <div class="faqs__item" [class.faqs__item--open]="openIndex() === i">
+        <button class="faqs__question" (click)="toggle(i)" [attr.aria-expanded]="openIndex() === i">
+          <span>{{ faq.q }}</span>
+          <svg class="faqs__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        @if (openIndex() === i) {
+          <div class="faqs__answer">
+            <p>{{ faq.a }}</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="faqs__footer">
+    <p>Can't find what you're looking for?</p>
+    <a href="mailto:hello@tedclothing.in" class="faqs__contact-link">Email us at hello&#64;tedclothing.in</a>
+  </div>
+
+</div>
