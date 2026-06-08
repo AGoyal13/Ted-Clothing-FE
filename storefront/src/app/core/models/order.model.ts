@@ -8,6 +8,28 @@ export type OrderStatus =
   | 'RETURN_REQUESTED'
   | 'RETURNED';
 
+export type ReturnStatus =
+  | 'RETURN_REQUESTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'PICKUP_SCHEDULED'
+  | 'IN_TRANSIT'
+  | 'RECEIVED'
+  | 'RETURNED'
+  | 'EXCHANGE_COMPLETE';
+
+export interface OrderReturnItem {
+  orderItemId: string;
+  exchangeSkuId: string | null;
+  exchangeSku: { sizeLabel: string } | null;
+}
+
+export interface OrderReturn {
+  status: ReturnStatus;
+  reverseAwb: string | null;
+  items: OrderReturnItem[];
+}
+
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type PaymentMethod = 'PREPAID' | 'COD';
 
@@ -59,6 +81,7 @@ export interface Order {
   deliveredAt?: string;
   items: OrderItem[];
   address: OrderAddress;
+  return?: OrderReturn | null;
 }
 
 export interface OrderListItem {

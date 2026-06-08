@@ -86,6 +86,18 @@
                           </p>
                           <p class="detail-item__price">{{ formatINR(+item.priceAtPurchase * item.quantity) }}</p>
 
+                          <!-- Return / exchange tag -->
+                          @if (order.status === 'RETURN_REQUESTED' || order.status === 'RETURNED') {
+                            @let ri = getReturnItemForOrder(full, item.id);
+                            @if (ri) {
+                              @if (ri.exchangeSku) {
+                                <p class="detail-item__exchange-tag">Exchange requested · {{ item.sku.sizeLabel }} → {{ ri.exchangeSku.sizeLabel }}</p>
+                              } @else {
+                                <p class="detail-item__return-tag">Return requested</p>
+                              }
+                            }
+                          }
+
                           <!-- Review section -->
                           @if (order.status === 'DELIVERED') {
                             @if (reviewedProductIds().has(item.sku.product.id)) {
@@ -298,27 +310,34 @@
 
                         <!-- Step 3: Exchange size (exchange mode only) -->
                         @if (showExchangeStep(returnStep())) {
-                          <p class="rw__label">Select exchange size for each item</p>
+                          <p class="rw__label">Select items to exchange</p>
                           @if (availableSkusLoading()) {
                             <p class="rw__loading">Loading sizes…</p>
                           } @else {
                             @for (item of full.items; track item.id) {
-                              <div class="rw__item-sizes">
-                                <p class="rw__item-name">{{ item.sku.product.title }} <span class="rw__item-current">(Current: {{ item.sku.sizeLabel }})</span></p>
-                                <div class="rw__sizes">
-                                  @for (sku of skusForItem(item); track sku.id) {
-                                    <button class="rw__size"
-                                      [class.rw__size--active]="returnExchangeSizes()[item.id] === sku.id"
-                                      [class.rw__size--current]="sku.sizeLabel === item.sku.sizeLabel && returnExchangeSizes()[item.id] !== sku.id"
-                                      [class.rw__size--oos]="sku.stockQty === 0"
-                                      [disabled]="sku.stockQty === 0"
-                                      (click)="selectExchangeSize(item.id, sku.id)">
-                                      {{ sku.sizeLabel }}
-                                      @if (sku.sizeLabel === item.sku.sizeLabel) { <span class="rw__size-cur">↩</span> }
-                                      @if (sku.stockQty === 0) { <span class="rw__size-oos">OOS</span> }
-                                    </button>
-                                  }
-                                </div>
+                              <div class="rw__item-sizes" [class.rw__item-sizes--inactive]="!returnSelectedItems().has(item.id)">
+                                <label class="rw__item-check">
+                                  <input type="checkbox"
+                                    [checked]="returnSelectedItems().has(item.id)"
+                                    (change)="toggleReturnItem(item.id)" />
+                                  <span class="rw__item-name">{{ item.sku.product.title }} <span class="rw__item-current">({{ item.sku.sizeLabel }})</span></span>
+                                </label>
+                                @if (returnSelectedItems().has(item.id)) {
+                                  <div class="rw__sizes">
+                                    @for (sku of skusForItem(item); track sku.id) {
+                                      <button class="rw__size"
+                                        [class.rw__size--active]="returnExchangeSizes()[item.id] === sku.id"
+                                        [class.rw__size--current]="sku.sizeLabel === item.sku.sizeLabel && returnExchangeSizes()[item.id] !== sku.id"
+                                        [class.rw__size--oos]="sku.stockQty === 0"
+                                        [disabled]="sku.stockQty === 0"
+                                        (click)="selectExchangeSize(item.id, sku.id)">
+                                        {{ sku.sizeLabel }}
+                                        @if (sku.sizeLabel === item.sku.sizeLabel) { <span class="rw__size-cur">↩</span> }
+                                        @if (sku.stockQty === 0) { <span class="rw__size-oos">OOS</span> }
+                                      </button>
+                                    }
+                                  </div>
+                                }
                               </div>
                             }
                           }
@@ -372,12 +391,21 @@
                   </div>
                 } @else if (order.status === 'RETURN_REQUESTED') {
                   <div class="detail-section detail-section--return">
-                    <p class="detail-return__pending">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
-                      </svg>
-                      Request submitted — pickup scheduled, keep item ready in original packaging
-                    </p>
+                    @if (full.return?.status === 'PICKUP_SCHEDULED' || full.return?.reverseAwb) {
+                      <p class="detail-return__pending">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+                        </svg>
+                        Pickup confirmed — keep item ready in original packaging
+                      </p>
+                    } @else {
+                      <p class="detail-return__pending">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+                        </svg>
+                        Request submitted — our team will arrange pickup shortly
+                      </p>
+                    }
                   </div>
                 } @else if (order.status === 'RETURNED') {
                   <div class="detail-section detail-section--return">

@@ -263,7 +263,15 @@
     margin: 0 0 0.5rem;
   }
   &__label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
-  &__value { font-family: monospace; color: var(--cream); font-size: 0.82rem; }
+  &__value {
+    font-family: monospace;
+    color: var(--cream);
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
   &__link {
     font-size: 0.78rem;
     color: var(--gold);
@@ -517,10 +525,73 @@
   svg { flex-shrink: 0; }
 }
 
+.detail-item__exchange-tag {
+  font-size: 0.7rem;
+  color: #60a5fa;
+  font-weight: 600;
+  margin: 3px 0 0;
+  letter-spacing: 0.01em;
+}
+
+.detail-item__return-tag {
+  font-size: 0.7rem;
+  color: #f97316;
+  font-weight: 600;
+  margin: 3px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .detail-return__error {
   font-size: 0.75rem;
   color: #e05252;
   margin: 0.4rem 0 0;
+}
+
+.detail-return__items {
+  margin-top: 0.75rem;
+}
+
+.detail-return__items-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+
+.detail-return__item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding: 3px 0;
+  color: var(--cream);
+}
+
+.detail-return__item-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.detail-return__item-size {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.detail-return__item-exchange {
+  font-size: 0.72rem;
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.detail-return__item-return {
+  font-size: 0.68rem;
+  color: #f97316;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 // ── Return wizard ────────────────────────────────────────────────────────────
@@ -744,7 +815,28 @@
   // Exchange size picker
   &__loading { font-size: 0.78rem; color: var(--muted); margin: 0.5rem 0; }
 
-  &__item-sizes { margin-bottom: 1rem; }
+  &__item-sizes {
+    margin-bottom: 1rem;
+    transition: opacity 0.15s;
+
+    &--inactive { opacity: 0.4; }
+  }
+
+  &__item-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+
+    input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+  }
 
   &__item-name {
     font-size: 0.78rem;

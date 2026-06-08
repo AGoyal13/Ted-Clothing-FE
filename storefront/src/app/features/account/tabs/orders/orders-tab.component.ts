@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { OrderService } from '../../../../core/services/order.service';
 import { ApiService } from '../../../../core/services/api.service';
 import { SiteConfigService } from '../../../../core/services/site-config.service';
-import { Order, OrderItem, OrderListItem, OrderStatus } from '../../../../core/models/order.model';
+import { Order, OrderItem, OrderListItem, OrderStatus, ReturnStatus } from '../../../../core/models/order.model';
 import { formatINR } from '../../../../core/models/product.model';
 
 type ReturnReason = 'WRONG_SIZE' | 'DEFECTIVE_ITEM' | 'NOT_AS_DESCRIBED' | 'WRONG_ITEM_DELIVERED' | 'DAMAGED_IN_TRANSIT' | 'CHANGED_MIND';
@@ -79,6 +79,7 @@ export class OrdersTabComponent implements OnInit {
   readonly returnComments = signal('');
   readonly returnPhotos = signal<ReturnPhoto[]>([]);
   readonly returnExchangeSizes = signal<Record<string, string>>({}); // orderItemId -> skuId
+  readonly returnSelectedItems = signal<Set<string>>(new Set()); // orderItemIds selected for exchange
   readonly availableSkus = signal<Record<string, SkuOption[]>>({}); // productId -> skus
   readonly availableSkusLoading = signal(false);
   readonly codMode = signal<CodMode>('UPI');
@@ -171,6 +172,7 @@ export class OrdersTabComponent implements OnInit {
     this.returnComments.set('');
     this.returnPhotos.set([]);
     this.returnExchangeSizes.set({});
+    this.returnSelectedItems.set(new Set(items.map(i => i.id)));
     this.codMode.set('UPI');
     this.upiId.set('');
     this.bankName.set('');
@@ -209,7 +211,8 @@ export class OrdersTabComponent implements OnInit {
     }
     if (step === 3) {
       if (isExchange) {
-        if (!this.allSizesSelected(order.items)) { this.returnFormError.set('Please select an exchange size for each item'); return; }
+        if (this.returnSelectedItems().size === 0) { this.returnFormError.set('Please select at least one item to exchange'); return; }
+        if (!this.allSizesSelected(order.items)) { this.returnFormError.set('Please select an exchange size for each selected item'); return; }
         if (isCod) { this.returnStep.set(4); return; }
         this.doSubmitReturn(order);
       } else {
@@ -242,7 +245,7 @@ export class OrdersTabComponent implements OnInit {
   }
 
   private uploadPhotoFiles(files: FileList): void {
-    const remaining = 4 - this.returnPhotos().filter(p => !p.uploading || p.url).length;
+    const remaining = 4 - this.returnPhotos().length;
     if (remaining <= 0) return;
     Array.from(files).slice(0, remaining).forEach(file => {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
@@ -288,17 +291,34 @@ export class OrdersTabComponent implements OnInit {
   }
 
   skusForItem(item: OrderItem): SkuOption[] {
+    const selectedSizes = this.returnExchangeSizes();
+    const claimedCounts = new Map<string, number>();
+    for (const [itemId, skuId] of Object.entries(selectedSizes)) {
+      if (itemId !== item.id) {
+        claimedCounts.set(skuId, (claimedCounts.get(skuId) ?? 0) + 1);
+      }
+    }
     return (this.availableSkus()[item.sku.product.id] ?? [])
-      .filter(s => s.color.id === item.sku.color.id);
+      .filter(s => s.color.id === item.sku.color.id)
+      .map(s => ({ ...s, stockQty: Math.max(0, s.stockQty - (claimedCounts.get(s.id) ?? 0)) }));
   }
 
   selectExchangeSize(orderItemId: string, skuId: string): void {
     this.returnExchangeSizes.update(m => ({ ...m, [orderItemId]: skuId }));
   }
 
+  toggleReturnItem(itemId: string): void {
+    this.returnSelectedItems.update(set => {
+      const next = new Set(set);
+      next.has(itemId) ? next.delete(itemId) : next.add(itemId);
+      return next;
+    });
+  }
+
   allSizesSelected(items: OrderItem[]): boolean {
     const sizes = this.returnExchangeSizes();
-    return items.every(i => !!sizes[i.id]);
+    const selected = this.returnSelectedItems();
+    return items.filter(i => selected.has(i.id)).every(i => !!sizes[i.id]);
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -331,10 +351,12 @@ export class OrdersTabComponent implements OnInit {
       reason: this.returnReason(),
       comments: this.returnComments().trim() || undefined,
       photoUrls: this.returnPhotos().filter(p => p.url).map(p => p.url),
-      items: order.items.map(i => ({
-        orderItemId: i.id,
-        ...(isExchange && exchangeSizes[i.id] ? { exchangeSkuId: exchangeSizes[i.id] } : {}),
-      })),
+      items: order.items
+        .filter(i => this.returnSelectedItems().has(i.id))
+        .map(i => ({
+          orderItemId: i.id,
+          ...(isExchange && exchangeSizes[i.id] ? { exchangeSkuId: exchangeSizes[i.id] } : {}),
+        })),
       ...(bankDetails ? { bankDetails } : {}),
     };
 
@@ -389,6 +411,14 @@ export class OrdersTabComponent implements OnInit {
         }
       },
     });
+  }
+
+  findOrderItem(items: OrderItem[], orderItemId: string): OrderItem | undefined {
+    return items.find(i => i.id === orderItemId);
+  }
+
+  getReturnItemForOrder(order: Order, orderItemId: string) {
+    return order.return?.items?.find(ri => ri.orderItemId === orderItemId) ?? null;
   }
 
   trackingUrl(awb: string): string {

@@ -15,6 +15,18 @@ import { ApiService } from '../../core/services/api.service';
 
 type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'PICKUP_SCHEDULED' | 'IN_TRANSIT' | 'RECEIVED' | 'EXCHANGE_COMPLETE' | 'REFUNDED';
 
+interface OrderItemContext {
+  id: string;
+  quantity: number;
+  priceAtPurchase: string;
+  sku: {
+    id: string;
+    sizeLabel: string;
+    color: { colorName: string; images: string[] };
+    product: { title: string };
+  };
+}
+
 interface AdminReturn {
   id: string;
   orderId: string;
@@ -37,12 +49,15 @@ interface AdminReturn {
   order: {
     id: string;
     paymentMethod: string;
+    paymentStatus?: string;
     totalAmount: string;
+    items: OrderItemContext[];
   };
   items: Array<{
     id: string;
     quantity: number;
     orderItem: {
+      id: string;
       priceAtPurchase: string;
       sku: {
         sizeLabel: string;
@@ -200,21 +215,28 @@ const REASON_LABELS: Record<string, string> = {
                   </div>
                 }
 
-                <!-- Items section -->
+                <!-- Order items context: all items with return/exchange status -->
                 <div class="detail-section">
-                  <div class="detail-label">Items</div>
+                  <div class="detail-label">Order Items ({{ row.order.items.length }})</div>
                   <div class="detail-items">
-                    @for (item of row.items; track item.id) {
-                      <div class="detail-item">
-                        @if (item.orderItem.sku.color.images?.[0]) {
-                          <img [src]="item.orderItem.sku.color.images[0]" class="detail-thumb" />
+                    @for (oi of row.order.items; track oi.id) {
+                      @let returnItem = getReturnItemForOrderItem(row, oi.id);
+                      <div class="detail-item" [class.detail-item--inactive]="!returnItem">
+                        @if (oi.sku.color.images?.[0]) {
+                          <img [src]="oi.sku.color.images[0]" class="detail-thumb" [class.detail-thumb--inactive]="!returnItem" />
                         }
                         <div class="detail-item-info">
-                          <div class="detail-item-title">{{ item.orderItem.sku.product.title }}</div>
-                          <div class="detail-item-meta">{{ item.orderItem.sku.color.colorName }} · {{ item.orderItem.sku.sizeLabel }} × {{ item.quantity }}</div>
-                          <div class="detail-item-price">₹{{ (+item.orderItem.priceAtPurchase * item.quantity).toFixed(2) }}</div>
-                          @if (item.exchangeSku) {
-                            <div class="exchange-arrow">→ Exchange: <strong>{{ item.exchangeSku.product.title }} {{ item.exchangeSku.sizeLabel }}</strong> ({{ item.exchangeSku.color.colorName }})</div>
+                          <div class="detail-item-title">{{ oi.sku.product.title }}</div>
+                          <div class="detail-item-meta">{{ oi.sku.color.colorName }} · {{ oi.sku.sizeLabel }} × {{ oi.quantity }}</div>
+                          <div class="detail-item-price">₹{{ (+oi.priceAtPurchase * oi.quantity).toFixed(2) }}</div>
+                          @if (returnItem) {
+                            @if (returnItem.exchangeSku) {
+                              <div class="exchange-arrow">→ Exchange: <strong>{{ returnItem.exchangeSku.product.title }} {{ returnItem.exchangeSku.sizeLabel }}</strong> ({{ returnItem.exchangeSku.color.colorName }})</div>
+                            } @else {
+                              <div class="return-tag">Return</div>
+                            }
+                          } @else {
+                            <div class="not-in-return-tag">Not in return</div>
                           }
                         </div>
                       </div>
@@ -320,19 +342,35 @@ const REASON_LABELS: Record<string, string> = {
                   @if (refundDialogId() === row.id) {
                     <div class="inline-dialog" (click)="$event.stopPropagation()">
                       <div class="inline-dialog__title">{{ hasExchange(row) ? 'Issue Refund (exchange failed)' : 'Process Refund' }}</div>
-                      @if (row.order.paymentMethod === 'PREPAID') {
-                        <p class="inline-dialog__note">
-                          Razorpay refund of <strong>₹{{ (+row.order.totalAmount).toFixed(2) }}</strong> will be triggered automatically.
-                        </p>
-                      } @else {
-                        <p class="inline-dialog__note">COD order — transfer manually using the details above, then confirm.</p>
-                        @if (!row.bankDetails) {
-                          <p style="color:#e67e22;font-size:0.78rem">⚠ No bank details on record.</p>
+                      <p class="inline-dialog__note" style="margin-bottom:0.25rem">Select items to refund:</p>
+                      <div class="refund-item-list">
+                        @for (item of row.items; track item.id) {
+                          <label class="refund-item-row">
+                            <input type="checkbox"
+                              [checked]="refundItemSelection()[item.id] !== false"
+                              (change)="toggleRefundItem(item.id, $any($event.target).checked)" />
+                            <span class="refund-item-name">{{ item.orderItem.sku.product.title }}</span>
+                            <span class="refund-item-meta">{{ item.orderItem.sku.sizeLabel }} × {{ item.quantity }}</span>
+                            <span class="refund-item-price">₹{{ (+item.orderItem.priceAtPurchase * item.quantity).toFixed(2) }}</span>
+                          </label>
                         }
+                      </div>
+                      <p class="inline-dialog__note" style="margin-top:0.5rem">
+                        Refund total: <strong>₹{{ computeRefundTotal(row).toFixed(2) }}</strong>
+                        @if (row.order.paymentMethod === 'PREPAID') {
+                          — will be triggered via Razorpay automatically.
+                        } @else {
+                          — transfer manually using the details above.
+                        }
+                      </p>
+                      @if (row.order.paymentMethod === 'COD' && !row.bankDetails) {
+                        <p style="color:#e67e22;font-size:0.78rem">⚠ No bank details on record.</p>
                       }
                       <div class="inline-dialog__actions">
                         <button mat-button (click)="refundDialogId.set(null)">Cancel</button>
-                        <button mat-flat-button color="primary" (click)="confirmRefund(row)">Confirm</button>
+                        <button mat-flat-button color="primary"
+                          [disabled]="computeRefundTotal(row) === 0"
+                          (click)="confirmRefund(row)">Confirm</button>
                       </div>
                     </div>
                   }
@@ -417,6 +455,16 @@ const REASON_LABELS: Record<string, string> = {
     .detail-item-meta { color: #888; font-size: 0.75rem; margin-top: 1px; }
     .detail-item-price { font-weight: 600; margin-top: 2px; }
     .exchange-arrow { font-size: 0.75rem; color: #3498db; margin-top: 3px; }
+    .return-tag { font-size: 0.7rem; color: #e67e22; font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .not-in-return-tag { font-size: 0.7rem; color: #bbb; margin-top: 3px; font-style: italic; }
+    .detail-item--inactive { opacity: 0.45; }
+    .detail-thumb--inactive { filter: grayscale(1); }
+    .refund-item-list { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+    .refund-item-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; cursor: pointer; padding: 3px 0; }
+    .refund-item-row input { flex-shrink: 0; }
+    .refund-item-name { flex: 1; font-weight: 500; }
+    .refund-item-meta { color: #888; font-size: 0.75rem; }
+    .refund-item-price { font-weight: 600; min-width: 60px; text-align: right; }
     .meta-grid { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px; font-size: 0.82rem; }
     .meta-key { color: #888; font-size: 0.75rem; align-self: center; }
     .meta-italic { font-style: italic; color: #555; }
@@ -473,6 +521,7 @@ export class ReturnsComponent implements OnInit {
   readonly rejectDialogId = signal<string | null>(null);
   readonly rejectReason = signal('');
   readonly refundDialogId = signal<string | null>(null);
+  readonly refundItemSelection = signal<Record<string, boolean>>({});
 
   // Lightbox
   readonly lightboxReturn = signal<AdminReturn | null>(null);
@@ -529,6 +578,21 @@ export class ReturnsComponent implements OnInit {
 
   hasExchange(row: AdminReturn): boolean {
     return row.items.some(i => i.exchangeSku);
+  }
+
+  getReturnItemForOrderItem(row: AdminReturn, orderItemId: string) {
+    return row.items.find(i => i.orderItem.id === orderItemId) ?? null;
+  }
+
+  toggleRefundItem(itemId: string, checked: boolean) {
+    this.refundItemSelection.update(sel => ({ ...sel, [itemId]: checked }));
+  }
+
+  computeRefundTotal(row: AdminReturn): number {
+    const sel = this.refundItemSelection();
+    return row.items
+      .filter(i => sel[i.id] !== false)
+      .reduce((sum, i) => sum + (+i.orderItem.priceAtPurchase * i.quantity), 0);
   }
 
   parseBankDetails(raw?: string): Record<string, string> | null {
@@ -598,12 +662,25 @@ export class ReturnsComponent implements OnInit {
     });
   }
 
-  openRefundDialog(row: AdminReturn) { this.refundDialogId.set(row.id); }
+  openRefundDialog(row: AdminReturn) {
+    // Default: all items selected
+    const defaults: Record<string, boolean> = {};
+    row.items.forEach(i => defaults[i.id] = true);
+    this.refundItemSelection.set(defaults);
+    this.refundDialogId.set(row.id);
+  }
 
   confirmRefund(row: AdminReturn) {
+    const sel = this.refundItemSelection();
+    const selectedIds = row.items.filter(i => sel[i.id] !== false).map(i => i.id);
+    const body: Record<string, unknown> = {};
+    // Only send returnItemIds if it's a partial selection
+    if (selectedIds.length < row.items.length) {
+      body['returnItemIds'] = selectedIds;
+    }
     this.acting.set(row.id);
     this.refundDialogId.set(null);
-    this.api.post<AdminReturn>(`admin/returns/${row.id}/refund`, {}).subscribe({
+    this.api.post<AdminReturn>(`admin/returns/${row.id}/refund`, body).subscribe({
       next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Refund processed', 'OK', { duration: 3000 }); },
       error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Refund failed', 'OK', { duration: 5000 }); },
     });

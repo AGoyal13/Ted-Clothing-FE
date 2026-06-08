@@ -309,6 +309,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     .status-chip {
       color: #fff; border-radius: 3px; padding: 3px 8px;
       font-size: 0.72rem; letter-spacing: 0.05em; font-weight: 600;
+      white-space: nowrap; display: inline-block;
     }
     .order-row { cursor: pointer; }
     .order-row:hover { background: #fafafa; }
@@ -344,7 +345,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     .mat-column-customer { flex: 1 1 160px; min-width: 140px; overflow: hidden; }
     .mat-column-items { flex: 0 0 90px; max-width: 90px; }
     .mat-column-amount { flex: 0 0 110px; max-width: 110px; }
-    .mat-column-status { flex: 0 0 140px; max-width: 140px; }
+    .mat-column-status { flex: 0 0 175px; max-width: 175px; overflow: visible; }
     .mat-column-actions { flex: 0 0 48px; max-width: 48px; }
     .mat-column-expandedDetail { flex: 1 1 100%; max-width: 100%; }
     .detail-row { overflow: hidden; }
