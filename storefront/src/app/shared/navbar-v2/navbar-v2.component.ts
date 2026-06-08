@@ -100,8 +100,8 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
       const navH = Math.round(h);
       document.documentElement.style.setProperty('--navbar-v2-h', `${navH}px`);
       // page top offsets: desktop = navH + breathing room; mobile adds category strip (88px)
-      document.documentElement.style.setProperty('--nav-offset', `${navH + 24}px`);
-      document.documentElement.style.setProperty('--nav-offset-mobile', `${navH + 88 + 8}px`);
+      document.documentElement.style.setProperty('--nav-offset', `${navH}px`);
+      document.documentElement.style.setProperty('--nav-offset-mobile', `${navH + 88 + 2}px`);
     });
     this.headerObserver.observe(this.headerEl.nativeElement);
   }
