@@ -13,14 +13,24 @@ interface GridCategory {
   name: string;
   slug: string;
   accent: string;
+  image: string | null;
 }
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  women:       '/images/women-editorial-portrait.webp',
+  men:         '/images/men-mega-hero.webp',
+  kids:        '/images/kids-mega-hero.webp',
+  accessories: '/images/accessories-mega-hero.webp',
+  beauty:      '/images/beauty-mega-hero.webp',
+  bags:        '/images/bags-mega-hero.webp',
+};
+
 const FALLBACK_CATEGORIES: GridCategory[] = [
-  { id: '1', name: 'Men', slug: 'men', accent: 'rgba(139, 94, 60, 0.25)' },
-  { id: '2', name: 'Women', slug: 'women', accent: 'rgba(201, 168, 76, 0.15)' },
-  { id: '3', name: 'Kids', slug: 'kids', accent: 'rgba(107, 101, 96, 0.2)' },
-  { id: '4', name: 'Accessories', slug: 'accessories', accent: 'rgba(201, 168, 76, 0.1)' },
-  { id: '5', name: 'New Arrivals', slug: 'new-arrivals', accent: 'rgba(139, 94, 60, 0.15)' },
+  { id: '1', name: 'Men',         slug: 'men',         accent: 'rgba(139, 94, 60, 0.25)',  image: CATEGORY_IMAGES['men'] },
+  { id: '2', name: 'Women',       slug: 'women',       accent: 'rgba(201, 168, 76, 0.15)', image: CATEGORY_IMAGES['women'] },
+  { id: '3', name: 'Kids',        slug: 'kids',        accent: 'rgba(107, 101, 96, 0.2)',  image: CATEGORY_IMAGES['kids'] },
+  { id: '4', name: 'Accessories', slug: 'accessories', accent: 'rgba(201, 168, 76, 0.1)',  image: CATEGORY_IMAGES['accessories'] },
+  { id: '5', name: 'New Arrivals',slug: 'new-arrivals',accent: 'rgba(139, 94, 60, 0.15)', image: null },
 ];
 
 @Component({
@@ -56,6 +66,7 @@ export class CategoryGridComponent implements OnInit {
           const roots = flat.filter(c => c.parentId === null);
           this.categories.set(
             (roots.length > 0 ? roots : flat).map((c, i) => ({
+              image: CATEGORY_IMAGES[c.slug] ?? null,
               id: c.id,
               name: c.name,
               slug: c.slug,

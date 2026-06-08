@@ -88,6 +88,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.slug().replace(/-/g, ' ').toUpperCase()
   );
 
+
   ngOnInit(): void {
     this.shippingService.ensureAddresses();
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, query]) => {

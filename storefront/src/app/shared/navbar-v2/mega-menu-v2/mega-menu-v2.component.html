@@ -9,8 +9,16 @@
 
       <div class="mega-v2__inner">
 
-        <!-- Zone 1: Category hero -->
-        <div class="mega-v2__hero">
+        <!-- Zone 1: Category hero (optional editorial image for selected slugs) -->
+        <div class="mega-v2__hero" [class.mega-v2__hero--img]="getHeroImage(root.slug)">
+          @if (getHeroImage(root.slug); as heroSrc) {
+            <img class="mega-v2__hero-bg"
+                 [src]="heroSrc"
+                 alt=""
+                 aria-hidden="true"
+                 loading="lazy" />
+            <div class="mega-v2__hero-scrim"></div>
+          }
           <div>
             <div class="mega-v2__hero-eyebrow">Explore All</div>
             <h2 class="mega-v2__hero-title">{{ root.name }}</h2>

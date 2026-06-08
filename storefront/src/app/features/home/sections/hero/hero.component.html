@@ -1,6 +1,11 @@
 
     <section class="hero" aria-label="Hero banner">
 
+      <!-- Editorial image — full-screen bg on mobile only -->
+      <div class="hero__mobile-bg" aria-hidden="true">
+        <img src="/images/hero-editorial.webp" alt="" loading="eager" fetchpriority="high" />
+      </div>
+
       <!-- Noise grain overlay -->
       <svg class="hero__grain" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
         <filter id="grain">
@@ -49,13 +54,20 @@
           </div>
         </div>
 
-        <!-- Right: Editorial Card Placeholder -->
-        <div class="hero__visual" aria-hidden="true">
+        <!-- Right: Editorial Image -->
+        <div class="hero__visual">
           <div class="hero__card">
-            <div class="hero__card-inner">
-              <p class="hero__card-label">EDITORIAL</p>
-              <div class="hero__card-line"></div>
-              <p class="hero__card-sub">SS 2025</p>
+            <img
+              class="hero__card-img"
+              src="/images/hero-editorial.webp"
+              alt="Quiet luxury editorial — SS 2025"
+              loading="eager"
+              fetchpriority="high"
+            />
+            <div class="hero__card-overlay" aria-hidden="true"></div>
+            <div class="hero__card-badge" aria-hidden="true">
+              <span class="hero__card-badge-text">EDITORIAL</span>
+              <span class="hero__card-badge-sub">SS 2025</span>
             </div>
             <div class="hero__card-corner hero__card-corner--tl"></div>
             <div class="hero__card-corner hero__card-corner--br"></div>

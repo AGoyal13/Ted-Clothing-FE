@@ -21,6 +21,19 @@ export class MegaMenuV2Component {
   @Output() leave = new EventEmitter<void>();
   @Output() close = new EventEmitter<void>();
 
+  private readonly HERO_IMAGES: Record<string, string> = {
+    women:       '/images/women-editorial-portrait.webp',
+    men:         '/images/men-mega-hero.webp',
+    kids:        '/images/kids-mega-hero.webp',
+    accessories: '/images/accessories-mega-hero.webp',
+    beauty:      '/images/beauty-mega-hero.webp',
+    bags:        '/images/bags-mega-hero.webp',
+  };
+
+  getHeroImage(slug: string): string | null {
+    return this.HERO_IMAGES[slug.toLowerCase()] ?? null;
+  }
+
   private readonly CATEGORY_COLORS: Record<string, string> = {
     women: '#c8906a',
     men: '#3e5060',

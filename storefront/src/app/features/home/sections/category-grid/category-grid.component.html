@@ -14,11 +14,15 @@
         <a
           [routerLink]="['/category', cat.slug]"
           class="cat-card"
-          [class.cat-card--featured]="i === 0 && categories().length >= 3"
           [style.--accent]="cat.accent"
           [attr.aria-label]="'Shop ' + cat.name"
         >
-          <div class="cat-card__bg"></div>
+          @if (cat.image) {
+            <img class="cat-card__img" [src]="cat.image" [alt]="cat.name" loading="lazy" aria-hidden="true" />
+            <div class="cat-card__scrim"></div>
+          } @else {
+            <div class="cat-card__bg"></div>
+          }
           <div class="cat-card__content">
             <span class="cat-card__number">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
             <h3 class="cat-card__name">{{ cat.name }}</h3>

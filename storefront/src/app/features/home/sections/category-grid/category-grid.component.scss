@@ -1,5 +1,6 @@
 .cat-section {
   padding: var(--section-pad);
+  padding-bottom: clamp(2rem, 4vw, 3rem);
   max-width: 1440px;
   margin: 0 auto;
 }
@@ -23,36 +24,42 @@
 }
 
 .cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  grid-auto-rows: 220px;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 1rem;
+  padding-bottom: 0.5rem;
 
-  @media (max-width: 768px) {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 0.75rem;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
-@media (max-width: 768px) {
-  .cat-card,
-  .cat-card.skeleton {
-    flex: 0 0 72%;
-    height: 180px;
-    scroll-snap-align: start;
+.cat-card,
+.cat-card.skeleton {
+  flex: 0 0 22%;
+  scroll-snap-align: start;
+  aspect-ratio: 2 / 3;
+  height: auto;
+
+  @media (max-width: 1024px) {
+    flex: 0 0 28%;
+  }
+
+  @media (max-width: 768px) {
+    flex: 0 0 44%;
+  }
+
+  @media (max-width: 480px) {
+    flex: 0 0 60%;
   }
 }
 
 .cat-card {
   position: relative;
+  aspect-ratio: 2 / 3;
   background: var(--surface);
   border: 1px solid rgba(245, 240, 232, 0.06);
   overflow: hidden;
@@ -62,18 +69,6 @@
   text-decoration: none;
   transition: border-color 0.3s ease;
   cursor: pointer;
-
-  &--featured {
-    grid-row: span 2;
-
-    @media (max-width: 600px) {
-      grid-row: span 1;
-    }
-
-    .cat-card__name {
-      font-size: clamp(2rem, 4vw, 3.5rem);
-    }
-  }
 
   &:hover {
     border-color: rgba(201, 168, 76, 0.4);
@@ -95,6 +90,31 @@
   background: var(--accent, rgba(201, 168, 76, 0.08));
   opacity: 0;
   transition: opacity 0.4s ease;
+}
+
+.cat-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  transition: transform 0.55s var(--ease-enter);
+}
+
+.cat-card:hover .cat-card__img {
+  transform: scale(1.06);
+}
+
+.cat-card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 13, 11, 0.18) 0%,
+    rgba(13, 13, 11, 0.72) 100%
+  );
 }
 
 .cat-card__content {
