@@ -170,7 +170,7 @@
 
                   <div class="detail-section">
                     <h4 class="detail-section__title">Shipment</h4>
-                    @if (full.status === 'CANCELLED') {
+                    @if (full.status === 'CANCELLED' || full.status === 'RETURNED') {
                       <p class="detail-no-shipment">—</p>
                     } @else if (full.awb) {
                       <div class="detail-tracking">
@@ -216,30 +216,158 @@
                   </div>
                 </div>
 
-                <!-- Return section — shown only for DELIVERED orders within window -->
-                @if (isReturnable(order)) {
+                <!-- Return / Exchange section -->
+                @if (returnSuccessId() === order.id) {
+                  <div class="detail-section detail-section--return">
+                    <p class="detail-return__success">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {{ returnEnabled() ? 'Return' : 'Exchange' }} request submitted — our team will be in touch shortly
+                    </p>
+                  </div>
+                } @else if (isReturnable(order)) {
                   <div class="detail-section detail-section--return">
                     <p class="detail-return__window">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
                       </svg>
-                      Return by {{ returnDeadline(order) | date:'d MMM y' }} ({{ returnWindowDays() }}-day window)
+                      {{ returnEnabled() ? 'Return' : 'Exchange' }} by {{ returnDeadline(order) | date:'d MMM y' }} ({{ returnWindowDays() }}-day window)
                     </p>
-                    @if (returnSuccessId() === order.id) {
-                      <p class="detail-return__success">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        Return request submitted successfully
-                      </p>
+
+                    @if (returnFormOrderId() === order.id) {
+                      <!-- ── Wizard ── -->
+                      <div class="rw">
+                        <!-- Step indicator -->
+                        <div class="rw__steps">
+                          @for (s of stepsArray(full.paymentMethod === 'COD'); track s) {
+                            <div class="rw__step" [class.rw__step--active]="returnStep() === s" [class.rw__step--done]="returnStep() > s">
+                              @if (returnStep() > s) {
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              } @else {
+                                {{ s }}
+                              }
+                            </div>
+                            @if (s < stepsArray(full.paymentMethod === 'COD').length) {
+                              <div class="rw__step-line" [class.rw__step-line--done]="returnStep() > s"></div>
+                            }
+                          }
+                        </div>
+
+                        <!-- Step 1: Reason -->
+                        @if (returnStep() === 1) {
+                          <p class="rw__label">Why are you {{ returnEnabled() ? 'returning' : 'exchanging' }} this?</p>
+                          <div class="rw__reasons">
+                            @for (r of RETURN_REASONS; track r[0]) {
+                              <button class="rw__reason" [class.rw__reason--active]="returnReason() === r[0]"
+                                (click)="returnReason.set(r[0])">{{ r[1] }}</button>
+                            }
+                          </div>
+                          <textarea class="rw__textarea" placeholder="Additional comments (optional)"
+                            [value]="returnComments()"
+                            (input)="returnComments.set($any($event.target).value)"
+                            rows="2" maxlength="1000"></textarea>
+                        }
+
+                        <!-- Step 2: Photos -->
+                        @if (returnStep() === 2) {
+                          <p class="rw__label">Upload photos of the item <span class="rw__required">*</span></p>
+                          <p class="rw__sublabel">Min 1, max 4 — JPEG, PNG, or WebP</p>
+                          <div class="rw__photos">
+                            @for (photo of returnPhotos(); track photo.localId) {
+                              <div class="rw__photo">
+                                @if (photo.uploading) {
+                                  <div class="rw__photo-spinner"></div>
+                                } @else {
+                                  <img [src]="photo.url" alt="Return photo" class="rw__photo-img" />
+                                  <button class="rw__photo-remove" (click)="removePhoto(photo.localId)" type="button">✕</button>
+                                }
+                              </div>
+                            }
+                            @if (returnPhotos().length < 4) {
+                              <label class="rw__photo-add"
+                                (dragover)="$event.preventDefault(); photoDragOver.set(true)"
+                                (dragleave)="photoDragOver.set(false)"
+                                (drop)="onPhotoDrop($event)"
+                                [class.rw__photo-add--drag]="photoDragOver()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span>{{ returnPhotos().length === 0 ? 'Tap or drag to upload' : 'Add more' }}</span>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden (change)="onPhotoSelect($event)" />
+                              </label>
+                            }
+                          </div>
+                        }
+
+                        <!-- Step 3: Exchange size (exchange mode only) -->
+                        @if (showExchangeStep(returnStep())) {
+                          <p class="rw__label">Select exchange size for each item</p>
+                          @if (availableSkusLoading()) {
+                            <p class="rw__loading">Loading sizes…</p>
+                          } @else {
+                            @for (item of full.items; track item.id) {
+                              <div class="rw__item-sizes">
+                                <p class="rw__item-name">{{ item.sku.product.title }} <span class="rw__item-current">(Current: {{ item.sku.sizeLabel }})</span></p>
+                                <div class="rw__sizes">
+                                  @for (sku of skusForItem(item); track sku.id) {
+                                    <button class="rw__size"
+                                      [class.rw__size--active]="returnExchangeSizes()[item.id] === sku.id"
+                                      [class.rw__size--current]="sku.sizeLabel === item.sku.sizeLabel && returnExchangeSizes()[item.id] !== sku.id"
+                                      [class.rw__size--oos]="sku.stockQty === 0"
+                                      [disabled]="sku.stockQty === 0"
+                                      (click)="selectExchangeSize(item.id, sku.id)">
+                                      {{ sku.sizeLabel }}
+                                      @if (sku.sizeLabel === item.sku.sizeLabel) { <span class="rw__size-cur">↩</span> }
+                                      @if (sku.stockQty === 0) { <span class="rw__size-oos">OOS</span> }
+                                    </button>
+                                  }
+                                </div>
+                              </div>
+                            }
+                          }
+                        }
+
+                        <!-- Bank / UPI step -->
+                        @if (showBankStep(returnStep(), full.paymentMethod === 'COD')) {
+                          <p class="rw__label">Refund details <span class="rw__sublabel-inline">(if an issue arises with your {{ returnEnabled() ? 'return' : 'exchange' }}, where should we send the refund?)</span></p>
+                          <div class="rw__cod-tabs">
+                            <button class="rw__cod-tab" [class.rw__cod-tab--active]="codMode() === 'UPI'" (click)="codMode.set('UPI')">UPI</button>
+                            <button class="rw__cod-tab" [class.rw__cod-tab--active]="codMode() === 'BANK'" (click)="codMode.set('BANK')">Bank Transfer</button>
+                          </div>
+                          @if (codMode() === 'UPI') {
+                            <input class="rw__input" type="text" placeholder="UPI ID (e.g. name@paytm)"
+                              [value]="upiId()" (input)="upiId.set($any($event.target).value)" maxlength="100" />
+                          } @else {
+                            <input class="rw__input" type="text" placeholder="Account holder name"
+                              [value]="bankName()" (input)="bankName.set($any($event.target).value)" maxlength="100" />
+                            <input class="rw__input" type="text" placeholder="Account number"
+                              [value]="bankAccount()" (input)="bankAccount.set($any($event.target).value)" maxlength="20" />
+                            <input class="rw__input" type="text" placeholder="IFSC code (e.g. HDFC0001234)"
+                              [value]="bankIfsc()" (input)="bankIfsc.set($any($event.target).value)" maxlength="11" style="text-transform:uppercase" />
+                          }
+                        }
+
+                        @if (returnFormError()) {
+                          <p class="detail-return__error">{{ returnFormError() }}</p>
+                        }
+
+                        <!-- Actions -->
+                        <div class="rw__actions">
+                          @if (returnStep() > 1) {
+                            <button class="rw__back" (click)="prevReturnStep()" [disabled]="returnSubmitting()">← Back</button>
+                          } @else {
+                            <button class="rw__back" (click)="cancelReturnForm()">Cancel</button>
+                          }
+                          <button class="rw__next"
+                            (click)="nextReturnStep(full)"
+                            [disabled]="returnSubmitting()">
+                            @if (returnSubmitting()) { Submitting… }
+                            @else if (isLastStep(full.paymentMethod === 'COD')) { Submit {{ returnEnabled() ? 'Return' : 'Exchange' }} }
+                            @else { Continue → }
+                          </button>
+                        </div>
+                      </div>
                     } @else {
-                      <button
-                        class="detail-return__btn"
-                        (click)="requestReturn(order.id)"
-                        [disabled]="returningId() === order.id">
-                        {{ returningId() === order.id ? 'Submitting…' : 'Request Return' }}
+                      <button class="detail-return__btn" (click)="openReturnForm(order.id, full.items)">
+                        {{ returnEnabled() ? 'Request Return' : 'Request Exchange' }}
                       </button>
-                      @if (returnErrorId() === order.id) {
-                        <p class="detail-return__error">Failed to submit — please try again</p>
-                      }
                     }
                   </div>
                 } @else if (order.status === 'RETURN_REQUESTED') {
@@ -248,7 +376,14 @@
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
                       </svg>
-                      Return requested — our team will arrange pickup shortly
+                      Request submitted — pickup scheduled, keep item ready in original packaging
+                    </p>
+                  </div>
+                } @else if (order.status === 'RETURNED') {
+                  <div class="detail-section detail-section--return">
+                    <p class="detail-return__success">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      Return complete — refund processed
                     </p>
                   </div>
                 }

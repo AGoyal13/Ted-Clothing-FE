@@ -11,6 +11,7 @@ export class ReturnPolicyComponent implements OnInit {
   private readonly siteConfig = inject(SiteConfigService);
 
   readonly returnWindowDays = this.siteConfig.returnWindowDays;
+  readonly returnEnabled = this.siteConfig.returnEnabled;
 
   ngOnInit(): void {
     this.siteConfig.load();

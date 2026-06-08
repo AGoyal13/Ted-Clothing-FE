@@ -58,6 +58,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>receipt_long</mat-icon>
             <span matListItemTitle>Orders</span>
           </a>
+          <a mat-list-item routerLink="/returns" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
+            <mat-icon matListItemIcon>assignment_return</mat-icon>
+            <span matListItemTitle>Returns</span>
+          </a>
           <a mat-list-item routerLink="/warehouses" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>warehouse</mat-icon>
             <span matListItemTitle>Warehouses</span>

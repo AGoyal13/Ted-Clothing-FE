@@ -13,6 +13,11 @@ export class SiteConfigService {
     return cfg ? parseInt(cfg['return_window_days'] ?? '2', 10) : 2;
   });
 
+  readonly returnEnabled = computed(() => {
+    const cfg = this._config();
+    return cfg ? cfg['return_enabled'] !== 'false' : true;
+  });
+
   load(): void {
     if (this._loaded) return;
     this._loaded = true;

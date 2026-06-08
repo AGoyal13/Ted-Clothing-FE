@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule, DatePipe, CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -61,10 +62,10 @@ interface OrdersPage {
 
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['CANCELLED'],
+  CONFIRMED: ['SHIPPED', 'CANCELLED'],
   SHIPPED: ['DELIVERED'],
-  DELIVERED: ['RETURN_REQUESTED'],
-  RETURN_REQUESTED: ['RETURNED', 'CONFIRMED'],
+  DELIVERED: [],
+  RETURN_REQUESTED: [],
   RETURNED: [],
   CANCELLED: [],
 };
@@ -83,7 +84,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   selector: 'app-orders',
   standalone: true,
   imports: [
-    CommonModule, DatePipe, CurrencyPipe, FormsModule,
+    CommonModule, DatePipe, CurrencyPipe, FormsModule, RouterLink,
     MatTableModule, MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule, MatChipsModule,
     MatSnackBarModule, MatProgressSpinnerModule, MatMenuModule, MatTooltipModule,
@@ -247,6 +248,17 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
                     }
                   </div>
                 </div>
+
+                <!-- Return badge — link to /returns page for full management -->
+                @if (row.status === 'RETURN_REQUESTED' || row.status === 'RETURNED') {
+                  <div class="detail-section return-badge-section">
+                    <div class="detail-label">Return</div>
+                    <a class="return-view-link" [routerLink]="['/returns']" [queryParams]="{orderId: row.id}" (click)="$event.stopPropagation()">
+                      <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">assignment_return</mat-icon>
+                      View &amp; manage return →
+                    </a>
+                  </div>
+                }
               </div>
             }
           </td>
@@ -337,6 +349,10 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     .mat-column-expandedDetail { flex: 1 1 100%; max-width: 100%; }
     .detail-row { overflow: hidden; }
     .cell-stack { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+    /* Return badge */
+    .return-badge-section { border-left: 3px solid #e67e22; padding-left: 0.75rem; }
+    .return-view-link { display: inline-flex; align-items: center; font-size: 0.82rem; color: #e67e22; text-decoration: none; font-weight: 500; }
+    .return-view-link:hover { text-decoration: underline; }
   `],
 })
 export class OrdersComponent implements OnInit {
@@ -432,4 +448,5 @@ export class OrdersComponent implements OnInit {
       },
     });
   }
+
 }
