@@ -30,8 +30,9 @@ export class MegaMenuV2Component {
     bags:        '/images/bags-mega-hero.webp',
   };
 
-  getHeroImage(slug: string): string | null {
-    return this.HERO_IMAGES[slug.toLowerCase()] ?? null;
+  getHeroImage(root: NavCategory): string | null {
+    if (!root?.slug) return null;
+    return this.HERO_IMAGES[root.slug.toLowerCase()] ?? root.imageUrl ?? null;
   }
 
   private readonly CATEGORY_COLORS: Record<string, string> = {

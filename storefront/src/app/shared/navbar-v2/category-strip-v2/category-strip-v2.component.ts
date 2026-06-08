@@ -52,20 +52,6 @@ export class CategoryStripV2Component implements OnDestroy {
     return this.allChildren().find(c => c.slug === slug)?.name ?? '';
   });
 
-  private readonly HERO_IMAGES: Record<string, string> = {
-    women:       '/images/women-editorial-portrait.webp',
-    men:         '/images/men-mega-hero.webp',
-    kids:        '/images/kids-mega-hero.webp',
-    accessories: '/images/accessories-mega-hero.webp',
-    beauty:      '/images/beauty-mega-hero.webp',
-    bags:        '/images/bags-mega-hero.webp',
-  };
-
-  readonly activeHeroImage = computed(() => {
-    const slug = this.activeCategory()?.slug;
-    return slug ? (this.HERO_IMAGES[slug] ?? null) : null;
-  });
-
   private readonly CATEGORY_COLORS: Record<string, string> = {
     women: '#c8906a',
     men: '#3e5060',

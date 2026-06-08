@@ -64,7 +64,7 @@ import { Category, ProductGender } from './categories.component';
               }
               <input #fileInput type="file" accept="image/jpeg,image/png,image/webp"
                      style="display:none" (change)="onFileSelected($event)" />
-              <span class="image-hint">JPEG, PNG or WebP · Resized to 800×800</span>
+              <span class="image-hint">JPEG, PNG or WebP · Portrait (2:3) recommended</span>
             </div>
           </div>
         </div>
@@ -84,8 +84,8 @@ import { Category, ProductGender } from './categories.component';
     .image-section { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
     .image-label { font-size: 12px; color: rgba(0,0,0,.6); }
     .image-row { display: flex; gap: 12px; align-items: flex-start; }
-    .image-preview { width: 72px; height: 72px; object-fit: cover; border-radius: 4px; border: 1px solid #e0e0e0; flex-shrink: 0; }
-    .image-placeholder { width: 72px; height: 72px; border-radius: 4px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #bbb; }
+    .image-preview { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+    .image-placeholder { width: 72px; height: 96px; border-radius: 4px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #bbb; }
     .image-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
     .image-hint { font-size: 11px; color: #999; }
   `],

@@ -41,16 +41,6 @@
              aria-modal="true"
              [attr.aria-label]="(activeCategory()?.name ?? '') + ' navigation'">
 
-          <!-- Editorial backdrop -->
-          @if (activeHeroImage(); as heroSrc) {
-            <img class="drawer-panel__hero-bg"
-                 [src]="heroSrc"
-                 alt=""
-                 aria-hidden="true"
-                 loading="lazy" />
-            <div class="drawer-panel__hero-scrim"></div>
-          }
-
           <!-- Drag handle -->
           <div class="drawer-handle" aria-hidden="true"></div>
 

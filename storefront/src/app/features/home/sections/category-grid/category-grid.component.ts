@@ -66,7 +66,7 @@ export class CategoryGridComponent implements OnInit {
           const roots = flat.filter(c => c.parentId === null);
           this.categories.set(
             (roots.length > 0 ? roots : flat).map((c, i) => ({
-              image: CATEGORY_IMAGES[c.slug] ?? null,
+              image: c.imageUrl ?? CATEGORY_IMAGES[c.slug] ?? null,
               id: c.id,
               name: c.name,
               slug: c.slug,

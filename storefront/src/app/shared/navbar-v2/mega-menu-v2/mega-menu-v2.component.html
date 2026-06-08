@@ -10,8 +10,8 @@
       <div class="mega-v2__inner">
 
         <!-- Zone 1: Category hero (optional editorial image for selected slugs) -->
-        <div class="mega-v2__hero" [class.mega-v2__hero--img]="getHeroImage(root.slug)">
-          @if (getHeroImage(root.slug); as heroSrc) {
+        <div class="mega-v2__hero" [class.mega-v2__hero--img]="getHeroImage(root)">
+          @if (getHeroImage(root); as heroSrc) {
             <img class="mega-v2__hero-bg"
                  [src]="heroSrc"
                  alt=""

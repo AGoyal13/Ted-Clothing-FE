@@ -4,6 +4,7 @@ export interface Category {
   slug: string;
   parentId: string | null;
   gender: 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX' | null;
+  imageUrl?: string | null;
   parent?: { id: string; name: string; slug: string } | null;
   children?: Category[];
 }

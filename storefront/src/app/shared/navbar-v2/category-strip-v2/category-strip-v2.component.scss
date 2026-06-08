@@ -56,10 +56,10 @@
       &:last-child { border-right: none; }
     }
 
-    /* Art zone */
+    /* Art zone — full chip height so portrait images aren't clipped at 62px */
     .chip-art {
       position: absolute;
-      inset: 0 0 26px 0;
+      inset: 0;
       pointer-events: none;
       opacity: 1;
       transition:
@@ -71,6 +71,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: top center;
     }
 
     /* Ink wash overlay on active */
@@ -106,11 +107,13 @@
     .chip--active::after { transform: scaleX(1); }
     .chip--sale::after { background: var(--danger); }
 
-    /* Label zone */
+    /* Label zone — overlays the bottom of the art so the image gets the full chip height */
     .chip-label {
-      position: relative;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       z-index: 2;
-      width: 100%;
       height: 26px;
       display: flex;
       align-items: center;
@@ -119,17 +122,14 @@
       letter-spacing: 0.16em;
       text-transform: uppercase;
       font-weight: 500;
-      color: var(--muted);
-      background: var(--surface);
-      border-top: 1px solid rgba(201, 168, 76, 0.1);
+      color: var(--cream);
+      background: linear-gradient(to top, rgba(13, 13, 11, 0.78) 0%, transparent 100%);
       transition:
         color 200ms,
-        border-color 220ms,
         height 220ms cubic-bezier(0.4, 0, 0.1, 1),
         font-size 220ms;
       white-space: nowrap;
       padding: 0 4px;
-      flex-shrink: 0;
     }
 
     .chip--active .chip-label { color: var(--gold); font-weight: 600; }
@@ -149,10 +149,10 @@
 
       .chip-label {
         height: 34px;
-        border-top-color: transparent;
         font-size: 0.52rem;
         letter-spacing: 0.18em;
         background: transparent;
+        color: var(--muted);
       }
     }
 
@@ -196,38 +196,6 @@
       to   { transform: translateY(0); }
     }
 
-    /* Editorial hero backdrop */
-    .drawer-panel__hero-bg {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top;
-      display: block;
-      z-index: 0;
-      filter: brightness(0.55);
-    }
-
-    .drawer-panel__hero-scrim {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: linear-gradient(
-        to bottom,
-        rgba(13, 13, 11, 0.55) 0%,
-        rgba(13, 13, 11, 0.88) 60%,
-        rgba(13, 13, 11, 0.97) 100%
-      );
-    }
-
-    /* Lift all drawer content above the image backdrop */
-    .drawer-handle,
-    .drawer-header,
-    .drawer-body {
-      position: relative;
-      z-index: 1;
-    }
 
     /* Drag handle */
     .drawer-handle {
@@ -371,6 +339,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: top center;
       opacity: 0.55;
     }
 
@@ -556,6 +525,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: top center;
     }
 
     .drawer-chip-label {
