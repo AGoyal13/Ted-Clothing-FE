@@ -160,24 +160,130 @@
 
     <!-- Search overlay -->
     @if (searchOpen()) {
-      <div class="search-overlay" (click)="searchOpen.set(false)">
+      <div class="search-overlay" (click)="closeSearch()">
         <div class="search-overlay__box" (click)="$event.stopPropagation()">
           <div class="search-overlay__input-row">
             <svg class="search-overlay__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input class="search-overlay__input"
+                   #searchInput
                    type="search"
                    placeholder="Search products…"
-                   autofocus
                    aria-label="Search products"
-                   (keydown.escape)="searchOpen.set(false)">
-            <button class="search-overlay__close" (click)="searchOpen.set(false)" aria-label="Close search">
+                   [value]="searchQuery()"
+                   (input)="onSearchInput($event)"
+                   (keydown)="onSearchKeydown($event)">
+            <button class="search-overlay__close" (click)="closeSearch()" aria-label="Close search">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
           </div>
+
+          <!-- Preset panel — shown before typing (query < 2 chars) -->
+          @if (searchQuery().length < 2 && (presetLoading() || presetResults().length > 0)) {
+            <div class="search-results" role="listbox" aria-label="Featured products"
+                 (mouseleave)="searchActiveIdx.set(-1)">
+              <div class="search-results__label">POPULAR</div>
+              @if (presetLoading()) {
+                @for (n of [1,2,3]; track n) {
+                  <div class="search-result-skeleton">
+                    <div class="search-result-skeleton__img"></div>
+                    <div class="search-result-skeleton__body">
+                      <div class="search-result-skeleton__line search-result-skeleton__line--title"></div>
+                      <div class="search-result-skeleton__line search-result-skeleton__line--cat"></div>
+                    </div>
+                  </div>
+                }
+              } @else {
+                @for (hit of presetResults(); track hit.id; let i = $index) {
+                  <a class="search-result"
+                     [class.search-result--active]="searchActiveIdx() === i"
+                     [routerLink]="['/product', hit.slug]"
+                     (click)="closeSearch()"
+                     (mouseenter)="searchActiveIdx.set(i)"
+                     role="option"
+                     [attr.aria-selected]="searchActiveIdx() === i">
+                    <div class="search-result__img-wrap">
+                      @if (hit.colors?.[0]?.firstImage) {
+                        <img class="search-result__img" [src]="hit.colors[0].firstImage" [alt]="hit.title" loading="lazy">
+                      } @else {
+                        <div class="search-result__img-placeholder"></div>
+                      }
+                    </div>
+                    <div class="search-result__info">
+                      <span class="search-result__title">{{ hit.title }}</span>
+                      <span class="search-result__cat">{{ hit.categoryName }}</span>
+                      <div class="search-result__price">
+                        @if (hit.discountPercent > 0) {
+                          <span class="search-result__price-orig">{{ formatINR(hit.basePrice) }}</span>
+                          <span class="search-result__price-sale">{{ formatINR(searchEffectivePrice(hit)) }}</span>
+                          <span class="search-result__price-off">{{ searchDiscountPct(hit) }}% OFF</span>
+                        } @else {
+                          <span class="search-result__price-sale">{{ formatINR(hit.basePrice) }}</span>
+                        }
+                      </div>
+                    </div>
+                  </a>
+                }
+              }
+            </div>
+          }
+
+          <!-- Live results panel — shown while typing (query >= 2 chars) -->
+          @if (searchQuery().length >= 2) {
+            <div class="search-results" role="listbox" aria-label="Search results"
+                 (mouseleave)="searchActiveIdx.set(-1)">
+              @if (searchLoading()) {
+                @for (n of [1,2,3]; track n) {
+                  <div class="search-result-skeleton">
+                    <div class="search-result-skeleton__img"></div>
+                    <div class="search-result-skeleton__body">
+                      <div class="search-result-skeleton__line search-result-skeleton__line--title"></div>
+                      <div class="search-result-skeleton__line search-result-skeleton__line--cat"></div>
+                    </div>
+                  </div>
+                }
+              } @else if (searchResults().length > 0) {
+                @for (hit of searchResults(); track hit.id; let i = $index) {
+                  <a class="search-result"
+                     [class.search-result--active]="searchActiveIdx() === i"
+                     [routerLink]="['/product', hit.slug]"
+                     (click)="closeSearch()"
+                     (mouseenter)="searchActiveIdx.set(i)"
+                     role="option"
+                     [attr.aria-selected]="searchActiveIdx() === i">
+                    <div class="search-result__img-wrap">
+                      @if (hit.colors?.[0]?.firstImage) {
+                        <img class="search-result__img" [src]="hit.colors[0].firstImage" [alt]="hit.title" loading="lazy">
+                      } @else {
+                        <div class="search-result__img-placeholder"></div>
+                      }
+                    </div>
+                    <div class="search-result__info">
+                      <span class="search-result__title">{{ hit.title }}</span>
+                      <span class="search-result__cat">{{ hit.categoryName }}</span>
+                      <div class="search-result__price">
+                        @if (hit.discountPercent > 0) {
+                          <span class="search-result__price-orig">{{ formatINR(hit.basePrice) }}</span>
+                          <span class="search-result__price-sale">{{ formatINR(searchEffectivePrice(hit)) }}</span>
+                          <span class="search-result__price-off">{{ searchDiscountPct(hit) }}% OFF</span>
+                        } @else {
+                          <span class="search-result__price-sale">{{ formatINR(hit.basePrice) }}</span>
+                        }
+                      </div>
+                    </div>
+                  </a>
+                }
+              } @else if (searchAttempted()) {
+                <div class="search-no-results">
+                  No results for "<em>{{ searchQuery() }}</em>"
+                </div>
+              }
+            </div>
+          }
+
         </div>
       </div>
     }

@@ -76,6 +76,7 @@ export class PdpGalleryComponent implements OnDestroy {
 
   closeLightbox(): void {
     this.lightboxOpen.set(false);
+    if (!isPlatformBrowser(this.platformId)) return;
     document.body.style.overflow = '';
     if (this.lightboxKeyHandler) {
       document.removeEventListener('keydown', this.lightboxKeyHandler);

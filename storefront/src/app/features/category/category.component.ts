@@ -14,14 +14,15 @@ import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { combineLatest } from 'rxjs';
-import { ProductService } from '../../core/services/product.service';
+import { SearchService } from '../../core/services/search.service';
 import { CategoryService } from '../../core/services/category.service';
 import { ShippingService } from '../../core/services/shipping.service';
 import { Product } from '../../core/models/product.model';
+import { searchHitToProduct } from '../../core/models/search.model';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 import { AnimateOnScrollDirective } from '../../core/directives/animate-on-scroll.directive';
 import { CatFilterBarComponent } from './components/cat-filter-bar/cat-filter-bar.component';
-import { CatMobileFilterComponent } from './components/cat-mobile-filter/cat-mobile-filter.component';
+import { CatMobileFilterComponent, MobileFilters } from './components/cat-mobile-filter/cat-mobile-filter.component';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
 type PageType = 'gender' | 'parent' | 'leaf';
@@ -41,6 +42,11 @@ const GENDER_SLUGS: Record<string, 'MEN' | 'WOMEN' | 'KIDS'> = {
   men: 'MEN', women: 'WOMEN', kids: 'KIDS',
 };
 
+function parseArrayParam(val: string | string[] | undefined): string[] {
+  if (!val) return [];
+  return Array.isArray(val) ? val : [val];
+}
+
 @Component({
   selector: 'app-category',
   standalone: true,
@@ -49,10 +55,10 @@ const GENDER_SLUGS: Record<string, 'MEN' | 'WOMEN' | 'KIDS'> = {
   styleUrl: './category.component.scss',
 })
 export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly platformId     = inject(PLATFORM_ID);
-  private readonly route          = inject(ActivatedRoute);
-  private readonly router         = inject(Router);
-  private readonly productService  = inject(ProductService);
+  private readonly platformId      = inject(PLATFORM_ID);
+  private readonly route           = inject(ActivatedRoute);
+  private readonly router          = inject(Router);
+  private readonly searchService   = inject(SearchService);
   private readonly categoryService = inject(CategoryService);
   private readonly shippingService = inject(ShippingService);
   private readonly meta            = inject(Meta);
@@ -65,6 +71,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private sentinelVisible = false;
   private readonly initialNavTrigger = this.router.getCurrentNavigation()?.trigger;
 
+  // ── Core state ────────────────────────────────────────────────────────────────
   readonly slug            = signal('');
   readonly breadcrumbs     = signal<{ label: string; slug?: string }[]>([]);
   readonly loading         = signal(true);
@@ -80,6 +87,18 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly categoryOptions = signal<FilterOption[]>([]);
   readonly leafParentSlug  = signal('');
 
+  // ── Facet filter state (from URL) ─────────────────────────────────────────────
+  readonly activeSizes    = signal<string[]>([]);
+  readonly activeColors   = signal<string[]>([]);
+  readonly activeMinPrice = signal<number | null>(null);
+  readonly activeMaxPrice = signal<number | null>(null);
+
+  // ── Facet data — populated from search response on every fresh load ───────────
+  readonly facetSizes      = signal<Record<string, number>>({});
+  readonly facetColors     = signal<Record<string, number>>({});
+  readonly facetPriceRange = signal<{ min: number; max: number } | null>(null);
+  readonly colorHexMap     = signal<Record<string, string>>({});
+
   private prevSlug = '';
 
   readonly skeletons = [1,2,3,4,5,6,7,8];
@@ -88,21 +107,28 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.slug().replace(/-/g, ' ').toUpperCase()
   );
 
-
   ngOnInit(): void {
     this.shippingService.ensureAddresses();
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, query]) => {
-      const newSlug    = params['slug'] ?? '';
+      const newSlug     = params['slug'] ?? '';
       const catFromUrl  = (query['cat']  as string)     ?? 'all';
       const sortFromUrl = (query['sort'] as SortOption) ?? 'newest';
+      const sizesFromUrl  = parseArrayParam(query['size']);
+      const colorsFromUrl = parseArrayParam(query['color']);
+      const minPriceFromUrl = query['minPrice'] ? parseFloat(query['minPrice']) : null;
+      const maxPriceFromUrl = query['maxPrice'] ? parseFloat(query['maxPrice']) : null;
 
       this.activeCat.set(catFromUrl);
       this.sortBy.set(sortFromUrl);
+      this.activeSizes.set(sizesFromUrl);
+      this.activeColors.set(colorsFromUrl);
+      this.activeMinPrice.set(minPriceFromUrl);
+      this.activeMaxPrice.set(maxPriceFromUrl);
 
-      const isBrowser   = isPlatformBrowser(this.platformId);
-      const isBackNav   = this.initialNavTrigger === 'popstate';
-      const stateKey    = `plp:${newSlug}:${catFromUrl}`;
-      let   restoredFromState = false;
+      const isBrowser  = isPlatformBrowser(this.platformId);
+      const isBackNav  = this.initialNavTrigger === 'popstate';
+      const stateKey   = this.buildStateKey(newSlug, catFromUrl, sizesFromUrl, colorsFromUrl, minPriceFromUrl, maxPriceFromUrl);
+      let restoredFromState = false;
 
       if (isBrowser && isBackNav) {
         const raw = sessionStorage.getItem(stateKey);
@@ -143,6 +169,9 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.breadcrumbs.set([]);
           this.pageType.set('leaf');
           this.leafParentSlug.set('');
+          this.facetSizes.set({});
+          this.facetColors.set({});
+          this.facetPriceRange.set(null);
         }
         this.loadCategoryMeta();
         this.titleService.setTitle(`${this.displayName()} — Ted Clothing`);
@@ -155,6 +184,14 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private buildStateKey(
+    slug: string, cat: string,
+    sizes: string[], colors: string[],
+    minPrice: number | null, maxPrice: number | null,
+  ): string {
+    return `plp:${slug}:${cat}:${[...sizes].sort().join(',')}:${[...colors].sort().join(',')}:${minPrice ?? ''}:${maxPrice ?? ''}`;
+  }
+
   private loadCategoryMeta(): void {
     const slug       = this.slug();
     const genderEnum = GENDER_SLUGS[slug.toLowerCase()];
@@ -163,14 +200,20 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.pageType.set('leaf');
       this.breadcrumbs.set([{ label: 'SALE' }]);
       this.categoryService.getNavTree().subscribe({
-        next: (tree) => this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))),
+        next: (tree) => {
+          if (this.slug() !== slug) return;
+          this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
+        },
         error: () => {},
       });
     } else if (slug === 'new-arrivals') {
       this.pageType.set('leaf');
       this.breadcrumbs.set([{ label: 'NEW ARRIVALS' }]);
       this.categoryService.getNavTree().subscribe({
-        next: (tree) => this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))),
+        next: (tree) => {
+          if (this.slug() !== slug) return;
+          this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
+        },
         error: () => {},
       });
     } else if (genderEnum) {
@@ -178,6 +221,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.breadcrumbs.set([{ label: slug.toUpperCase() }]);
       this.categoryService.getNavTreeByGender(genderEnum).subscribe({
         next: (groups) => {
+          if (this.slug() !== slug) return;
           this.categoryOptions.set(
             groups.flatMap(g => g.categories.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })))
           );
@@ -187,6 +231,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.categoryService.getBySlug(slug).subscribe({
         next: (cat) => {
+          if (this.slug() !== slug) return;
           this.breadcrumbs.set(
             cat.parent
               ? [{ label: cat.parent.name.toUpperCase(), slug: cat.parent.slug }, { label: cat.name.toUpperCase() }]
@@ -203,9 +248,12 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
             if (cat.parent) {
               this.leafParentSlug.set(cat.parent.slug);
               this.categoryService.getBySlug(cat.parent.slug).subscribe({
-                next: (parent) => this.categoryOptions.set(
-                  (parent.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
-                ),
+                next: (parent) => {
+                  if (this.slug() !== slug) return;
+                  this.categoryOptions.set(
+                    (parent.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
+                  );
+                },
                 error: () => this.categoryOptions.set([]),
               });
             } else {
@@ -224,46 +272,68 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     const slug       = this.slug();
     const genderEnum = GENDER_SLUGS[slug.toLowerCase()];
     const activeCat  = this.activeCat();
+    const sizes      = this.activeSizes();
+    const colors     = this.activeColors();
+    const minPrice   = this.activeMinPrice();
+    const maxPrice   = this.activeMaxPrice();
 
-    const params: Record<string, unknown> = {
-      status: 'ACTIVE',
+    const params: Parameters<SearchService['searchPlp']>[0] = {
       limit: 24,
-      page: this.currentPage(),
-      sort: this.sortBy(),
+      page:  this.currentPage(),
+      sort:  this.sortBy(),
+      ...(sizes.length  ? { sizes }             : {}),
+      ...(colors.length ? { colorNames: colors } : {}),
+      ...(minPrice !== null ? { minPrice }        : {}),
+      ...(maxPrice !== null ? { maxPrice }        : {}),
     };
 
     if (slug === 'sale') {
-      params['onSale'] = true;
-      if (activeCat !== 'all') params['categorySlug'] = activeCat;
+      params.onSale = true;
+      if (activeCat !== 'all') params.categorySlug = activeCat;
     } else if (slug === 'new-arrivals') {
-      if (activeCat !== 'all') params['categorySlug'] = activeCat;
+      if (activeCat !== 'all') params.categorySlug = activeCat;
     } else if (genderEnum) {
-      if (activeCat !== 'all') params['categorySlug'] = activeCat;
-      else                      params['gender']       = genderEnum;
+      if (activeCat !== 'all') params.categorySlug = activeCat;
+      else                      params.gender       = genderEnum;
     } else {
-      params['categorySlug'] = activeCat !== 'all' ? activeCat : slug;
+      params.categorySlug = activeCat !== 'all' ? activeCat : slug;
     }
 
-    this.productService.getProducts(params as any).subscribe({
+    this.searchService.searchPlp(params).subscribe({
       next: (res) => {
-        const items = res.items ?? [];
+        if (this.slug() !== slug || this.activeCat() !== activeCat) return;
+        const items = (res.hits ?? []).map(searchHitToProduct);
+
+        // Accumulate colorHexMap from hits — never cleared, grows as pages load
+        const hexMap: Record<string, string> = { ...this.colorHexMap() };
+        for (const hit of res.hits ?? []) {
+          for (const color of hit.colors) {
+            if (color.colorName && color.colorHex && !hexMap[color.colorName]) {
+              hexMap[color.colorName] = color.colorHex;
+            }
+          }
+        }
+        this.colorHexMap.set(hexMap);
+
         if (append) {
           this.products.update(prev => [...prev, ...items]);
           this.loadingMore.set(false);
         } else {
           this.products.set(items);
           this.loading.set(false);
-          // Guard: only trigger loadMore if the route context hasn't changed while this
-          // request was in flight. Without this, a filter tap mid-load causes page 2 of
-          // the old filter to append to page 1 of the new filter.
+          // Facets come from the search response — only update on fresh load, not append
+          this.facetSizes.set(res.facetDistribution?.['sizes'] ?? {});
+          this.facetColors.set(res.facetDistribution?.['colorNames'] ?? {});
+          this.facetPriceRange.set(res.facetStats?.['basePrice'] ?? null);
           if (this.sentinelVisible) setTimeout(() => {
             if (this.slug() === slug && this.activeCat() === activeCat) this.loadMore();
           }, 0);
         }
-        this.total.set(res.total ?? 0);
+        this.total.set(res.estimatedTotalHits ?? 0);
         this.totalPages.set(res.totalPages ?? 1);
       },
       error: () => {
+        if (this.slug() !== slug || this.activeCat() !== activeCat) return;
         if (append) { this.loadingMore.set(false); }
         else        { this.products.set([]); this.loading.set(false); }
       },
@@ -297,9 +367,59 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  onSizesChanged(sizes: string[]): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { size: sizes.length ? sizes : null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  onColorsChanged(colors: string[]): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { color: colors.length ? colors : null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  onPriceChanged(price: { min: number | null; max: number | null }): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        minPrice: price.min ?? null,
+        maxPrice: price.max ?? null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  onFiltersApplied(filters: MobileFilters): void {
+    const isLeaf = this.pageType() === 'leaf';
+    if (isLeaf && filters.cat !== 'all' && filters.cat !== this.activeCat()) {
+      this.router.navigate(['/category', filters.cat]);
+      return;
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        cat:      isLeaf ? undefined : (filters.cat === 'all' ? null : filters.cat),
+        size:     filters.sizes.length  ? filters.sizes  : null,
+        color:    filters.colors.length ? filters.colors : null,
+        minPrice: filters.minPrice ?? null,
+        maxPrice: filters.maxPrice ?? null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   saveScrollState(productId: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    const stateKey = `plp:${this.slug()}:${this.activeCat()}`;
+    const stateKey = this.buildStateKey(
+      this.slug(), this.activeCat(),
+      this.activeSizes(), this.activeColors(),
+      this.activeMinPrice(), this.activeMaxPrice(),
+    );
     const state: PlpScrollState = {
       products:    this.products(),
       currentPage: this.currentPage(),

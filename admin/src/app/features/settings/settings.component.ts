@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -19,7 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
     FormsModule,
     MatFormFieldModule, MatInputModule, MatButtonModule,
     MatSnackBarModule, MatProgressSpinnerModule, MatCardModule,
-    MatIconModule, MatDividerModule, MatSlideToggleModule,
+    MatIconModule, MatDividerModule, MatButtonToggleModule,
   ],
   template: `
     <div class="page-header">
@@ -97,11 +97,16 @@ import { AuthService } from '../../core/services/auth.service';
                 <mat-hint>Set to 0 to disable. Applies to both returns and exchanges.</mat-hint>
               </mat-form-field>
               <div class="toggle-row">
-                <mat-slide-toggle [(ngModel)]="returnEnabled" color="primary">
-                  Returns enabled
-                </mat-slide-toggle>
+                <label class="toggle-label">Return &amp; Exchange Mode</label>
+                <mat-button-toggle-group [(ngModel)]="returnMode" name="returnMode" class="return-mode-toggle">
+                  <mat-button-toggle value="true">Returns only</mat-button-toggle>
+                  <mat-button-toggle value="both">Customer chooses</mat-button-toggle>
+                  <mat-button-toggle value="false">Exchanges only</mat-button-toggle>
+                </mat-button-toggle-group>
                 <span class="toggle-hint">
-                  {{ returnEnabled ? 'Customers can request a return (no size selection required).' : 'Exchange-only mode — customers must select a replacement size.' }}
+                  @if (returnMode === 'true') { Customers see "Return" only — no size swap option. }
+                  @else if (returnMode === 'false') { Customers see "Exchange" only — must select a replacement size. }
+                  @else { Customers pick Return or Exchange themselves at the start of the request form. }
                 </span>
               </div>
             </div>
@@ -194,7 +199,9 @@ import { AuthService } from '../../core/services/auth.service';
     .settings-grid { display: flex; flex-direction: column; gap: 24px; max-width: 560px; }
     .settings-card { width: 100%; }
     .fields { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; }
-    .toggle-row { display: flex; flex-direction: column; gap: 6px; }
+    .toggle-row { display: flex; flex-direction: column; gap: 8px; }
+    .toggle-label { font-size: 0.82rem; color: #555; font-weight: 500; }
+    .return-mode-toggle { flex-wrap: wrap; }
     .toggle-hint { font-size: 0.78rem; color: #888; line-height: 1.4; }
     mat-form-field { width: 100%; }
 
@@ -244,7 +251,7 @@ export class SettingsComponent implements OnInit {
   freeShippingMin = 999;
   shippingCharge = 99;
   returnWindowDays = 2;
-  returnEnabled = true;
+  returnMode: 'true' | 'false' | 'both' = 'true';
 
   ngOnInit() {
     this.auth.getMfaStatus().subscribe({
@@ -259,7 +266,8 @@ export class SettingsComponent implements OnInit {
         this.freeShippingMin = parseInt(cfg['free_shipping_threshold'] ?? '999', 10);
         this.shippingCharge = parseInt(cfg['shipping_charge'] ?? '99', 10);
         this.returnWindowDays = parseInt(cfg['return_window_days'] ?? '2', 10);
-        this.returnEnabled = cfg['return_enabled'] !== 'false';
+        const rv = cfg['return_enabled'];
+        this.returnMode = (rv === 'false' || rv === 'both') ? rv : 'true';
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); },
@@ -385,7 +393,7 @@ export class SettingsComponent implements OnInit {
     if (error) { this.snack.open(error, 'OK', { duration: 4000 }); return; }
     this.savingReturns.set(true);
     this.api.patch<Record<string, string>>('site-config', {
-      updates: { return_window_days: String(this.returnWindowDays), return_enabled: String(this.returnEnabled) },
+      updates: { return_window_days: String(this.returnWindowDays), return_enabled: this.returnMode },
     }).subscribe({
       next: () => { this.savingReturns.set(false); this.snack.open('Return policy saved', 'OK', { duration: 3000 }); },
       error: (e) => { this.savingReturns.set(false); this.snack.open(e?.error?.message ?? 'Failed to save', 'OK', { duration: 3000 }); },

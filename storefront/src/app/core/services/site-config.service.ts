@@ -13,10 +13,18 @@ export class SiteConfigService {
     return cfg ? parseInt(cfg['return_window_days'] ?? '2', 10) : 2;
   });
 
-  readonly returnEnabled = computed(() => {
+  // Three-state: 'return' (returns only), 'exchange' (exchanges only), 'both' (customer picks)
+  readonly returnMode = computed((): 'return' | 'exchange' | 'both' => {
     const cfg = this._config();
-    return cfg ? cfg['return_enabled'] !== 'false' : true;
+    if (!cfg) return 'return';
+    const v = cfg['return_enabled'];
+    if (v === 'false') return 'exchange';
+    if (v === 'both') return 'both';
+    return 'return';
   });
+
+  // Kept for backward compat (return-policy page). True when returns are available.
+  readonly returnEnabled = computed(() => this.returnMode() !== 'exchange');
 
   load(): void {
     if (this._loaded) return;

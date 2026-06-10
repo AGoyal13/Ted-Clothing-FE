@@ -1,5 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { DatePipe, LowerCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { OrderService } from '../../../../core/services/order.service';
 import { ApiService } from '../../../../core/services/api.service';
@@ -14,7 +14,7 @@ interface SkuOption {
   id: string;
   sizeLabel: string;
   stockQty: number;
-  color: { id: string; colorName: string };
+  color: { id: string; colorName: string; colorHex: string };
 }
 
 interface ReturnPhoto {
@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 @Component({
   selector: 'app-orders-tab',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, LowerCasePipe, RouterLink],
   templateUrl: './orders-tab.component.html',
   styleUrl: './orders-tab.component.scss',
 })
@@ -74,11 +74,13 @@ export class OrdersTabComponent implements OnInit {
 
   // Return wizard
   readonly returnFormOrderId = signal<string | null>(null);
-  readonly returnStep = signal<1 | 2 | 3 | 4>(1);
+  readonly returnStep = signal<0 | 1 | 2 | 3 | 4>(1); // 0 = type picker (mode=both only)
+  readonly returnType = signal<'return' | 'exchange' | null>(null); // only used in 'both' mode
   readonly returnReason = signal<ReturnReason | ''>('');
   readonly returnComments = signal('');
   readonly returnPhotos = signal<ReturnPhoto[]>([]);
   readonly returnExchangeSizes = signal<Record<string, string>>({}); // orderItemId -> skuId
+  readonly returnExchangeColors = signal<Record<string, string>>({}); // orderItemId -> colorId
   readonly returnSelectedItems = signal<Set<string>>(new Set()); // orderItemIds selected for exchange
   readonly availableSkus = signal<Record<string, SkuOption[]>>({}); // productId -> skus
   readonly availableSkusLoading = signal(false);
@@ -97,7 +99,34 @@ export class OrdersTabComponent implements OnInit {
   readonly STARS = [1, 2, 3, 4, 5];
   readonly RETURN_REASONS = Object.entries(RETURN_REASON_LABELS) as [ReturnReason, string][];
   readonly returnWindowDays = this.siteConfig.returnWindowDays;
-  readonly returnEnabled = this.siteConfig.returnEnabled;
+  readonly returnMode = this.siteConfig.returnMode;
+
+  // True when the current wizard session is an exchange (not a return)
+  readonly isExchangeMode = computed(() => {
+    const mode = this.returnMode();
+    if (mode === 'exchange') return true;
+    if (mode === 'return') return false;
+    return this.returnType() === 'exchange'; // 'both': driven by customer's step-0 choice
+  });
+
+  // Display label for the action in progress
+  readonly modeDisplayLabel = computed(() => {
+    const mode = this.returnMode();
+    const type = this.returnType();
+    if (mode === 'both') {
+      if (!type) return 'Return or Exchange';
+      return type === 'exchange' ? 'Exchange' : 'Return';
+    }
+    return mode === 'exchange' ? 'Exchange' : 'Return';
+  });
+
+  orderStatusLabel(order: OrderListItem): string {
+    if (order.status === 'RETURNED') {
+      if (order.return?.status === 'EXCHANGE_DELIVERED' || order.return?.status === 'EXCHANGE_COMPLETE') return 'Exchanged';
+      if (order.return?.status === 'REFUNDED') return 'Refunded';
+    }
+    return STATUS_LABEL[order.status];
+  }
 
   ngOnInit() {
     this.siteConfig.load();
@@ -143,35 +172,45 @@ export class OrdersTabComponent implements OnInit {
 
   // ── Return wizard ─────────────────────────────────────────────────────────
 
-  totalSteps(isCod: boolean): number {
-    const isExchange = !this.returnEnabled();
-    return isExchange ? (isCod ? 4 : 3) : (isCod ? 3 : 2);
+  totalSteps(isCod: boolean, itemCount: number): number {
+    if (this.isExchangeMode()) return isCod ? 4 : 3;
+    const hasItemPicker = itemCount > 1;
+    return hasItemPicker ? (isCod ? 4 : 3) : (isCod ? 3 : 2);
   }
 
-  stepsArray(isCod: boolean): number[] {
-    return Array.from({ length: this.totalSteps(isCod) }, (_, i) => i + 1);
+  stepsArray(isCod: boolean, itemCount: number): number[] {
+    return Array.from({ length: this.totalSteps(isCod, itemCount) }, (_, i) => i + 1);
   }
 
-  isLastStep(isCod: boolean): boolean {
-    return this.returnStep() === this.totalSteps(isCod);
+  isLastStep(isCod: boolean, itemCount: number): boolean {
+    return this.returnStep() === this.totalSteps(isCod, itemCount);
   }
 
   showExchangeStep(step: number): boolean {
-    return !this.returnEnabled() && step === 3;
+    return this.isExchangeMode() && step === 3;
   }
 
-  showBankStep(step: number, isCod: boolean): boolean {
+  showItemPickerStep(step: number, itemCount: number): boolean {
+    return !this.isExchangeMode() && itemCount > 1 && step === 3;
+  }
+
+  showBankStep(step: number, isCod: boolean, itemCount: number): boolean {
     if (!isCod) return false;
-    return this.returnEnabled() ? step === 3 : step === 4;
+    if (this.isExchangeMode()) return step === 4;
+    return itemCount > 1 ? step === 4 : step === 3;
   }
 
   openReturnForm(orderId: string, items: OrderItem[]): void {
+    const mode = this.returnMode();
     this.returnFormOrderId.set(orderId);
-    this.returnStep.set(1);
+    // Step 0 only when mode=both — customer must pick return or exchange first
+    this.returnStep.set(mode === 'both' ? 0 : 1);
+    this.returnType.set(mode === 'both' ? null : (mode === 'exchange' ? 'exchange' : 'return'));
     this.returnReason.set('');
     this.returnComments.set('');
     this.returnPhotos.set([]);
     this.returnExchangeSizes.set({});
+    this.returnExchangeColors.set({});
     this.returnSelectedItems.set(new Set(items.map(i => i.id)));
     this.codMode.set('UPI');
     this.upiId.set('');
@@ -184,10 +223,16 @@ export class OrdersTabComponent implements OnInit {
 
   cancelReturnForm(): void { this.returnFormOrderId.set(null); }
 
+  // Called from step 0 when customer picks return or exchange
+  chooseReturnType(type: 'return' | 'exchange'): void {
+    this.returnType.set(type);
+    this.returnStep.set(1);
+  }
+
   nextReturnStep(order: Order): void {
     const step = this.returnStep();
     const isCod = order.paymentMethod === 'COD';
-    const isExchange = !this.returnEnabled();
+    const isExchange = this.isExchangeMode();
     this.returnFormError.set('');
 
     if (step === 1) {
@@ -201,6 +246,12 @@ export class OrdersTabComponent implements OnInit {
       if (this.returnPhotos().some(p => p.uploading)) { this.returnFormError.set('Please wait for photos to finish uploading'); return; }
       if (isExchange) {
         this.loadSkusForItems(order.items);
+        // Pre-select each item's own ordered color so the default view is familiar
+        const initColors: Record<string, string> = {};
+        order.items.forEach(i => { initColors[i.id] = i.sku.color.id; });
+        this.returnExchangeColors.set(initColors);
+        this.returnStep.set(3);
+      } else if (order.items.length > 1) {
         this.returnStep.set(3);
       } else if (isCod) {
         this.returnStep.set(3);
@@ -211,8 +262,14 @@ export class OrdersTabComponent implements OnInit {
     }
     if (step === 3) {
       if (isExchange) {
+        const exchangeable = order.items.filter(i => this.hasAvailableExchangeSizes(i));
+        if (exchangeable.length === 0) { this.returnFormError.set('No stock available for exchange on any item'); return; }
         if (this.returnSelectedItems().size === 0) { this.returnFormError.set('Please select at least one item to exchange'); return; }
         if (!this.allSizesSelected(order.items)) { this.returnFormError.set('Please select an exchange size for each selected item'); return; }
+        if (isCod) { this.returnStep.set(4); return; }
+        this.doSubmitReturn(order);
+      } else if (order.items.length > 1) {
+        if (this.returnSelectedItems().size === 0) { this.returnFormError.set('Please select at least one item to return'); return; }
         if (isCod) { this.returnStep.set(4); return; }
         this.doSubmitReturn(order);
       } else {
@@ -227,7 +284,13 @@ export class OrdersTabComponent implements OnInit {
 
   prevReturnStep(): void {
     const s = this.returnStep();
-    if (s > 1) this.returnStep.set((s - 1) as 1 | 2 | 3 | 4);
+    if (s === 1 && this.returnMode() === 'both') {
+      // Back from step 1 in 'both' mode → return to type picker
+      this.returnStep.set(0);
+      this.returnType.set(null);
+    } else if (s > 1) {
+      this.returnStep.set((s - 1) as 1 | 2 | 3 | 4);
+    }
   }
 
   // ── Photo upload ──────────────────────────────────────────────────────────
@@ -290,7 +353,26 @@ export class OrdersTabComponent implements OnInit {
     });
   }
 
+  colorsForItem(item: OrderItem): Array<{ id: string; colorName: string; colorHex: string; hasStock: boolean }> {
+    const allSkus = this.availableSkus()[item.sku.product.id] ?? [];
+    const seen = new Set<string>();
+    const result: Array<{ id: string; colorName: string; colorHex: string; hasStock: boolean }> = [];
+    for (const sku of allSkus) {
+      if (!seen.has(sku.color.id)) {
+        seen.add(sku.color.id);
+        result.push({
+          id: sku.color.id,
+          colorName: sku.color.colorName,
+          colorHex: sku.color.colorHex,
+          hasStock: allSkus.some(s => s.color.id === sku.color.id && s.stockQty > 0),
+        });
+      }
+    }
+    return result;
+  }
+
   skusForItem(item: OrderItem): SkuOption[] {
+    const selectedColorId = this.returnExchangeColors()[item.id] ?? item.sku.color.id;
     const selectedSizes = this.returnExchangeSizes();
     const claimedCounts = new Map<string, number>();
     for (const [itemId, skuId] of Object.entries(selectedSizes)) {
@@ -299,18 +381,43 @@ export class OrdersTabComponent implements OnInit {
       }
     }
     return (this.availableSkus()[item.sku.product.id] ?? [])
-      .filter(s => s.color.id === item.sku.color.id)
+      .filter(s => s.color.id === selectedColorId)
       .map(s => ({ ...s, stockQty: Math.max(0, s.stockQty - (claimedCounts.get(s.id) ?? 0)) }));
+  }
+
+  // Any sku across any color still has stock — used to enable/disable the item checkbox
+  hasAvailableExchangeSizes(item: OrderItem): boolean {
+    return (this.availableSkus()[item.sku.product.id] ?? []).some(s => s.stockQty > 0);
+  }
+
+  selectExchangeColor(orderItemId: string, colorId: string): void {
+    this.returnExchangeColors.update(m => ({ ...m, [orderItemId]: colorId }));
+    // Clear size selection — chosen size may not exist in the new color
+    this.returnExchangeSizes.update(m => { const n = { ...m }; delete n[orderItemId]; return n; });
   }
 
   selectExchangeSize(orderItemId: string, skuId: string): void {
     this.returnExchangeSizes.update(m => ({ ...m, [orderItemId]: skuId }));
   }
 
-  toggleReturnItem(itemId: string): void {
+  toggleReturnItem(itemId: string, item?: OrderItem): void {
     this.returnSelectedItems.update(set => {
       const next = new Set(set);
-      next.has(itemId) ? next.delete(itemId) : next.add(itemId);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+        this.returnExchangeSizes.update(m => { const n = { ...m }; delete n[itemId]; return n; });
+        this.returnExchangeColors.update(m => { const n = { ...m }; delete n[itemId]; return n; });
+      } else {
+        next.add(itemId);
+        // Restore to ordered colour when re-checking, then auto-select single size
+        if (item) {
+          this.returnExchangeColors.update(m => ({ ...m, [itemId]: item.sku.color.id }));
+          const available = this.skusForItem(item).filter(s => s.stockQty > 0);
+          if (available.length === 1) {
+            this.returnExchangeSizes.update(m => ({ ...m, [itemId]: available[0].id }));
+          }
+        }
+      }
       return next;
     });
   }
@@ -325,7 +432,7 @@ export class OrdersTabComponent implements OnInit {
 
   private doSubmitReturn(order: Order): void {
     const isCod = order.paymentMethod === 'COD';
-    const isExchange = !this.returnEnabled();
+    const isExchange = this.isExchangeMode();
     let bankDetails: string | undefined;
 
     if (isCod) {

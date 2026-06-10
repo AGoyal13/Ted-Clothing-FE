@@ -13,7 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../core/services/api.service';
 
-type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'PICKUP_SCHEDULED' | 'IN_TRANSIT' | 'RECEIVED' | 'EXCHANGE_COMPLETE' | 'REFUNDED';
+type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'PICKUP_SCHEDULED' | 'IN_TRANSIT' | 'EXCHANGE_DELIVERED' | 'RECEIVED' | 'EXCHANGE_COMPLETE' | 'REFUNDED';
 
 interface OrderItemContext {
   id: string;
@@ -77,12 +77,25 @@ interface ReturnsPage {
   returns: AdminReturn[];
 }
 
+const STATUS_LABELS: Record<ReturnStatus, string> = {
+  REQUESTED: 'Requested',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  PICKUP_SCHEDULED: 'Pickup Scheduled',
+  IN_TRANSIT: 'Pickup Completed',
+  EXCHANGE_DELIVERED: 'Exchange Delivered',
+  RECEIVED: 'Received',
+  EXCHANGE_COMPLETE: 'Exchange Complete',
+  REFUNDED: 'Refunded',
+};
+
 const STATUS_COLORS: Record<ReturnStatus, string> = {
   REQUESTED: '#e67e22',
   APPROVED: '#3498db',
   REJECTED: '#e74c3c',
   PICKUP_SCHEDULED: '#9b59b6',
   IN_TRANSIT: '#8e44ad',
+  EXCHANGE_DELIVERED: '#00acc1',
   RECEIVED: '#27ae60',
   EXCHANGE_COMPLETE: '#1abc9c',
   REFUNDED: '#2ecc71',
@@ -190,7 +203,7 @@ const REASON_LABELS: Record<string, string> = {
         <ng-container matColumnDef="status">
           <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
           <mat-cell *matCellDef="let row">
-            <span class="status-chip" [style.background]="statusColor(row.status)">{{ row.status }}</span>
+            <span class="status-chip" [style.background]="statusColor(row.status)">{{ statusLabel(row.status) }}</span>
           </mat-cell>
         </ng-container>
 
@@ -279,39 +292,46 @@ const REASON_LABELS: Record<string, string> = {
                     </div>
                   }
 
-                  <!-- Actions -->
+                  <!-- Actions — exchanges and returns have distinct flows -->
                   <div class="return-actions" (click)="$event.stopPropagation()">
-                    @if (row.status === 'REQUESTED') {
-                      <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="approve(row)">
-                        <mat-icon>check_circle</mat-icon> Approve
-                      </button>
-                      <button mat-stroked-button color="warn" [disabled]="acting() === row.id" (click)="openRejectDialog(row.id)">
-                        <mat-icon>cancel</mat-icon> Reject
-                      </button>
-                    }
-                    @if (row.status === 'APPROVED') {
-                      <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="schedulePickup(row)">
-                        <mat-icon>local_shipping</mat-icon> Schedule Pickup
-                      </button>
-                    }
-                    @if (row.status === 'PICKUP_SCHEDULED' || row.status === 'IN_TRANSIT' || row.status === 'APPROVED') {
-                      <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="markReceived(row)">
-                        <mat-icon>inventory</mat-icon> Mark Received
-                      </button>
-                    }
-                    @if (row.status === 'RECEIVED') {
-                      @if (hasExchange(row)) {
-                        <button mat-flat-button color="primary" [disabled]="acting() === row.id"
-                          (click)="markExchangeComplete(row)"
-                          matTooltip="Exchange fulfilled — inventory already balanced">
-                          <mat-icon>swap_horiz</mat-icon> Exchange Complete
+                    @if (hasExchange(row)) {
+                      <!-- Exchange: no Approve/Reject; Schedule only if pickup never created; Mark Received covers EXCHANGE_DELIVERED too -->
+                      @if (!row.reverseAwb && row.status === 'REQUESTED') {
+                        <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="schedulePickup(row)">
+                          <mat-icon>local_shipping</mat-icon> Schedule Pickup
                         </button>
-                        <button mat-stroked-button color="warn" [disabled]="acting() === row.id"
-                          (click)="openRefundDialog(row)"
-                          matTooltip="Exchange failed — restore stock and issue cash refund">
-                          <mat-icon>currency_rupee</mat-icon> Issue Refund
+                      }
+                      @if (['EXCHANGE_DELIVERED', 'IN_TRANSIT', 'PICKUP_SCHEDULED'].includes(row.status)) {
+                        <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="markReceived(row)">
+                          <mat-icon>inventory</mat-icon> Mark Received
                         </button>
-                      } @else {
+                      }
+                    } @else {
+                      <!-- Return: Approve/Reject at REQUESTED; Reject+Schedule at APPROVED; Mark Received through to IN_TRANSIT; Refund at RECEIVED -->
+                      @if (row.status === 'REQUESTED') {
+                        <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="approve(row)">
+                          <mat-icon>check_circle</mat-icon> Approve
+                        </button>
+                        <button mat-stroked-button color="warn" [disabled]="acting() === row.id" (click)="openRejectDialog(row.id)">
+                          <mat-icon>cancel</mat-icon> Reject
+                        </button>
+                      }
+                      @if (row.status === 'APPROVED') {
+                        <button mat-stroked-button color="warn" [disabled]="acting() === row.id" (click)="openRejectDialog(row.id)">
+                          <mat-icon>cancel</mat-icon> Reject
+                        </button>
+                        @if (!row.reverseAwb) {
+                          <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="schedulePickup(row)">
+                            <mat-icon>local_shipping</mat-icon> Schedule Pickup
+                          </button>
+                        }
+                      }
+                      @if (['APPROVED', 'PICKUP_SCHEDULED', 'IN_TRANSIT'].includes(row.status)) {
+                        <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="markReceived(row)">
+                          <mat-icon>inventory</mat-icon> Mark Received
+                        </button>
+                      }
+                      @if (row.status === 'RECEIVED') {
                         <button mat-flat-button color="primary" [disabled]="acting() === row.id" (click)="openRefundDialog(row)">
                           <mat-icon>currency_rupee</mat-icon> Process Refund
                         </button>
@@ -341,7 +361,7 @@ const REASON_LABELS: Record<string, string> = {
                   <!-- Refund dialog -->
                   @if (refundDialogId() === row.id) {
                     <div class="inline-dialog" (click)="$event.stopPropagation()">
-                      <div class="inline-dialog__title">{{ hasExchange(row) ? 'Issue Refund (exchange failed)' : 'Process Refund' }}</div>
+                      <div class="inline-dialog__title">Process Refund</div>
                       <p class="inline-dialog__note" style="margin-bottom:0.25rem">Select items to refund:</p>
                       <div class="refund-item-list">
                         @for (item of row.items; track item.id) {
@@ -366,10 +386,13 @@ const REASON_LABELS: Record<string, string> = {
                       @if (row.order.paymentMethod === 'COD' && !row.bankDetails) {
                         <p style="color:#e67e22;font-size:0.78rem">⚠ No bank details on record.</p>
                       }
+                      @if (computeRefundTotal(row) === 0 && selectedRefundItemCount(row) > 0) {
+                        <p style="color:#e67e22;font-size:0.78rem">⚠ Item prices show ₹0 — confirm the transfer amount manually before proceeding.</p>
+                      }
                       <div class="inline-dialog__actions">
                         <button mat-button (click)="refundDialogId.set(null)">Cancel</button>
                         <button mat-flat-button color="primary"
-                          [disabled]="computeRefundTotal(row) === 0"
+                          [disabled]="selectedRefundItemCount(row) === 0"
                           (click)="confirmRefund(row)">Confirm</button>
                       </div>
                     </div>
@@ -508,7 +531,7 @@ export class ReturnsComponent implements OnInit {
 
   readonly columns = ['id', 'order', 'customer', 'reason', 'photos', 'status'];
   readonly allStatuses: ReturnStatus[] = [
-    'REQUESTED', 'APPROVED', 'REJECTED', 'PICKUP_SCHEDULED', 'IN_TRANSIT', 'RECEIVED', 'EXCHANGE_COMPLETE', 'REFUNDED',
+    'REQUESTED', 'APPROVED', 'REJECTED', 'PICKUP_SCHEDULED', 'IN_TRANSIT', 'EXCHANGE_DELIVERED', 'RECEIVED', 'EXCHANGE_COMPLETE', 'REFUNDED',
   ];
   readonly limit = 20;
 
@@ -572,6 +595,10 @@ export class ReturnsComponent implements OnInit {
     return STATUS_COLORS[status] ?? '#999';
   }
 
+  statusLabel(status: ReturnStatus): string {
+    return STATUS_LABELS[status] ?? status;
+  }
+
   reasonLabel(reason: string): string {
     return REASON_LABELS[reason] ?? reason;
   }
@@ -586,6 +613,11 @@ export class ReturnsComponent implements OnInit {
 
   toggleRefundItem(itemId: string, checked: boolean) {
     this.refundItemSelection.update(sel => ({ ...sel, [itemId]: checked }));
+  }
+
+  selectedRefundItemCount(row: AdminReturn): number {
+    const sel = this.refundItemSelection();
+    return row.items.filter(i => sel[i.id] !== false).length;
   }
 
   computeRefundTotal(row: AdminReturn): number {
@@ -650,14 +682,6 @@ export class ReturnsComponent implements OnInit {
     this.acting.set(row.id);
     this.api.patch<AdminReturn>(`admin/returns/${row.id}/mark-received`, {}).subscribe({
       next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Marked received — stock restored, photos deleted', 'OK', { duration: 4000 }); },
-      error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
-    });
-  }
-
-  markExchangeComplete(row: AdminReturn) {
-    this.acting.set(row.id);
-    this.api.patch<AdminReturn>(`admin/returns/${row.id}/exchange-complete`, {}).subscribe({
-      next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Exchange complete — inventory balanced', 'OK', { duration: 3000 }); },
       error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
     });
   }

@@ -15,12 +15,14 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, filter } from 'rxjs';
+import { Subject, Subscription, catchError, of, filter, debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
 import { AddressService } from '../../core/services/address.service';
 import { WishlistService } from '../../core/services/wishlist.service';
+import { SearchService } from '../../core/services/search.service';
+import { SearchHit } from '../../core/models/search.model';
 import { MegaMenuV2Component } from './mega-menu-v2/mega-menu-v2.component';
 import { CategoryStripV2Component } from './category-strip-v2/category-strip-v2.component';
 
@@ -38,6 +40,7 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
   readonly authService = inject(AuthService);
   private readonly categoryService = inject(CategoryService);
   private readonly addressService = inject(AddressService);
+  private readonly searchService = inject(SearchService);
 
   readonly defaultAddress = computed(() =>
     this.addressService.addresses().find(a => a.isDefault) ?? null
@@ -50,9 +53,20 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
   readonly cartCount = this.cartService.count;
   readonly wishlistCount = inject(WishlistService).count;
   readonly searchOpen = signal(false);
+  readonly searchQuery = signal('');
+  readonly searchResults = signal<SearchHit[]>([]);
+  readonly searchLoading = signal(false);
+  readonly searchActiveIdx = signal(-1);
+  readonly searchAttempted = signal(false);
+  readonly presetResults = signal<SearchHit[]>([]);
+  readonly presetLoading = signal(false);
+  private readonly searchSubject = new Subject<string>();
+  private searchSub?: Subscription;
+  private presetSub?: Subscription;
 
   @ViewChild('navEl') private navEl!: ElementRef<HTMLElement>;
   @ViewChild('headerEl') private headerEl!: ElementRef<HTMLElement>;
+  @ViewChild('searchInput') private searchInputEl?: ElementRef<HTMLInputElement>;
 
   readonly visibleCount = signal<number>(100);
   readonly moreOpen = signal(false);
@@ -169,9 +183,76 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
   closeMega(): void { this.activeMega.set(null); }
 
   toggleSearch(): void {
-    this.searchOpen.update(v => !v);
-    this.moreOpen.set(false);
-    this.activeMega.set(null);
+    if (this.searchOpen()) { this.closeSearch(); }
+    else {
+      this.searchOpen.set(true);
+      this.moreOpen.set(false);
+      this.activeMega.set(null);
+      this.loadPresets();
+      // autofocus doesn't fire on @if-rendered elements — focus after one tick
+      if (isPlatformBrowser(this.platformId)) {
+        setTimeout(() => this.searchInputEl?.nativeElement.focus(), 0);
+      }
+    }
+  }
+
+  private loadPresets(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.presetResults().length > 0) return;
+    this.presetLoading.set(true);
+    this.presetSub = this.searchService.search('', 6).pipe(catchError(() => of(null))).subscribe(result => {
+      this.presetLoading.set(false);
+      this.presetResults.set(result?.hits ?? []);
+    });
+  }
+
+  closeSearch(): void {
+    this.searchOpen.set(false);
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    this.searchAttempted.set(false);
+    this.searchActiveIdx.set(-1);
+    this.searchLoading.set(false);
+  }
+
+  onSearchInput(event: Event): void {
+    const q = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(q);
+    if (q.trim().length < 2) {
+      this.searchResults.set([]);
+      this.searchAttempted.set(false);
+      this.searchLoading.set(false);
+      this.searchActiveIdx.set(-1);
+    }
+    this.searchSubject.next(q.trim());
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    const results = this.searchResults();
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.searchActiveIdx.update(i => Math.min(i + 1, results.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.searchActiveIdx.update(i => Math.max(i - 1, -1));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const idx = this.searchActiveIdx();
+      const target = idx >= 0 ? results[idx] : results[0];
+      if (target) { this.router.navigate(['/product', target.slug]); this.closeSearch(); }
+    }
+  }
+
+  searchEffectivePrice(hit: SearchHit): number {
+    return Math.round(hit.basePrice * (1 - hit.discountPercent / 100));
+  }
+
+  searchDiscountPct(hit: SearchHit): number {
+    return Math.round(hit.discountPercent);
+  }
+
+  formatINR(amount: number): string {
+    return `₹${amount.toLocaleString('en-IN')}`;
   }
 
   private scrollHandler = () => {
@@ -187,8 +268,19 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
     this.router.events.pipe(filter(e => e instanceof NavigationStart)).subscribe(() => {
       this.activeMega.set(null);
       this.moreOpen.set(false);
-      this.searchOpen.set(false);
+      this.closeSearch();
       this.closeMobileMenu();
+    });
+    this.searchSub = this.searchSubject.pipe(
+      debounceTime(200),
+      distinctUntilChanged(),
+      filter(q => q.length >= 2),
+      tap(() => { this.searchLoading.set(true); this.searchActiveIdx.set(-1); }),
+      switchMap(q => this.searchService.search(q, 6).pipe(catchError(() => of(null)))),
+    ).subscribe(result => {
+      this.searchLoading.set(false);
+      this.searchAttempted.set(true);
+      this.searchResults.set(result?.hits ?? []);
     });
   }
 
@@ -203,13 +295,16 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
     if (this.recalcTimer) clearTimeout(this.recalcTimer);
     this.resizeObserver?.disconnect();
     this.headerObserver?.disconnect();
+    this.searchSub?.unsubscribe();
+    this.presetSub?.unsubscribe();
+    this.searchSubject.complete();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.activeMega.set(null);
     this.moreOpen.set(false);
-    this.searchOpen.set(false);
+    this.closeSearch();
     this.closeMobileMenu();
   }
 

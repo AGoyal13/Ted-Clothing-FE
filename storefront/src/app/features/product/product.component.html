@@ -124,6 +124,9 @@
             }
 
             <!-- Add to Cart + Wishlist + Share -->
+            @if (addToCartErr()) {
+              <p class="pdp__cart-error">{{ addToCartErr() }}</p>
+            }
             <div class="pdp__actions-row">
               <button
                 class="pdp__add-btn btn-primary"

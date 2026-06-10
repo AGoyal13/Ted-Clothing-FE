@@ -14,14 +14,16 @@ export type ReturnStatus =
   | 'REJECTED'
   | 'PICKUP_SCHEDULED'
   | 'IN_TRANSIT'
+  | 'EXCHANGE_DELIVERED'
   | 'RECEIVED'
   | 'RETURNED'
+  | 'REFUNDED'
   | 'EXCHANGE_COMPLETE';
 
 export interface OrderReturnItem {
   orderItemId: string;
   exchangeSkuId: string | null;
-  exchangeSku: { sizeLabel: string } | null;
+  exchangeSku: { sizeLabel: string; color: { colorName: string } } | null;
 }
 
 export interface OrderReturn {
@@ -103,6 +105,7 @@ export interface OrderListItem {
     };
   }>;
   _count: { items: number };
+  return?: { status: ReturnStatus } | null;
 }
 
 export interface InitiateOrderResponse {

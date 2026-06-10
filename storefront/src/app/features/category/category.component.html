@@ -36,8 +36,19 @@
         [categoryOptions]="categoryOptions()"
         [activeCat]="activeCat()"
         [sortBy]="sortBy()"
+        [facetSizes]="facetSizes()"
+        [facetColors]="facetColors()"
+        [facetPriceRange]="facetPriceRange()"
+        [colorHexMap]="colorHexMap()"
+        [activeSizes]="activeSizes()"
+        [activeColors]="activeColors()"
+        [activeMinPrice]="activeMinPrice()"
+        [activeMaxPrice]="activeMaxPrice()"
         (catSelected)="onCatSelected($event)"
-        (sortSelected)="onSortSelected($event)">
+        (sortSelected)="onSortSelected($event)"
+        (sizesChanged)="onSizesChanged($event)"
+        (colorsChanged)="onColorsChanged($event)"
+        (priceChanged)="onPriceChanged($event)">
       </cat-filter-bar>
 
       <!-- Product grid -->
@@ -113,8 +124,16 @@
         [categoryOptions]="categoryOptions()"
         [activeCat]="activeCat()"
         [sortBy]="sortBy()"
+        [facetSizes]="facetSizes()"
+        [facetColors]="facetColors()"
+        [facetPriceRange]="facetPriceRange()"
+        [colorHexMap]="colorHexMap()"
+        [activeSizes]="activeSizes()"
+        [activeColors]="activeColors()"
+        [activeMinPrice]="activeMinPrice()"
+        [activeMaxPrice]="activeMaxPrice()"
         (sortSelected)="onSortSelected($event)"
-        (categoryApplied)="onCatSelected($event)">
+        (filtersApplied)="onFiltersApplied($event)">
       </cat-mobile-filter>
 
     </main>

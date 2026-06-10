@@ -23,12 +23,8 @@
           <!-- Category pill -->
           @if (categoryOptions().length > 0) {
             <div class="cat-page__pill-wrap">
-              <button
-                class="cat-page__pill"
-                [class.cat-page__pill--active]="hasCatFilter()"
-                (click)="toggleCatDd($event)"
-                [attr.aria-expanded]="catDdOpen()"
-              >
+              <button class="cat-page__pill" [class.cat-page__pill--active]="hasCatFilter()"
+                (click)="toggleCatDd($event)" [attr.aria-expanded]="catDdOpen()">
                 <span>{{ catPillLabel() }}</span>
                 <svg class="cat-page__caret" [class.cat-page__caret--open]="catDdOpen()"
                   width="10" height="7" viewBox="0 0 10 7" fill="none"
@@ -49,13 +45,110 @@
             </div>
           }
 
+          <!-- Size pill -->
+          @if (sortedSizes().length > 0) {
+            <div class="cat-page__pill-wrap">
+              <button class="cat-page__pill" [class.cat-page__pill--active]="hasSizeFilter()"
+                (click)="toggleSizeDd($event)" [attr.aria-expanded]="sizeDdOpen()">
+                <span>{{ sizePillLabel() }}</span>
+                <svg class="cat-page__caret" [class.cat-page__caret--open]="sizeDdOpen()"
+                  width="10" height="7" viewBox="0 0 10 7" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              @if (sizeDdOpen()) {
+                <div class="cat-page__facet-panel cat-page__size-panel" role="dialog">
+                  <div class="cat-page__size-grid">
+                    @for (entry of sortedSizes(); track entry.size) {
+                      <button class="cat-page__size-chip"
+                        [class.cat-page__size-chip--active]="activeSizes().includes(entry.size)"
+                        (click)="toggleSize(entry.size)">
+                        {{ entry.size }}
+                        @if (entry.count) {
+                          <span class="cat-page__facet-count">{{ entry.count }}</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Color pill -->
+          @if (sortedColors().length > 0) {
+            <div class="cat-page__pill-wrap">
+              <button class="cat-page__pill" [class.cat-page__pill--active]="hasColorFilter()"
+                (click)="toggleColorDd($event)" [attr.aria-expanded]="colorDdOpen()">
+                <span>{{ colorPillLabel() }}</span>
+                <svg class="cat-page__caret" [class.cat-page__caret--open]="colorDdOpen()"
+                  width="10" height="7" viewBox="0 0 10 7" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              @if (colorDdOpen()) {
+                <div class="cat-page__facet-panel cat-page__color-panel" role="dialog">
+                  @for (entry of sortedColors(); track entry.name) {
+                    <button class="cat-page__color-opt"
+                      [class.cat-page__color-opt--active]="activeColors().includes(entry.name)"
+                      (click)="toggleColor(entry.name)">
+                      @if (colorHexMap()[entry.name]) {
+                        <span class="cat-page__color-swatch"
+                          [style.background]="colorHexMap()[entry.name]"></span>
+                      }
+                      <span class="cat-page__color-name">{{ entry.name }}</span>
+                      @if (entry.count) {
+                        <span class="cat-page__facet-count">{{ entry.count }}</span>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Price pill -->
+          @if (facetPriceRange()) {
+            <div class="cat-page__pill-wrap">
+              <button class="cat-page__pill" [class.cat-page__pill--active]="hasPriceFilter()"
+                (click)="togglePriceDd($event)" [attr.aria-expanded]="priceDdOpen()">
+                <span>{{ pricePillLabel() }}</span>
+                <svg class="cat-page__caret" [class.cat-page__caret--open]="priceDdOpen()"
+                  width="10" height="7" viewBox="0 0 10 7" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 1l4 4 4-4"/>
+                </svg>
+              </button>
+              @if (priceDdOpen()) {
+                <div class="cat-page__facet-panel cat-page__price-panel" role="dialog">
+                  <div class="cat-page__price-row">
+                    <label class="cat-page__price-label">From ₹</label>
+                    <input class="cat-page__price-input" type="number" min="0"
+                      [value]="pendingMin() ?? ''"
+                      [placeholder]="facetPriceRange()?.min ?? 0"
+                      (input)="onMinInput($event)" (click)="$event.stopPropagation()">
+                  </div>
+                  <div class="cat-page__price-row">
+                    <label class="cat-page__price-label">To ₹</label>
+                    <input class="cat-page__price-input" type="number" min="0"
+                      [value]="pendingMax() ?? ''"
+                      [placeholder]="facetPriceRange()?.max ?? ''"
+                      (input)="onMaxInput($event)" (click)="$event.stopPropagation()">
+                  </div>
+                  <div class="cat-page__price-actions">
+                    <button class="cat-page__price-clear" (click)="clearPrice()">Clear</button>
+                    <button class="cat-page__price-apply" (click)="applyPrice()">Apply</button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
           <!-- Sort pill -->
           <div class="cat-page__pill-wrap">
-            <button
-              class="cat-page__pill"
-              (click)="toggleSort($event)"
-              [attr.aria-expanded]="sortOpen()"
-            >
+            <button class="cat-page__pill" (click)="toggleSort($event)" [attr.aria-expanded]="sortOpen()">
               <span>{{ sortLabel() }}</span>
               <svg class="cat-page__caret" [class.cat-page__caret--open]="sortOpen()"
                 width="10" height="7" viewBox="0 0 10 7" fill="none"

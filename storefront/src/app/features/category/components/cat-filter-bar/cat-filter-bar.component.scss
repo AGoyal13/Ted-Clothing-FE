@@ -126,3 +126,172 @@
         &::before { content: '— '; opacity: .6; }
       }
     }
+
+    /* Facet panels (shared base) */
+    .cat-page__facet-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid rgba(201,168,76,.2);
+      z-index: 200;
+      animation: ddIn .15s var(--ease-enter, ease) both;
+    }
+
+    .cat-page__facet-count {
+      font-family: var(--font-sans);
+      font-size: .65rem;
+      color: var(--muted);
+      margin-left: auto;
+      padding-left: .35rem;
+      opacity: .7;
+    }
+
+    /* Size panel */
+    .cat-page__size-panel { min-width: 220px; padding: .75rem; }
+
+    .cat-page__size-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+    }
+
+    .cat-page__size-chip {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .35rem .6rem;
+      background: transparent;
+      border: 1px solid rgba(245,240,232,.15);
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: .72rem;
+      letter-spacing: .05em;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+
+      &:hover { border-color: var(--gold); color: var(--gold); }
+
+      &--active {
+        background: var(--gold);
+        border-color: var(--gold);
+        color: #0d0d0d;
+        font-weight: 600;
+        .cat-page__facet-count { color: rgba(13,13,13,.6); }
+      }
+    }
+
+    /* Color panel */
+    .cat-page__color-panel {
+      min-width: 200px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding: .5rem 0;
+    }
+
+    .cat-page__color-opt {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      width: 100%;
+      padding: .5rem .875rem;
+      background: transparent;
+      border: none;
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: .8rem;
+      cursor: pointer;
+      transition: background .15s;
+
+      &:hover { background: rgba(201,168,76,.08); }
+
+      &--active {
+        color: var(--gold);
+        .cat-page__color-swatch { outline: 2px solid var(--gold); outline-offset: 1px; }
+      }
+    }
+
+    .cat-page__color-swatch {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(245,240,232,.2);
+    }
+
+    .cat-page__color-name { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Price panel */
+    .cat-page__price-panel {
+      min-width: 200px;
+      padding: .875rem;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+
+    .cat-page__price-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .cat-page__price-label {
+      font-family: var(--font-sans);
+      font-size: .72rem;
+      color: var(--muted);
+      letter-spacing: .05em;
+      white-space: nowrap;
+      min-width: 40px;
+    }
+
+    .cat-page__price-input {
+      flex: 1;
+      background: rgba(245,240,232,.05);
+      border: 1px solid rgba(201,168,76,.2);
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: .8rem;
+      padding: .35rem .6rem;
+      width: 0; /* flex will stretch */
+
+      &:focus { outline: none; border-color: var(--gold); }
+
+      /* Hide number spin buttons */
+      &::-webkit-inner-spin-button,
+      &::-webkit-outer-spin-button { -webkit-appearance: none; }
+    }
+
+    .cat-page__price-actions {
+      display: flex;
+      gap: .5rem;
+      margin-top: .15rem;
+    }
+
+    .cat-page__price-clear {
+      flex: 1;
+      padding: .4rem;
+      background: transparent;
+      border: 1px solid rgba(245,240,232,.15);
+      color: var(--muted);
+      font-family: var(--font-sans);
+      font-size: .72rem;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+      &:hover { border-color: var(--gold); color: var(--gold); }
+    }
+
+    .cat-page__price-apply {
+      flex: 2;
+      padding: .4rem;
+      background: var(--gold);
+      border: none;
+      color: #0d0d0d;
+      font-family: var(--font-sans);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      cursor: pointer;
+      transition: background .2s;
+      &:hover { background: rgba(201,168,76,.85); }
+    }

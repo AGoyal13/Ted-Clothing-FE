@@ -66,6 +66,7 @@ export class ProductComponent implements OnInit, OnDestroy {
   readonly measExpanded = signal(false);
   readonly addedToCart = signal(false);
   readonly addingToCart = signal(false);
+  readonly addToCartErr = signal<string | null>(null);
   readonly linkCopied = signal(false);
   readonly sizeGuideOpen = signal(false);
 
@@ -353,7 +354,12 @@ export class ProductComponent implements OnInit, OnDestroy {
         if (this.addedTimer) clearTimeout(this.addedTimer);
         this.addedTimer = setTimeout(() => this.addedToCart.set(false), 3000);
       },
-      error: () => this.addingToCart.set(false),
+      error: (err) => {
+        this.addingToCart.set(false);
+        const msg = err?.error?.error?.message ?? 'Could not add to cart — please try again';
+        this.addToCartErr.set(msg);
+        setTimeout(() => this.addToCartErr.set(null), 4000);
+      },
     });
   }
 }

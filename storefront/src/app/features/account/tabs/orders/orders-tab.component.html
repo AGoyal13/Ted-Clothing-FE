@@ -40,9 +40,10 @@
                 order.status === 'OUT_FOR_DELIVERY' ? '#818cf8' :
                 order.status === 'CANCELLED' ? '#e05252' :
                 order.status === 'RETURN_REQUESTED' ? '#f97316' :
+                order.status === 'RETURNED' && order.return?.status === 'EXCHANGE_COMPLETE' ? '#60a5fa' :
                 order.status === 'RETURNED' ? 'var(--muted)' :
                 order.status === 'CONFIRMED' ? '#60a5fa' : 'var(--gold)'">
-                {{ STATUS_LABEL[order.status] }}
+                {{ orderStatusLabel(order) }}
               </span>
               <span class="order-card__total">{{ formatINR(+order.totalAmount) }}</span>
             </div>
@@ -91,9 +92,23 @@
                             @let ri = getReturnItemForOrder(full, item.id);
                             @if (ri) {
                               @if (ri.exchangeSku) {
-                                <p class="detail-item__exchange-tag">Exchange requested · {{ item.sku.sizeLabel }} → {{ ri.exchangeSku.sizeLabel }}</p>
+                                @let rs = full.return?.status;
+                                @if (rs === 'EXCHANGE_COMPLETE' || rs === 'EXCHANGE_DELIVERED') {
+                                  <p class="detail-item__exchange-tag detail-item__exchange-tag--done">Exchange complete</p>
+                                } @else if (rs === 'REJECTED') {
+                                  <p class="detail-item__return-tag detail-item__return-tag--rejected">Exchange rejected</p>
+                                } @else {
+                                  <p class="detail-item__exchange-tag">Exchange requested · {{ item.sku.sizeLabel }} → @if (ri.exchangeSku.color.colorName !== item.sku.color.colorName) { {{ ri.exchangeSku.color.colorName }} / }{{ ri.exchangeSku.sizeLabel }}</p>
+                                }
                               } @else {
-                                <p class="detail-item__return-tag">Return requested</p>
+                                @let rs = full.return?.status;
+                                @if (rs === 'REFUNDED') {
+                                  <p class="detail-item__return-tag detail-item__return-tag--done">Return complete</p>
+                                } @else if (rs === 'REJECTED') {
+                                  <p class="detail-item__return-tag detail-item__return-tag--rejected">Return rejected</p>
+                                } @else {
+                                  <p class="detail-item__return-tag">Return requested</p>
+                                }
                               }
                             }
                           }
@@ -182,7 +197,7 @@
 
                   <div class="detail-section">
                     <h4 class="detail-section__title">Shipment</h4>
-                    @if (full.status === 'CANCELLED' || full.status === 'RETURNED') {
+                    @if (full.status === 'CANCELLED' || full.status === 'RETURNED' || full.status === 'DELIVERED') {
                       <p class="detail-no-shipment">—</p>
                     } @else if (full.awb) {
                       <div class="detail-tracking">
@@ -233,7 +248,7 @@
                   <div class="detail-section detail-section--return">
                     <p class="detail-return__success">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {{ returnEnabled() ? 'Return' : 'Exchange' }} request submitted — our team will be in touch shortly
+                      {{ modeDisplayLabel() }} request submitted — our team will be in touch shortly
                     </p>
                   </div>
                 } @else if (isReturnable(order)) {
@@ -242,15 +257,35 @@
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
                       </svg>
-                      {{ returnEnabled() ? 'Return' : 'Exchange' }} by {{ returnDeadline(order) | date:'d MMM y' }} ({{ returnWindowDays() }}-day window)
+                      {{ modeDisplayLabel() }} by {{ returnDeadline(order) | date:'d MMM y' }} ({{ returnWindowDays() }}-day window)
                     </p>
 
                     @if (returnFormOrderId() === order.id) {
                       <!-- ── Wizard ── -->
                       <div class="rw">
-                        <!-- Step indicator -->
+
+                        <!-- Step 0: Return or Exchange picker (mode=both only) -->
+                        @if (returnStep() === 0) {
+                          <p class="rw__label">What would you like to do?</p>
+                          <div class="rw__type-picker">
+                            <button class="rw__type-btn" (click)="chooseReturnType('return')">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+                              <span class="rw__type-title">Return</span>
+                              <span class="rw__type-sub">Send item back, get refund</span>
+                            </button>
+                            <button class="rw__type-btn" (click)="chooseReturnType('exchange')">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                              <span class="rw__type-title">Exchange</span>
+                              <span class="rw__type-sub">Swap for a different size</span>
+                            </button>
+                          </div>
+                          <button class="rw__back" (click)="cancelReturnForm()">Cancel</button>
+                        }
+
+                        <!-- Step indicator (steps 1+) -->
+                        @if (returnStep() > 0) {
                         <div class="rw__steps">
-                          @for (s of stepsArray(full.paymentMethod === 'COD'); track s) {
+                          @for (s of stepsArray(full.paymentMethod === 'COD', full.items.length); track s) {
                             <div class="rw__step" [class.rw__step--active]="returnStep() === s" [class.rw__step--done]="returnStep() > s">
                               @if (returnStep() > s) {
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -258,15 +293,16 @@
                                 {{ s }}
                               }
                             </div>
-                            @if (s < stepsArray(full.paymentMethod === 'COD').length) {
+                            @if (s < stepsArray(full.paymentMethod === 'COD', full.items.length).length) {
                               <div class="rw__step-line" [class.rw__step-line--done]="returnStep() > s"></div>
                             }
                           }
                         </div>
+                        }
 
                         <!-- Step 1: Reason -->
                         @if (returnStep() === 1) {
-                          <p class="rw__label">Why are you {{ returnEnabled() ? 'returning' : 'exchanging' }} this?</p>
+                          <p class="rw__label">Why are you {{ isExchangeMode() ? 'exchanging' : 'returning' }} this?</p>
                           <div class="rw__reasons">
                             @for (r of RETURN_REASONS; track r[0]) {
                               <button class="rw__reason" [class.rw__reason--active]="returnReason() === r[0]"
@@ -308,6 +344,23 @@
                           </div>
                         }
 
+                        <!-- Step 3: Item picker (return mode, multi-item orders only) -->
+                        @if (showItemPickerStep(returnStep(), full.items.length)) {
+                          <p class="rw__label">Which items would you like to return?</p>
+                          @for (item of full.items; track item.id) {
+                            <label class="rw__item-check">
+                              <input type="checkbox"
+                                [checked]="returnSelectedItems().has(item.id)"
+                                (change)="toggleReturnItem(item.id)" />
+                              <span class="rw__item-name">
+                                {{ item.sku.product.title }}
+                                <span class="rw__item-current">({{ item.sku.color.colorName }} / {{ item.sku.sizeLabel }})</span>
+                                <span class="rw__item-price">{{ formatINR(+item.priceAtPurchase) }}</span>
+                              </span>
+                            </label>
+                          }
+                        }
+
                         <!-- Step 3: Exchange size (exchange mode only) -->
                         @if (showExchangeStep(returnStep())) {
                           <p class="rw__label">Select items to exchange</p>
@@ -315,28 +368,48 @@
                             <p class="rw__loading">Loading sizes…</p>
                           } @else {
                             @for (item of full.items; track item.id) {
-                              <div class="rw__item-sizes" [class.rw__item-sizes--inactive]="!returnSelectedItems().has(item.id)">
-                                <label class="rw__item-check">
+                              <div class="rw__item-sizes" [class.rw__item-sizes--inactive]="!returnSelectedItems().has(item.id) || !hasAvailableExchangeSizes(item)">
+                                <label class="rw__item-check" [class.rw__item-check--disabled]="!hasAvailableExchangeSizes(item)">
                                   <input type="checkbox"
                                     [checked]="returnSelectedItems().has(item.id)"
-                                    (change)="toggleReturnItem(item.id)" />
+                                    [disabled]="!hasAvailableExchangeSizes(item)"
+                                    (change)="toggleReturnItem(item.id, item)" />
                                   <span class="rw__item-name">{{ item.sku.product.title }} <span class="rw__item-current">({{ item.sku.sizeLabel }})</span></span>
                                 </label>
-                                @if (returnSelectedItems().has(item.id)) {
-                                  <div class="rw__sizes">
-                                    @for (sku of skusForItem(item); track sku.id) {
-                                      <button class="rw__size"
-                                        [class.rw__size--active]="returnExchangeSizes()[item.id] === sku.id"
-                                        [class.rw__size--current]="sku.sizeLabel === item.sku.sizeLabel && returnExchangeSizes()[item.id] !== sku.id"
-                                        [class.rw__size--oos]="sku.stockQty === 0"
-                                        [disabled]="sku.stockQty === 0"
-                                        (click)="selectExchangeSize(item.id, sku.id)">
-                                        {{ sku.sizeLabel }}
-                                        @if (sku.sizeLabel === item.sku.sizeLabel) { <span class="rw__size-cur">↩</span> }
-                                        @if (sku.stockQty === 0) { <span class="rw__size-oos">OOS</span> }
+                                @if (!hasAvailableExchangeSizes(item)) {
+                                  <p class="rw__no-sizes">No stock available for exchange</p>
+                                } @else if (returnSelectedItems().has(item.id)) {
+                                  <!-- Color swatches -->
+                                  <div class="rw__colors">
+                                    @for (c of colorsForItem(item); track c.id) {
+                                      <button class="rw__color-swatch"
+                                        [class.rw__color-swatch--active]="(returnExchangeColors()[item.id] ?? item.sku.color.id) === c.id"
+                                        [class.rw__color-swatch--oos]="!c.hasStock"
+                                        [disabled]="!c.hasStock"
+                                        [title]="c.colorName"
+                                        [style.background]="c.colorHex"
+                                        (click)="selectExchangeColor(item.id, c.id)">
                                       </button>
                                     }
                                   </div>
+                                  <!-- Size pills for selected color -->
+                                  @if (skusForItem(item).filter(s => s.stockQty > 0).length > 0) {
+                                    <div class="rw__sizes">
+                                      @for (sku of skusForItem(item); track sku.id) {
+                                        @if (sku.stockQty > 0) {
+                                          <button class="rw__size"
+                                            [class.rw__size--active]="returnExchangeSizes()[item.id] === sku.id"
+                                            [class.rw__size--current]="sku.id === item.sku.id && returnExchangeSizes()[item.id] !== sku.id"
+                                            (click)="selectExchangeSize(item.id, sku.id)">
+                                            {{ sku.sizeLabel }}
+                                            @if (sku.id === item.sku.id) { <span class="rw__size-cur">↩</span> }
+                                          </button>
+                                        }
+                                      }
+                                    </div>
+                                  } @else {
+                                    <p class="rw__no-sizes">No stock in this colour — pick another</p>
+                                  }
                                 }
                               </div>
                             }
@@ -344,8 +417,8 @@
                         }
 
                         <!-- Bank / UPI step -->
-                        @if (showBankStep(returnStep(), full.paymentMethod === 'COD')) {
-                          <p class="rw__label">Refund details <span class="rw__sublabel-inline">(if an issue arises with your {{ returnEnabled() ? 'return' : 'exchange' }}, where should we send the refund?)</span></p>
+                        @if (showBankStep(returnStep(), full.paymentMethod === 'COD', full.items.length)) {
+                          <p class="rw__label">Refund details <span class="rw__sublabel-inline">(if an issue arises with your {{ modeDisplayLabel() | lowercase }}, where should we send the refund?)</span></p>
                           <div class="rw__cod-tabs">
                             <button class="rw__cod-tab" [class.rw__cod-tab--active]="codMode() === 'UPI'" (click)="codMode.set('UPI')">UPI</button>
                             <button class="rw__cod-tab" [class.rw__cod-tab--active]="codMode() === 'BANK'" (click)="codMode.set('BANK')">Bank Transfer</button>
@@ -367,25 +440,27 @@
                           <p class="detail-return__error">{{ returnFormError() }}</p>
                         }
 
-                        <!-- Actions -->
+                        <!-- Actions (steps 1+) -->
+                        @if (returnStep() > 0) {
                         <div class="rw__actions">
                           @if (returnStep() > 1) {
                             <button class="rw__back" (click)="prevReturnStep()" [disabled]="returnSubmitting()">← Back</button>
                           } @else {
-                            <button class="rw__back" (click)="cancelReturnForm()">Cancel</button>
+                            <button class="rw__back" (click)="prevReturnStep()">← Back</button>
                           }
                           <button class="rw__next"
                             (click)="nextReturnStep(full)"
                             [disabled]="returnSubmitting()">
                             @if (returnSubmitting()) { Submitting… }
-                            @else if (isLastStep(full.paymentMethod === 'COD')) { Submit {{ returnEnabled() ? 'Return' : 'Exchange' }} }
+                            @else if (isLastStep(full.paymentMethod === 'COD', full.items.length)) { Submit {{ modeDisplayLabel() }} }
                             @else { Continue → }
                           </button>
                         </div>
+                        }
                       </div>
                     } @else {
                       <button class="detail-return__btn" (click)="openReturnForm(order.id, full.items)">
-                        {{ returnEnabled() ? 'Request Return' : 'Request Exchange' }}
+                        Request {{ modeDisplayLabel() }}
                       </button>
                     }
                   </div>
@@ -411,7 +486,13 @@
                   <div class="detail-section detail-section--return">
                     <p class="detail-return__success">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      Return complete — refund processed
+                      @if (full.return?.status === 'EXCHANGE_DELIVERED' || full.return?.status === 'EXCHANGE_COMPLETE') {
+                        Exchange complete ✓
+                      } @else if (full.return?.status === 'REFUNDED') {
+                        Return complete — refund processed
+                      } @else {
+                        Return complete
+                      }
                     </p>
                   </div>
                 }
