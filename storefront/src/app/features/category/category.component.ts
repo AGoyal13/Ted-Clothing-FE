@@ -92,6 +92,15 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly pageType        = signal<PageType>('leaf');
   readonly categoryOptions = signal<FilterOption[]>([]);
   readonly leafParentSlug  = signal('');
+  readonly leafParentName  = signal('');
+
+  // Display-only computed — highlights the current slug on leaf pages instead of 'all'.
+  // Pass to [selectedCat] on filter components only. loadProducts always reads activeCat() directly.
+  readonly readonlyDisplayActiveCatForCategoryFilter = computed(() =>
+    this.pageType() === 'leaf' && this.activeCat() === 'all' && this.categoryOptions().length > 0
+      ? this.slug()
+      : this.activeCat()
+  );
 
   // ── Facet filter state (from URL) ─────────────────────────────────────────────
   readonly activeSizes    = signal<string[]>([]);
@@ -220,6 +229,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.breadcrumbs.set([]);
           this.pageType.set('leaf');
           this.leafParentSlug.set('');
+          this.leafParentName.set('');
           this.facetSizes.set({});
           this.facetColors.set({});
           this.facetPriceRange.set(null);
@@ -298,6 +308,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
             this.pageType.set('leaf');
             if (cat.parent) {
               this.leafParentSlug.set(cat.parent.slug);
+              this.leafParentName.set(cat.parent.name);
               this.categoryService.getBySlug(cat.parent.slug).subscribe({
                 next: (parent) => {
                   if (this.slug() !== slug) return;
@@ -468,6 +479,10 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     const isLeaf = this.pageType() === 'leaf';
     if (isLeaf && filters.cat !== 'all' && filters.cat !== this.activeCat()) {
       this.router.navigate(['/category', filters.cat]);
+      return;
+    }
+    if (isLeaf && filters.cat === 'all' && this.leafParentSlug()) {
+      this.router.navigate(['/category', this.leafParentSlug()]);
       return;
     }
     this.router.navigate([], {

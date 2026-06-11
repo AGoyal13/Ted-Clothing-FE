@@ -72,7 +72,7 @@
                       [class.cat-page__sheet-opt--active]="pendingCat() === 'all'"
                       (click)="setPendingCat('all')">
                       <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === 'all'"></span>
-                      All
+                      {{ parentLabel() ? '← ' + parentLabel() : 'All' }}
                     </button>
                     @for (opt of categoryOptions(); track opt.slug) {
                       <button class="cat-page__sheet-opt"

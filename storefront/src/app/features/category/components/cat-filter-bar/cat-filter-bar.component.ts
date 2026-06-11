@@ -27,6 +27,9 @@ export class CatFilterBarComponent {
   // ── Inputs ───────────────────────────────────────────────────────────────────
   readonly categoryOptions = input<FilterOption[]>([]);
   readonly activeCat       = input<string>('all');
+  // Display-only: which radio appears selected. Differs from activeCat on leaf pages.
+  readonly selectedCat     = input<string>('all');
+  readonly parentLabel     = input<string | null>(null);
 
   readonly facetSizes      = input<Record<string, number>>({});
   readonly facetColors     = input<Record<string, number>>({});

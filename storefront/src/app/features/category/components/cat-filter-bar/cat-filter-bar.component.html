@@ -38,15 +38,15 @@
             </button>
             <div class="sb-sec__body">
               <div class="sb-sec__inner">
-                <button class="sb-cat-opt" [class.sb-cat-opt--active]="activeCat() === 'all'"
+                <button class="sb-cat-opt" [class.sb-cat-opt--active]="selectedCat() === 'all'"
                   (click)="selectCat('all')">
-                  <span class="sb-radio" [class.sb-radio--on]="activeCat() === 'all'"></span>
-                  All
+                  <span class="sb-radio" [class.sb-radio--on]="selectedCat() === 'all'"></span>
+                  {{ parentLabel() ? '← ' + parentLabel() : 'All' }}
                 </button>
                 @for (opt of categoryOptions(); track opt.slug) {
-                  <button class="sb-cat-opt" [class.sb-cat-opt--active]="activeCat() === opt.slug"
+                  <button class="sb-cat-opt" [class.sb-cat-opt--active]="selectedCat() === opt.slug"
                     (click)="selectCat(opt.slug)">
-                    <span class="sb-radio" [class.sb-radio--on]="activeCat() === opt.slug"></span>
+                    <span class="sb-radio" [class.sb-radio--on]="selectedCat() === opt.slug"></span>
                     {{ opt.label }}
                   </button>
                 }

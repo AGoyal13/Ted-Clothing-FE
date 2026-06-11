@@ -37,6 +37,9 @@ export class CatMobileFilterComponent {
   // ── Inputs ────────────────────────────────────────────────────────────────────
   readonly categoryOptions = input<FilterOption[]>([]);
   readonly activeCat       = input<string>('all');
+  // Display-only: seeds pendingCat when the drawer opens. Differs from activeCat on leaf pages.
+  readonly selectedCat     = input<string>('all');
+  readonly parentLabel     = input<string | null>(null);
   readonly sortBy          = input<SortOption>('newest');
 
   readonly facetSizes      = input<Record<string, number>>({});
@@ -159,7 +162,7 @@ export class CatMobileFilterComponent {
   openSort(): void { this.sheetOpen.set('sort'); }
 
   openFilter(): void {
-    this.pendingCat.set(this.activeCat());
+    this.pendingCat.set(this.selectedCat());
     this.pendingSizes.set([...this.activeSizes()]);
     this.pendingColors.set([...this.activeColors()]);
     this.pendingMin.set(this.activeMinPrice());

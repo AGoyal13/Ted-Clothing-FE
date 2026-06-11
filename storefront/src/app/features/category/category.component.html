@@ -39,6 +39,8 @@
             [sidebarOpen]="sidebarOpen()"
             [categoryOptions]="categoryOptions()"
             [activeCat]="activeCat()"
+            [selectedCat]="readonlyDisplayActiveCatForCategoryFilter()"
+            [parentLabel]="leafParentName()"
             [facetSizes]="facetSizes()"
             [facetColors]="facetColors()"
             [facetPriceRange]="facetPriceRange()"
@@ -187,6 +189,8 @@
       <cat-mobile-filter
         [categoryOptions]="categoryOptions()"
         [activeCat]="activeCat()"
+        [selectedCat]="readonlyDisplayActiveCatForCategoryFilter()"
+        [parentLabel]="leafParentName()"
         [sortBy]="sortBy()"
         [facetSizes]="facetSizes()"
         [facetColors]="facetColors()"
