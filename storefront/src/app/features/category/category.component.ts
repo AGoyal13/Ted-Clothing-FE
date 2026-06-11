@@ -2,6 +2,8 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
@@ -28,6 +30,11 @@ type SortOption = 'newest' | 'price-asc' | 'price-desc';
 type PageType = 'gender' | 'parent' | 'leaf';
 
 interface FilterOption { label: string; slug: string; }
+interface ActivePill {
+  label: string;
+  type: 'cat' | 'size' | 'color' | 'price';
+  value?: string;
+}
 
 interface PlpScrollState {
   products: Product[];
@@ -56,6 +63,7 @@ function parseArrayParam(val: string | string[] | undefined): string[] {
 })
 export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly platformId      = inject(PLATFORM_ID);
+  private readonly ngZone          = inject(NgZone);
   private readonly route           = inject(ActivatedRoute);
   private readonly router          = inject(Router);
   private readonly searchService   = inject(SearchService);
@@ -67,8 +75,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly etdLabel = this.shippingService.etdLabel;
 
   @ViewChild('scrollSentinel') private sentinel!: ElementRef<HTMLDivElement>;
-  private observer: IntersectionObserver | null = null;
-  private sentinelVisible = false;
   private readonly initialNavTrigger = this.router.getCurrentNavigation()?.trigger;
 
   // ── Core state ────────────────────────────────────────────────────────────────
@@ -93,6 +99,48 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly activeMinPrice = signal<number | null>(null);
   readonly activeMaxPrice = signal<number | null>(null);
 
+  // ── Sidebar open/collapsed (desktop only) ────────────────────────────────────
+  readonly sidebarOpen = signal(true);
+  toggleSidebar(): void { this.sidebarOpen.update(v => !v); }
+
+  // ── Sort dropdown state (desktop inline, above grid) ─────────────────────────
+  readonly sortOpen = signal(false);
+  readonly sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'newest',     label: 'Newest First' },
+    { value: 'price-asc',  label: 'Price: Low to High' },
+    { value: 'price-desc', label: 'Price: High to Low' },
+  ];
+  readonly sortLabel = computed(() =>
+    this.sortOptions.find(o => o.value === this.sortBy())?.label ?? 'Newest First'
+  );
+
+  // ── Mobile preview count (live preview while filter drawer is open) ───────────
+  readonly mobilePreviewCount = signal(0);
+
+  // ── Active filter pills ───────────────────────────────────────────────────────
+  readonly activeFilterPills = computed<ActivePill[]>(() => {
+    const pills: ActivePill[] = [];
+    if (this.activeCat() !== 'all') {
+      const opt = this.categoryOptions().find(o => o.slug === this.activeCat());
+      pills.push({ label: opt?.label ?? this.activeCat().toUpperCase(), type: 'cat' });
+    }
+    for (const size of this.activeSizes()) {
+      pills.push({ label: size, type: 'size', value: size });
+    }
+    for (const color of this.activeColors()) {
+      pills.push({ label: color, type: 'color', value: color });
+    }
+    const min = this.activeMinPrice(), max = this.activeMaxPrice();
+    if (min !== null || max !== null) {
+      let label: string;
+      if (min !== null && max !== null) label = `₹${min.toLocaleString('en-IN')} – ₹${max.toLocaleString('en-IN')}`;
+      else if (min !== null)            label = `₹${min.toLocaleString('en-IN')}+`;
+      else                              label = `Up to ₹${max!.toLocaleString('en-IN')}`;
+      pills.push({ label, type: 'price' });
+    }
+    return pills;
+  });
+
   // ── Facet data — populated from search response on every fresh load ───────────
   readonly facetSizes      = signal<Record<string, number>>({});
   readonly facetColors     = signal<Record<string, number>>({});
@@ -100,6 +148,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly colorHexMap     = signal<Record<string, string>>({});
 
   private prevSlug = '';
+  private loadSeq  = 0; // incremented on every fresh (non-append) load; guards stale responses
 
   readonly skeletons = [1,2,3,4,5,6,7,8];
 
@@ -124,6 +173,8 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeColors.set(colorsFromUrl);
       this.activeMinPrice.set(minPriceFromUrl);
       this.activeMaxPrice.set(maxPriceFromUrl);
+
+      if (newSlug !== this.prevSlug) this.sidebarOpen.set(true);
 
       const isBrowser  = isPlatformBrowser(this.platformId);
       const isBackNav  = this.initialNavTrigger === 'popstate';
@@ -267,6 +318,13 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadProducts(append = false): void {
+    // Capture seq BEFORE any async work. Fresh loads increment it; append calls
+    // inherit the current value so a new fresh load cancels any in-flight append.
+    const seq = append ? this.loadSeq : ++this.loadSeq;
+
+    // Fresh load cancels any in-flight append — reset loadingMore immediately
+    // so the loadMore() guard doesn't get stuck after the append is discarded.
+    if (!append) this.loadingMore.set(false);
     append ? this.loadingMore.set(true) : this.loading.set(true);
 
     const slug       = this.slug();
@@ -301,7 +359,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.searchService.searchPlp(params).subscribe({
       next: (res) => {
-        if (this.slug() !== slug || this.activeCat() !== activeCat) return;
+        if (this.loadSeq !== seq) { if (append) this.loadingMore.set(false); return; }
         const items = (res.hits ?? []).map(searchHitToProduct);
 
         // Accumulate colorHexMap from hits — never cleared, grows as pages load
@@ -325,15 +383,18 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.facetSizes.set(res.facetDistribution?.['sizes'] ?? {});
           this.facetColors.set(res.facetDistribution?.['colorNames'] ?? {});
           this.facetPriceRange.set(res.facetStats?.['basePrice'] ?? null);
-          if (this.sentinelVisible) setTimeout(() => {
-            if (this.slug() === slug && this.activeCat() === activeCat) this.loadMore();
-          }, 0);
+          // After DOM settles, check if sentinel is already in view
+          // (handles categories with fewer products than a screenful).
+          setTimeout(() => {
+            if (this.loadSeq === seq) this.onScroll();
+          }, 100);
         }
         this.total.set(res.estimatedTotalHits ?? 0);
         this.totalPages.set(res.totalPages ?? 1);
+        if (!append) this.mobilePreviewCount.set(res.estimatedTotalHits ?? 0);
       },
       error: () => {
-        if (this.slug() !== slug || this.activeCat() !== activeCat) return;
+        if (this.loadSeq !== seq) { if (append) this.loadingMore.set(false); return; }
         if (append) { this.loadingMore.set(false); }
         else        { this.products.set([]); this.loading.set(false); }
       },
@@ -394,6 +455,15 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  removePill(pill: ActivePill): void {
+    switch (pill.type) {
+      case 'cat':   this.onCatSelected('all'); break;
+      case 'size':  this.onSizesChanged(this.activeSizes().filter(s => s !== pill.value)); break;
+      case 'color': this.onColorsChanged(this.activeColors().filter(c => c !== pill.value)); break;
+      case 'price': this.onPriceChanged({ min: null, max: null }); break;
+    }
+  }
+
   onFiltersApplied(filters: MobileFilters): void {
     const isLeaf = this.pageType() === 'leaf';
     if (isLeaf && filters.cat !== 'all' && filters.cat !== this.activeCat()) {
@@ -410,6 +480,55 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         maxPrice: filters.maxPrice ?? null,
       },
       queryParamsHandling: 'merge',
+    });
+  }
+
+  // ── Sort dropdown (desktop inline) ───────────────────────────────────────────
+  toggleSort(e: MouseEvent): void {
+    e.stopPropagation();
+    this.sortOpen.update(v => !v);
+  }
+
+  @HostListener('document:click')
+  closeSortDd(): void { this.sortOpen.set(false); }
+
+  // ── Clear all filters (desktop sidebar "Clear All") ───────────────────────────
+  onClearAll(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { cat: null, size: null, color: null, minPrice: null, maxPrice: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  // ── Mobile preview count ──────────────────────────────────────────────────────
+  onPreviewFiltersChange(filters: MobileFilters): void {
+    const slug       = this.slug();
+    const genderEnum = GENDER_SLUGS[slug.toLowerCase()];
+    const params: Parameters<SearchService['searchPlp']>[0] = {
+      limit: 1, page: 1, sort: this.sortBy(),
+      ...(filters.sizes.length  ? { sizes: filters.sizes }                : {}),
+      ...(filters.colors.length ? { colorNames: filters.colors }          : {}),
+      ...(filters.minPrice !== null ? { minPrice: filters.minPrice }       : {}),
+      ...(filters.maxPrice !== null ? { maxPrice: filters.maxPrice }       : {}),
+    };
+    if (slug === 'sale') {
+      params.onSale = true;
+      if (filters.cat !== 'all') params.categorySlug = filters.cat;
+    } else if (slug === 'new-arrivals') {
+      if (filters.cat !== 'all') params.categorySlug = filters.cat;
+    } else if (genderEnum) {
+      if (filters.cat !== 'all') params.categorySlug = filters.cat;
+      else params.gender = genderEnum;
+    } else {
+      params.categorySlug = filters.cat !== 'all' ? filters.cat : slug;
+    }
+    this.searchService.searchPlp(params).subscribe({
+      next: (res) => {
+        if (this.slug() !== slug) return;
+        this.mobilePreviewCount.set(res.estimatedTotalHits ?? 0);
+      },
+      error: () => {},
     });
   }
 
@@ -435,17 +554,23 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId) || !this.sentinel) return;
-    this.observer = new IntersectionObserver(
-      ([entry]) => {
-        this.sentinelVisible = entry.isIntersecting;
-        if (entry.isIntersecting) this.loadMore();
-      },
-      { rootMargin: '200px' }
-    );
-    this.observer.observe(this.sentinel.nativeElement);
+    this.ngZone.runOutsideAngular(() => {
+      window.addEventListener('scroll', this.onScroll, { passive: true });
+    });
   }
 
+  // Arrow fn so it's the same reference for removeEventListener
+  private readonly onScroll = (): void => {
+    if (!this.sentinel) return;
+    const rect = this.sentinel.nativeElement.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 200) {
+      this.ngZone.run(() => this.loadMore());
+    }
+  };
+
   ngOnDestroy(): void {
-    this.observer?.disconnect();
+    if (isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('scroll', this.onScroll);
+    }
   }
 }

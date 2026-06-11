@@ -1,14 +1,12 @@
 import {
   Component,
-  HostListener,
   input,
   output,
   signal,
   computed,
+  effect,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 
-type SortOption = 'newest' | 'price-asc' | 'price-desc';
 interface FilterOption { label: string; slug: string; }
 
 const SIZE_ORDER = [
@@ -21,18 +19,15 @@ const SIZE_ORDER = [
 @Component({
   selector: 'cat-filter-bar',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './cat-filter-bar.component.html',
   styleUrl: './cat-filter-bar.component.scss',
 })
 export class CatFilterBarComponent {
-  // ── Existing inputs ──────────────────────────────────────────────────────────
-  readonly breadcrumbs     = input<{ label: string; slug?: string }[]>([]);
+  // ── Inputs ───────────────────────────────────────────────────────────────────
   readonly categoryOptions = input<FilterOption[]>([]);
   readonly activeCat       = input<string>('all');
-  readonly sortBy          = input<SortOption>('newest');
 
-  // ── Facet inputs ─────────────────────────────────────────────────────────────
   readonly facetSizes      = input<Record<string, number>>({});
   readonly facetColors     = input<Record<string, number>>({});
   readonly facetPriceRange = input<{ min: number; max: number } | null>(null);
@@ -42,67 +37,38 @@ export class CatFilterBarComponent {
   readonly activeMinPrice  = input<number | null>(null);
   readonly activeMaxPrice  = input<number | null>(null);
 
-  // ── Existing outputs ──────────────────────────────────────────────────────────
-  readonly catSelected  = output<string>();
-  readonly sortSelected = output<SortOption>();
+  // ── Sidebar open/collapsed (controlled by parent) ────────────────────────────
+  readonly sidebarOpen = input<boolean>(true);
 
-  // ── Facet outputs ─────────────────────────────────────────────────────────────
+  // ── Outputs ──────────────────────────────────────────────────────────────────
+  readonly toggleSidebar = output<void>();
+  readonly catSelected   = output<string>();
   readonly sizesChanged  = output<string[]>();
   readonly colorsChanged = output<string[]>();
   readonly priceChanged  = output<{ min: number | null; max: number | null }>();
+  readonly clearAll      = output<void>();
 
-  // ── Dropdown open state ───────────────────────────────────────────────────────
-  readonly catDdOpen   = signal(false);
-  readonly sortOpen    = signal(false);
-  readonly sizeDdOpen  = signal(false);
-  readonly colorDdOpen = signal(false);
-  readonly priceDdOpen = signal(false);
+  // ── Accordion open state (all open by default on desktop) ────────────────────
+  readonly secOpen = signal({ cat: true, size: true, color: true, price: true });
 
-  // ── Price pending state (inputs need explicit Apply) ─────────────────────────
+  // ── Price slider pending values (synced from URL via effect) ─────────────────
   readonly pendingMin = signal<number | null>(null);
   readonly pendingMax = signal<number | null>(null);
 
-  readonly sortOptions: { value: SortOption; label: string }[] = [
-    { value: 'newest',     label: 'Newest First' },
-    { value: 'price-asc',  label: 'Price: Low to High' },
-    { value: 'price-desc', label: 'Price: High to Low' },
-  ];
+  constructor() {
+    effect(() => {
+      this.pendingMin.set(this.activeMinPrice());
+      this.pendingMax.set(this.activeMaxPrice());
+    });
+  }
 
-  // ── Computed labels + active state ───────────────────────────────────────────
+  // ── Active state ─────────────────────────────────────────────────────────────
   readonly hasCatFilter   = computed(() => this.activeCat() !== 'all');
   readonly hasSizeFilter  = computed(() => this.activeSizes().length > 0);
   readonly hasColorFilter = computed(() => this.activeColors().length > 0);
   readonly hasPriceFilter = computed(() => this.activeMinPrice() !== null || this.activeMaxPrice() !== null);
-
-  readonly catPillLabel = computed(() => {
-    if (!this.hasCatFilter()) return 'CATEGORY';
-    const opt = this.categoryOptions().find(o => o.slug === this.activeCat());
-    return (opt?.label ?? 'CATEGORY') + ' ×';
-  });
-
-  readonly sizePillLabel = computed(() => {
-    const s = this.activeSizes();
-    if (!s.length) return 'SIZE';
-    return s.length === 1 ? `SIZE: ${s[0]} ×` : `SIZE (${s.length}) ×`;
-  });
-
-  readonly colorPillLabel = computed(() => {
-    const c = this.activeColors();
-    if (!c.length) return 'COLOR';
-    return c.length === 1 ? `COLOR: ${c[0]} ×` : `COLOR (${c.length}) ×`;
-  });
-
-  readonly pricePillLabel = computed(() => {
-    const min = this.activeMinPrice();
-    const max = this.activeMaxPrice();
-    if (min === null && max === null) return 'PRICE';
-    if (min !== null && max !== null) return `₹${min}–₹${max} ×`;
-    if (min !== null) return `₹${min}+ ×`;
-    return `Up to ₹${max} ×`;
-  });
-
-  readonly sortLabel = computed(() =>
-    this.sortOptions.find(o => o.value === this.sortBy())?.label ?? 'Newest First'
+  readonly hasAnyFilter   = computed(() =>
+    this.hasCatFilter() || this.hasSizeFilter() || this.hasColorFilter() || this.hasPriceFilter()
   );
 
   // ── Sorted facet lists ────────────────────────────────────────────────────────
@@ -125,92 +91,82 @@ export class CatFilterBarComponent {
       .sort((a, b) => b.count - a.count)
   );
 
-  // ── Category dropdown ─────────────────────────────────────────────────────────
-  toggleCatDd(event: MouseEvent): void {
-    event.stopPropagation();
-    this.closeAll();
-    this.catDdOpen.update(v => !v);
-  }
-  selectCat(slug: string): void {
-    this.catDdOpen.set(false);
-    this.catSelected.emit(slug);
+  // ── Price slider computed ────────────────────────────────────────────────────
+  readonly sliderLow = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range) return 0;
+    return this.pendingMin() ?? range.min;
+  });
+
+  readonly sliderHigh = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range) return 0;
+    return this.pendingMax() ?? range.max;
+  });
+
+  readonly sliderLowPct = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range || range.max === range.min) return 0;
+    return ((this.sliderLow() - range.min) / (range.max - range.min)) * 100;
+  });
+
+  readonly sliderHighPct = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range || range.max === range.min) return 100;
+    return ((this.sliderHigh() - range.min) / (range.max - range.min)) * 100;
+  });
+
+  readonly lowLabel  = computed(() => '₹' + this.sliderLow().toLocaleString('en-IN'));
+  readonly highLabel = computed(() => '₹' + this.sliderHigh().toLocaleString('en-IN'));
+
+  // ── Accordion ─────────────────────────────────────────────────────────────────
+  toggleSection(key: 'cat' | 'size' | 'color' | 'price'): void {
+    this.secOpen.update(s => ({ ...s, [key]: !s[key] }));
   }
 
-  // ── Sort dropdown ─────────────────────────────────────────────────────────────
-  toggleSort(event: MouseEvent): void {
-    event.stopPropagation();
-    this.closeAll();
-    this.sortOpen.update(v => !v);
-  }
-  selectSort(value: SortOption): void {
-    this.sortOpen.set(false);
-    this.sortSelected.emit(value);
-  }
+  // ── Category ──────────────────────────────────────────────────────────────────
+  selectCat(slug: string): void { this.catSelected.emit(slug); }
 
-  // ── Size dropdown ─────────────────────────────────────────────────────────────
-  toggleSizeDd(event: MouseEvent): void {
-    event.stopPropagation();
-    this.closeAll();
-    this.sizeDdOpen.update(v => !v);
-  }
+  // ── Size ─────────────────────────────────────────────────────────────────────
   toggleSize(size: string): void {
-    const current = this.activeSizes();
-    const next = current.includes(size)
-      ? current.filter(s => s !== size)
-      : [...current, size];
+    const next = this.activeSizes().includes(size)
+      ? this.activeSizes().filter(s => s !== size)
+      : [...this.activeSizes(), size];
     this.sizesChanged.emit(next);
   }
 
-  // ── Color dropdown ────────────────────────────────────────────────────────────
-  toggleColorDd(event: MouseEvent): void {
-    event.stopPropagation();
-    this.closeAll();
-    this.colorDdOpen.update(v => !v);
-  }
+  // ── Color ─────────────────────────────────────────────────────────────────────
   toggleColor(name: string): void {
-    const current = this.activeColors();
-    const next = current.includes(name)
-      ? current.filter(c => c !== name)
-      : [...current, name];
+    const next = this.activeColors().includes(name)
+      ? this.activeColors().filter(c => c !== name)
+      : [...this.activeColors(), name];
     this.colorsChanged.emit(next);
   }
 
-  // ── Price dropdown ────────────────────────────────────────────────────────────
-  togglePriceDd(event: MouseEvent): void {
-    event.stopPropagation();
-    this.closeAll();
-    // Seed pending from active values when opening
-    this.pendingMin.set(this.activeMinPrice());
-    this.pendingMax.set(this.activeMaxPrice());
-    this.priceDdOpen.update(v => !v);
+  // ── Price slider ──────────────────────────────────────────────────────────────
+  onSliderLow(e: Event): void {
+    const range = this.facetPriceRange();
+    if (!range) return;
+    let val = (e.target as HTMLInputElement).valueAsNumber;
+    val = Math.min(val, this.sliderHigh() - 1);
+    (e.target as HTMLInputElement).value = String(val);
+    this.pendingMin.set(val === range.min ? null : val);
   }
-  onMinInput(e: Event): void {
-    const val = (e.target as HTMLInputElement).valueAsNumber;
-    this.pendingMin.set(isNaN(val) ? null : val);
+
+  onSliderHigh(e: Event): void {
+    const range = this.facetPriceRange();
+    if (!range) return;
+    let val = (e.target as HTMLInputElement).valueAsNumber;
+    val = Math.max(val, this.sliderLow() + 1);
+    (e.target as HTMLInputElement).value = String(val);
+    this.pendingMax.set(val === range.max ? null : val);
   }
-  onMaxInput(e: Event): void {
-    const val = (e.target as HTMLInputElement).valueAsNumber;
-    this.pendingMax.set(isNaN(val) ? null : val);
-  }
-  applyPrice(): void {
-    this.priceDdOpen.set(false);
+
+  // Fires on mouseup/touchend — single Meilisearch call per gesture
+  onSliderChange(): void {
     this.priceChanged.emit({ min: this.pendingMin(), max: this.pendingMax() });
   }
-  clearPrice(): void {
-    this.pendingMin.set(null);
-    this.pendingMax.set(null);
-    this.priceDdOpen.set(false);
-    this.priceChanged.emit({ min: null, max: null });
-  }
 
-  private closeAll(): void {
-    this.catDdOpen.set(false);
-    this.sortOpen.set(false);
-    this.sizeDdOpen.set(false);
-    this.colorDdOpen.set(false);
-    this.priceDdOpen.set(false);
-  }
-
-  @HostListener('document:click')
-  closeDropdowns(): void { this.closeAll(); }
+  // ── Clear all ─────────────────────────────────────────────────────────────────
+  emitClearAll(): void { this.clearAll.emit(); }
 }

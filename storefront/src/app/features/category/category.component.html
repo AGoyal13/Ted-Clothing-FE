@@ -1,7 +1,6 @@
 
     <main class="cat-page">
 
-
       <!-- Mobile-only scrollable header -->
       <div class="cat-page__mobile-hdr">
         <nav class="cat-page__bc" aria-label="Breadcrumb">
@@ -28,79 +27,114 @@
             </span>
           }
         </div>
+
       </div>
 
-      <!-- Desktop filter bar -->
-      <cat-filter-bar
-        [breadcrumbs]="breadcrumbs()"
-        [categoryOptions]="categoryOptions()"
-        [activeCat]="activeCat()"
-        [sortBy]="sortBy()"
-        [facetSizes]="facetSizes()"
-        [facetColors]="facetColors()"
-        [facetPriceRange]="facetPriceRange()"
-        [colorHexMap]="colorHexMap()"
-        [activeSizes]="activeSizes()"
-        [activeColors]="activeColors()"
-        [activeMinPrice]="activeMinPrice()"
-        [activeMaxPrice]="activeMaxPrice()"
-        (catSelected)="onCatSelected($event)"
-        (sortSelected)="onSortSelected($event)"
-        (sizesChanged)="onSizesChanged($event)"
-        (colorsChanged)="onColorsChanged($event)"
-        (priceChanged)="onPriceChanged($event)">
-      </cat-filter-bar>
+      <!-- Desktop two-column layout: sidebar + grid -->
+      <div class="cat-page__layout">
 
-      <!-- Product grid -->
-      <div class="cat-page__content">
+        <!-- Left sticky sidebar (desktop only) -->
+        <aside class="cat-page__sidebar" [class.cat-page__sidebar--collapsed]="!sidebarOpen()">
+          <cat-filter-bar
+            [sidebarOpen]="sidebarOpen()"
+            [categoryOptions]="categoryOptions()"
+            [activeCat]="activeCat()"
+            [facetSizes]="facetSizes()"
+            [facetColors]="facetColors()"
+            [facetPriceRange]="facetPriceRange()"
+            [colorHexMap]="colorHexMap()"
+            [activeSizes]="activeSizes()"
+            [activeColors]="activeColors()"
+            [activeMinPrice]="activeMinPrice()"
+            [activeMaxPrice]="activeMaxPrice()"
+            (toggleSidebar)="toggleSidebar()"
+            (catSelected)="onCatSelected($event)"
+            (sizesChanged)="onSizesChanged($event)"
+            (colorsChanged)="onColorsChanged($event)"
+            (priceChanged)="onPriceChanged($event)"
+            (clearAll)="onClearAll()">
+          </cat-filter-bar>
+        </aside>
 
-        <!-- Title + count — desktop only -->
-        <div class="cat-page__content-meta">
-          <span class="cat-page__bar-title">{{ displayName() }}</span>
-          <span class="cat-page__bar-sep">·</span>
-          <span class="cat-page__bar-count">{{ total() }} products</span>
-          @if (etdLabel()) {
-            <span class="cat-page__bar-sep">·</span>
-            <span class="cat-page__etd-chip">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-              </svg>
-              {{ etdLabel() }}
-            </span>
-          }
-        </div>
+        <!-- Right: content area -->
+        <div class="cat-page__content">
 
-        @if (loading()) {
-          <div class="cat-page__grid">
-            @for (i of skeletons; track i) {
-              <div class="cat-page__skeleton">
-                <div class="skeleton aspect-3-4"></div>
-                <div class="skeleton" style="height:14px;width:70%;margin-top:8px;"></div>
-                <div class="skeleton" style="height:12px;width:40%;margin-top:6px;"></div>
+          <!-- Breadcrumb (scrolls away, desktop only) -->
+          <nav class="cat-page__bc cat-page__bc--content" aria-label="Breadcrumb">
+            <a routerLink="/" class="cat-page__bc-link">Home</a>
+            @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
+              <span class="cat-page__bc-sep">/</span>
+              @if (!last && crumb.slug) {
+                <a [routerLink]="['/category', crumb.slug]" class="cat-page__bc-link">{{ crumb.label }}</a>
+              } @else {
+                <span class="cat-page__bc-cur">{{ crumb.label }}</span>
+              }
+            }
+          </nav>
+
+          <!-- Sticky bar: title + count + sort + active pills -->
+          <div class="cat-page__sticky-bar">
+            <div class="cat-page__content-meta">
+              <div class="cat-page__meta-left">
+                <span class="cat-page__bar-title">{{ displayName() }}</span>
+                <span class="cat-page__bar-sep">·</span>
+                <span class="cat-page__bar-count">{{ total() }} products</span>
+                @if (etdLabel()) {
+                  <span class="cat-page__bar-sep">·</span>
+                  <span class="cat-page__etd-chip">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    {{ etdLabel() }}
+                  </span>
+                }
+              </div>
+
+              <!-- Sort dropdown -->
+              <div class="cat-page__sort-wrap" (click)="$event.stopPropagation()">
+                <button class="cat-page__sort-btn" (click)="toggleSort($event)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>
+                  </svg>
+                  <span>{{ sortLabel() }}</span>
+                  <svg class="cat-page__sort-caret" [class.cat-page__sort-caret--open]="sortOpen()"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
+                </button>
+                @if (sortOpen()) {
+                  <ul class="cat-page__sort-dd" role="listbox">
+                    @for (opt of sortOptions; track opt.value) {
+                      <li class="cat-page__sort-dd-opt"
+                        [class.cat-page__sort-dd-opt--active]="sortBy() === opt.value"
+                        (click)="onSortSelected(opt.value); sortOpen.set(false)">
+                        {{ opt.label }}
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+
+            @if (activeFilterPills().length > 0) {
+              <div class="filter-pills">
+                @for (pill of activeFilterPills(); track pill.label) {
+                  <button class="filter-pill" (click)="removePill(pill)">
+                    <span>{{ pill.label }}</span>
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M1 1l6 6M7 1L1 7"/>
+                    </svg>
+                  </button>
+                }
               </div>
             }
           </div>
-        } @else if (products().length === 0) {
-          <div class="cat-page__empty">
-            <p class="cat-page__empty-text"><em>No products found in this collection yet.</em></p>
-            <p class="cat-page__empty-sub">Check back soon — new arrivals every Friday.</p>
-          </div>
-        } @else {
-          <div class="cat-page__grid">
-            @for (product of products(); track product.id; let i = $index) {
-              <app-product-card
-                [id]="'plp-' + product.id"
-                appAnimateOnScroll
-                [product]="product"
-                [delay]="((i % 24) * 60) + 'ms'"
-                (click)="saveScrollState(product.id)"
-              />
-            }
-          </div>
 
-          @if (loadingMore()) {
-            <div class="cat-page__grid cat-page__grid--more">
-              @for (i of [1,2,3,4]; track i) {
+          <!-- Product grid -->
+          @if (loading()) {
+            <div class="cat-page__grid">
+              @for (i of skeletons; track i) {
                 <div class="cat-page__skeleton">
                   <div class="skeleton aspect-3-4"></div>
                   <div class="skeleton" style="height:14px;width:70%;margin-top:8px;"></div>
@@ -108,18 +142,48 @@
                 </div>
               }
             </div>
+          } @else if (products().length === 0) {
+            <div class="cat-page__empty">
+              <p class="cat-page__empty-text"><em>No products found in this collection yet.</em></p>
+              <p class="cat-page__empty-sub">Check back soon — new arrivals every Friday.</p>
+            </div>
+          } @else {
+            <div class="cat-page__grid">
+              @for (product of products(); track product.id; let i = $index) {
+                <app-product-card
+                  [id]="'plp-' + product.id"
+                  appAnimateOnScroll
+                  [product]="product"
+                  [delay]="((i % 24) * 60) + 'ms'"
+                  (click)="saveScrollState(product.id)"
+                />
+              }
+            </div>
+
+            @if (loadingMore()) {
+              <div class="cat-page__grid cat-page__grid--more">
+                @for (i of [1,2,3,4]; track i) {
+                  <div class="cat-page__skeleton">
+                    <div class="skeleton aspect-3-4"></div>
+                    <div class="skeleton" style="height:14px;width:70%;margin-top:8px;"></div>
+                    <div class="skeleton" style="height:12px;width:40%;margin-top:6px;"></div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (!hasMore() && products().length > 0) {
+              <div class="cat-page__end">— You've seen it all —</div>
+            }
           }
 
-          @if (!hasMore() && products().length > 0) {
-            <div class="cat-page__end">— You've seen it all —</div>
-          }
-        }
+          <!-- Sentinel: always in DOM so IntersectionObserver can observe it -->
+          <div #scrollSentinel class="cat-page__sentinel"></div>
+        </div>
 
-        <!-- Sentinel: always in DOM so IntersectionObserver can observe it -->
-        <div #scrollSentinel class="cat-page__sentinel"></div>
       </div>
 
-      <!-- Mobile filter bar + sheet -->
+      <!-- Mobile filter bar + right-side drawer -->
       <cat-mobile-filter
         [categoryOptions]="categoryOptions()"
         [activeCat]="activeCat()"
@@ -132,8 +196,10 @@
         [activeColors]="activeColors()"
         [activeMinPrice]="activeMinPrice()"
         [activeMaxPrice]="activeMaxPrice()"
+        [previewCount]="mobilePreviewCount()"
         (sortSelected)="onSortSelected($event)"
-        (filtersApplied)="onFiltersApplied($event)">
+        (filtersApplied)="onFiltersApplied($event)"
+        (previewFiltersChange)="onPreviewFiltersChange($event)">
       </cat-mobile-filter>
 
     </main>

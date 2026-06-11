@@ -20,15 +20,14 @@
       </button>
     </div>
 
-    <!-- Backdrop -->
+    <!-- Backdrop (for both sort sheet and filter drawer) -->
     @if (sheetOpen() !== 'none') {
       <div class="cat-page__backdrop" (click)="closeSheet()"></div>
-      <div class="cat-page__sheet" role="dialog"
-        [attr.aria-label]="sheetOpen() === 'sort' ? 'Sort options' : 'Filter options'">
-        <div class="cat-page__sheet-handle"></div>
 
-        <!-- ── SORT sheet ── -->
-        @if (sheetOpen() === 'sort') {
+      <!-- ── SORT sheet (bottom) ── -->
+      @if (sheetOpen() === 'sort') {
+        <div class="cat-page__sheet" role="dialog" aria-label="Sort options">
+          <div class="cat-page__sheet-handle"></div>
           <div class="cat-page__sheet-title">SORT BY</div>
           <div class="cat-page__sheet-rule"></div>
           <div class="cat-page__sheet-scroll">
@@ -40,104 +39,179 @@
               </button>
             }
           </div>
-        }
+        </div>
+      }
 
-        <!-- ── FILTER sheet ── -->
-        @if (sheetOpen() === 'filter') {
+      <!-- ── FILTER drawer (right side) ── -->
+      @if (sheetOpen() === 'filter') {
+        <div class="cat-page__drawer" role="dialog" aria-label="Filter options">
+
+          <!-- Sheet handle + title -->
+          <div class="cat-page__sheet-handle"></div>
           <div class="cat-page__sheet-title">FILTERS</div>
           <div class="cat-page__sheet-rule"></div>
-          <div class="cat-page__sheet-scroll">
 
-            <!-- CATEGORY section -->
+          <!-- Scrollable accordion body -->
+          <div class="cat-page__drawer-scroll">
+
+            <!-- CATEGORY accordion -->
             @if (categoryOptions().length > 0) {
-              <div class="cat-page__filter-section-title">CATEGORY</div>
-              <button class="cat-page__sheet-opt"
-                [class.cat-page__sheet-opt--active]="pendingCat() === 'all'"
-                (click)="setPendingCat('all')">
-                <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === 'all'"></span>
-                All
-              </button>
-              @for (opt of categoryOptions(); track opt.slug) {
-                <button class="cat-page__sheet-opt"
-                  [class.cat-page__sheet-opt--active]="pendingCat() === opt.slug"
-                  (click)="setPendingCat(opt.slug)">
-                  <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === opt.slug"></span>
-                  {{ opt.label }}
+              <div class="mob-sec" [class.mob-sec--open]="secOpen().cat">
+                <button class="mob-sec__hdr" (click)="toggleSection('cat')">
+                  <span class="mob-sec__label">CATEGORY</span>
+                  @if (pendingCat() !== 'all') { <span class="mob-badge">1</span> }
+                  <svg class="mob-sec__chevron" [class.mob-sec__chevron--open]="secOpen().cat"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
                 </button>
-              }
-              <div class="cat-page__filter-section-rule"></div>
+                <div class="mob-sec__body">
+                  <div class="mob-sec__body-inner">
+                    <button class="cat-page__sheet-opt"
+                      [class.cat-page__sheet-opt--active]="pendingCat() === 'all'"
+                      (click)="setPendingCat('all')">
+                      <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === 'all'"></span>
+                      All
+                    </button>
+                    @for (opt of categoryOptions(); track opt.slug) {
+                      <button class="cat-page__sheet-opt"
+                        [class.cat-page__sheet-opt--active]="pendingCat() === opt.slug"
+                        (click)="setPendingCat(opt.slug)">
+                        <span class="cat-page__radio" [class.cat-page__radio--on]="pendingCat() === opt.slug"></span>
+                        {{ opt.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="mob-sec__divider"></div>
             }
 
-            <!-- SIZE section -->
+            <!-- SIZE accordion -->
             @if (sortedSizes().length > 0) {
-              <div class="cat-page__filter-section-title">SIZE</div>
-              <div class="cat-page__mob-size-grid">
-                @for (entry of sortedSizes(); track entry.size) {
-                  <button class="cat-page__mob-size-chip"
-                    [class.cat-page__mob-size-chip--active]="pendingSizes().includes(entry.size)"
-                    (click)="togglePendingSize(entry.size)">
-                    {{ entry.size }}
-                    @if (entry.count) {
-                      <span class="cat-page__mob-facet-count">{{ entry.count }}</span>
-                    }
-                  </button>
-                }
+              <div class="mob-sec" [class.mob-sec--open]="secOpen().size">
+                <button class="mob-sec__hdr" (click)="toggleSection('size')">
+                  <span class="mob-sec__label">SIZE</span>
+                  @if (pendingSizes().length > 0) { <span class="mob-badge">{{ pendingSizes().length }}</span> }
+                  <svg class="mob-sec__chevron" [class.mob-sec__chevron--open]="secOpen().size"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
+                </button>
+                <div class="mob-sec__body">
+                  <div class="mob-sec__body-inner">
+                    <div class="cat-page__mob-size-grid">
+                      @for (entry of sortedSizes(); track entry.size) {
+                        <button class="cat-page__mob-size-chip"
+                          [class.cat-page__mob-size-chip--active]="pendingSizes().includes(entry.size)"
+                          (click)="togglePendingSize(entry.size)">
+                          {{ entry.size }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="cat-page__filter-section-rule"></div>
+              <div class="mob-sec__divider"></div>
             }
 
-            <!-- COLOR section -->
+            <!-- COLOR accordion -->
             @if (sortedColors().length > 0) {
-              <div class="cat-page__filter-section-title">COLOR</div>
-              <div class="cat-page__mob-color-list">
-                @for (entry of sortedColors(); track entry.name) {
-                  <button class="cat-page__mob-color-opt"
-                    [class.cat-page__mob-color-opt--active]="pendingColors().includes(entry.name)"
-                    (click)="togglePendingColor(entry.name)">
-                    <span class="cat-page__mob-checkbox"
-                      [class.cat-page__mob-checkbox--on]="pendingColors().includes(entry.name)"></span>
-                    @if (colorHexMap()[entry.name]) {
-                      <span class="cat-page__mob-color-swatch"
-                        [style.background]="colorHexMap()[entry.name]"></span>
-                    }
-                    <span class="cat-page__mob-color-name">{{ entry.name }}</span>
-                    @if (entry.count) {
-                      <span class="cat-page__mob-facet-count">{{ entry.count }}</span>
-                    }
-                  </button>
-                }
+              <div class="mob-sec" [class.mob-sec--open]="secOpen().color">
+                <button class="mob-sec__hdr" (click)="toggleSection('color')">
+                  <span class="mob-sec__label">COLOR</span>
+                  @if (pendingColors().length > 0) { <span class="mob-badge">{{ pendingColors().length }}</span> }
+                  <svg class="mob-sec__chevron" [class.mob-sec__chevron--open]="secOpen().color"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
+                </button>
+                <div class="mob-sec__body">
+                  <div class="mob-sec__body-inner">
+                    <div class="cat-page__mob-color-list">
+                      @for (entry of sortedColors(); track entry.name) {
+                        <button class="cat-page__mob-color-opt"
+                          [class.cat-page__mob-color-opt--active]="pendingColors().includes(entry.name)"
+                          (click)="togglePendingColor(entry.name)">
+                          <span class="cat-page__mob-checkbox"
+                            [class.cat-page__mob-checkbox--on]="pendingColors().includes(entry.name)"></span>
+                          @if (colorHexMap()[entry.name]) {
+                            <span class="cat-page__mob-color-swatch"
+                              [style.background]="colorHexMap()[entry.name]"></span>
+                          }
+                          <span class="cat-page__mob-color-name">{{ entry.name }}</span>
+                          @if (entry.count) {
+                            <span class="cat-page__mob-facet-count">({{ entry.count }})</span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="cat-page__filter-section-rule"></div>
+              <div class="mob-sec__divider"></div>
             }
 
-            <!-- PRICE section -->
+            <!-- PRICE accordion -->
             @if (facetPriceRange()) {
-              <div class="cat-page__filter-section-title">PRICE</div>
-              <div class="cat-page__mob-price-inputs">
-                <div class="cat-page__mob-price-row">
-                  <label class="cat-page__mob-price-label">From ₹</label>
-                  <input class="cat-page__mob-price-input" type="number" min="0"
-                    [value]="pendingMin() ?? ''"
-                    [placeholder]="facetPriceRange()?.min ?? 0"
-                    (input)="onMinInput($event)">
-                </div>
-                <div class="cat-page__mob-price-row">
-                  <label class="cat-page__mob-price-label">To ₹</label>
-                  <input class="cat-page__mob-price-input" type="number" min="0"
-                    [value]="pendingMax() ?? ''"
-                    [placeholder]="facetPriceRange()?.max ?? ''"
-                    (input)="onMaxInput($event)">
+              <div class="mob-sec" [class.mob-sec--open]="secOpen().price">
+                <button class="mob-sec__hdr" (click)="toggleSection('price')">
+                  <span class="mob-sec__label">PRICE</span>
+                  @if (pendingMin() !== null || pendingMax() !== null) { <span class="mob-badge">1</span> }
+                  <svg class="mob-sec__chevron" [class.mob-sec__chevron--open]="secOpen().price"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
+                </button>
+                <div class="mob-sec__body">
+                  <div class="mob-sec__body-inner">
+                    <div class="mob-price-wrap">
+                      <div class="mob-price-display">
+                        <span>{{ lowLabel() }}</span>
+                        <span class="mob-price-dash">–</span>
+                        <span>{{ highLabel() }}</span>
+                      </div>
+                      <div class="price-slider"
+                        [style.--low]="sliderLowPct() + '%'"
+                        [style.--high]="sliderHighPct() + '%'">
+                        <div class="price-slider__fill"></div>
+                        <input type="range" class="price-slider__input"
+                          [min]="facetPriceRange()!.min"
+                          [max]="facetPriceRange()!.max"
+                          [value]="sliderLow()"
+                          (input)="onSliderLow($event)"
+                          (change)="onSliderChange()">
+                        <input type="range" class="price-slider__input price-slider__input--high"
+                          [min]="facetPriceRange()!.min"
+                          [max]="facetPriceRange()!.max"
+                          [value]="sliderHigh()"
+                          (input)="onSliderHigh($event)"
+                          (change)="onSliderChange()">
+                      </div>
+                      <div class="mob-price-ends">
+                        <span>₹{{ facetPriceRange()!.min.toLocaleString('en-IN') }}</span>
+                        <span>₹{{ facetPriceRange()!.max.toLocaleString('en-IN') }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             }
 
           </div>
-          <!-- Actions -->
-          <div class="cat-page__sheet-actions">
-            <button class="cat-page__sheet-clear" (click)="clearAll()">CLEAR ALL</button>
-            <button class="cat-page__sheet-apply" (click)="applyFilters()">APPLY</button>
-          </div>
-        }
 
-      </div>
+          <!-- Sticky footer -->
+          <div class="cat-page__drawer-actions">
+            <button class="cat-page__sheet-clear" (click)="clearAll()">CLEAR ALL</button>
+            <button class="cat-page__sheet-apply" (click)="applyFilters()">
+              SHOW {{ previewCount() }} RESULTS
+            </button>
+          </div>
+
+        </div>
+      }
     }

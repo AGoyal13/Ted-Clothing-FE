@@ -1,171 +1,167 @@
 
-    <div class="cat-page__bar">
-      <div class="cat-page__bar-inner">
+    <div class="sidebar" [class.sidebar--collapsed]="!sidebarOpen()">
 
-        <!-- Left: breadcrumb -->
-        <div class="cat-page__bar-left">
-          <nav class="cat-page__bc" aria-label="Breadcrumb">
-            <a routerLink="/" class="cat-page__bc-link">Home</a>
-            @for (crumb of breadcrumbs(); track crumb.label; let last = $last) {
-              <span class="cat-page__bc-sep">/</span>
-              @if (!last && crumb.slug) {
-                <a [routerLink]="['/category', crumb.slug]" class="cat-page__bc-link">{{ crumb.label }}</a>
-              } @else {
-                <span class="cat-page__bc-cur">{{ crumb.label }}</span>
-              }
-            }
-          </nav>
-        </div>
+      <!-- Panel toggle — always visible, sticky with the sidebar -->
+      <button class="sb-panel-toggle" (click)="toggleSidebar.emit()">
+        <svg class="sb-panel-toggle__chevron"
+          [class.sb-panel-toggle__chevron--open]="sidebarOpen()"
+          width="10" height="7" viewBox="0 0 10 7" fill="none"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 1l4 4 4-4"/>
+        </svg>
+        <span class="sb-panel-toggle__label">FILTERS</span>
+      </button>
 
-        <!-- Right: pills -->
-        <div class="cat-page__bar-right" (click)="$event.stopPropagation()">
+      @if (sidebarOpen()) {
 
-          <!-- Category pill -->
-          @if (categoryOptions().length > 0) {
-            <div class="cat-page__pill-wrap">
-              <button class="cat-page__pill" [class.cat-page__pill--active]="hasCatFilter()"
-                (click)="toggleCatDd($event)" [attr.aria-expanded]="catDdOpen()">
-                <span>{{ catPillLabel() }}</span>
-                <svg class="cat-page__caret" [class.cat-page__caret--open]="catDdOpen()"
-                  width="10" height="7" viewBox="0 0 10 7" fill="none"
-                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M1 1l4 4 4-4"/>
-                </svg>
-              </button>
-              @if (catDdOpen()) {
-                <ul class="cat-page__dd" role="listbox">
-                  <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="activeCat() === 'all'"
-                    (click)="selectCat('all')">All</li>
-                  @for (opt of categoryOptions(); track opt.slug) {
-                    <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="activeCat() === opt.slug"
-                      (click)="selectCat(opt.slug)">{{ opt.label }}</li>
-                  }
-                </ul>
-              }
-            </div>
-          }
+        <!-- Clear All -->
+        @if (hasAnyFilter()) {
+          <button class="sidebar__clear" (click)="emitClearAll()">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M1 1l8 8M9 1L1 9"/>
+            </svg>
+            CLEAR ALL
+          </button>
+        }
 
-          <!-- Size pill -->
-          @if (sortedSizes().length > 0) {
-            <div class="cat-page__pill-wrap">
-              <button class="cat-page__pill" [class.cat-page__pill--active]="hasSizeFilter()"
-                (click)="toggleSizeDd($event)" [attr.aria-expanded]="sizeDdOpen()">
-                <span>{{ sizePillLabel() }}</span>
-                <svg class="cat-page__caret" [class.cat-page__caret--open]="sizeDdOpen()"
-                  width="10" height="7" viewBox="0 0 10 7" fill="none"
-                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M1 1l4 4 4-4"/>
-                </svg>
-              </button>
-              @if (sizeDdOpen()) {
-                <div class="cat-page__facet-panel cat-page__size-panel" role="dialog">
-                  <div class="cat-page__size-grid">
-                    @for (entry of sortedSizes(); track entry.size) {
-                      <button class="cat-page__size-chip"
-                        [class.cat-page__size-chip--active]="activeSizes().includes(entry.size)"
-                        (click)="toggleSize(entry.size)">
-                        {{ entry.size }}
-                        @if (entry.count) {
-                          <span class="cat-page__facet-count">{{ entry.count }}</span>
-                        }
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Color pill -->
-          @if (sortedColors().length > 0) {
-            <div class="cat-page__pill-wrap">
-              <button class="cat-page__pill" [class.cat-page__pill--active]="hasColorFilter()"
-                (click)="toggleColorDd($event)" [attr.aria-expanded]="colorDdOpen()">
-                <span>{{ colorPillLabel() }}</span>
-                <svg class="cat-page__caret" [class.cat-page__caret--open]="colorDdOpen()"
-                  width="10" height="7" viewBox="0 0 10 7" fill="none"
-                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M1 1l4 4 4-4"/>
-                </svg>
-              </button>
-              @if (colorDdOpen()) {
-                <div class="cat-page__facet-panel cat-page__color-panel" role="dialog">
-                  @for (entry of sortedColors(); track entry.name) {
-                    <button class="cat-page__color-opt"
-                      [class.cat-page__color-opt--active]="activeColors().includes(entry.name)"
-                      (click)="toggleColor(entry.name)">
-                      @if (colorHexMap()[entry.name]) {
-                        <span class="cat-page__color-swatch"
-                          [style.background]="colorHexMap()[entry.name]"></span>
-                      }
-                      <span class="cat-page__color-name">{{ entry.name }}</span>
-                      @if (entry.count) {
-                        <span class="cat-page__facet-count">{{ entry.count }}</span>
-                      }
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Price pill -->
-          @if (facetPriceRange()) {
-            <div class="cat-page__pill-wrap">
-              <button class="cat-page__pill" [class.cat-page__pill--active]="hasPriceFilter()"
-                (click)="togglePriceDd($event)" [attr.aria-expanded]="priceDdOpen()">
-                <span>{{ pricePillLabel() }}</span>
-                <svg class="cat-page__caret" [class.cat-page__caret--open]="priceDdOpen()"
-                  width="10" height="7" viewBox="0 0 10 7" fill="none"
-                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M1 1l4 4 4-4"/>
-                </svg>
-              </button>
-              @if (priceDdOpen()) {
-                <div class="cat-page__facet-panel cat-page__price-panel" role="dialog">
-                  <div class="cat-page__price-row">
-                    <label class="cat-page__price-label">From ₹</label>
-                    <input class="cat-page__price-input" type="number" min="0"
-                      [value]="pendingMin() ?? ''"
-                      [placeholder]="facetPriceRange()?.min ?? 0"
-                      (input)="onMinInput($event)" (click)="$event.stopPropagation()">
-                  </div>
-                  <div class="cat-page__price-row">
-                    <label class="cat-page__price-label">To ₹</label>
-                    <input class="cat-page__price-input" type="number" min="0"
-                      [value]="pendingMax() ?? ''"
-                      [placeholder]="facetPriceRange()?.max ?? ''"
-                      (input)="onMaxInput($event)" (click)="$event.stopPropagation()">
-                  </div>
-                  <div class="cat-page__price-actions">
-                    <button class="cat-page__price-clear" (click)="clearPrice()">Clear</button>
-                    <button class="cat-page__price-apply" (click)="applyPrice()">Apply</button>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Sort pill -->
-          <div class="cat-page__pill-wrap">
-            <button class="cat-page__pill" (click)="toggleSort($event)" [attr.aria-expanded]="sortOpen()">
-              <span>{{ sortLabel() }}</span>
-              <svg class="cat-page__caret" [class.cat-page__caret--open]="sortOpen()"
+        <!-- CATEGORY section -->
+        @if (categoryOptions().length > 0) {
+          <div class="sb-sec" [class.sb-sec--open]="secOpen().cat">
+            <button class="sb-sec__hdr" (click)="toggleSection('cat')">
+              <span class="sb-sec__label">CATEGORY</span>
+              @if (hasCatFilter()) { <span class="sb-badge">1</span> }
+              <svg class="sb-sec__chevron" [class.sb-sec__chevron--open]="secOpen().cat"
                 width="10" height="7" viewBox="0 0 10 7" fill="none"
                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <path d="M1 1l4 4 4-4"/>
               </svg>
             </button>
-            @if (sortOpen()) {
-              <ul class="cat-page__dd cat-page__dd--right" role="listbox">
-                @for (opt of sortOptions; track opt.value) {
-                  <li class="cat-page__dd-opt" [class.cat-page__dd-opt--active]="sortBy() === opt.value"
-                    (click)="selectSort(opt.value)">{{ opt.label }}</li>
+            <div class="sb-sec__body">
+              <div class="sb-sec__inner">
+                <button class="sb-cat-opt" [class.sb-cat-opt--active]="activeCat() === 'all'"
+                  (click)="selectCat('all')">
+                  <span class="sb-radio" [class.sb-radio--on]="activeCat() === 'all'"></span>
+                  All
+                </button>
+                @for (opt of categoryOptions(); track opt.slug) {
+                  <button class="sb-cat-opt" [class.sb-cat-opt--active]="activeCat() === opt.slug"
+                    (click)="selectCat(opt.slug)">
+                    <span class="sb-radio" [class.sb-radio--on]="activeCat() === opt.slug"></span>
+                    {{ opt.label }}
+                  </button>
                 }
-              </ul>
-            }
+              </div>
+            </div>
           </div>
+          <div class="sb-divider"></div>
+        }
 
-        </div>
-      </div>
+        <!-- SIZE section -->
+        @if (sortedSizes().length > 0) {
+          <div class="sb-sec" [class.sb-sec--open]="secOpen().size">
+            <button class="sb-sec__hdr" (click)="toggleSection('size')">
+              <span class="sb-sec__label">SIZE</span>
+              @if (hasSizeFilter()) { <span class="sb-badge">{{ activeSizes().length }}</span> }
+              <svg class="sb-sec__chevron" [class.sb-sec__chevron--open]="secOpen().size"
+                width="10" height="7" viewBox="0 0 10 7" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            <div class="sb-sec__body">
+              <div class="sb-sec__inner">
+                <div class="sb-size-grid">
+                  @for (entry of sortedSizes(); track entry.size) {
+                    <button class="sb-size-chip"
+                      [class.sb-size-chip--active]="activeSizes().includes(entry.size)"
+                      (click)="toggleSize(entry.size)">
+                      {{ entry.size }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sb-divider"></div>
+        }
+
+        <!-- COLOR section -->
+        @if (sortedColors().length > 0) {
+          <div class="sb-sec" [class.sb-sec--open]="secOpen().color">
+            <button class="sb-sec__hdr" (click)="toggleSection('color')">
+              <span class="sb-sec__label">COLOR</span>
+              @if (hasColorFilter()) { <span class="sb-badge">{{ activeColors().length }}</span> }
+              <svg class="sb-sec__chevron" [class.sb-sec__chevron--open]="secOpen().color"
+                width="10" height="7" viewBox="0 0 10 7" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            <div class="sb-sec__body">
+              <div class="sb-sec__inner">
+                <div class="sb-color-grid">
+                  @for (entry of sortedColors(); track entry.name) {
+                    <button class="sb-color-item"
+                      [class.sb-color-item--active]="activeColors().includes(entry.name)"
+                      (click)="toggleColor(entry.name)">
+                      <span class="sb-color-circle"
+                        [style.background]="colorHexMap()[entry.name] || 'rgba(245,240,232,.25)'">
+                      </span>
+                      <span class="sb-color-name">{{ entry.name }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sb-divider"></div>
+        }
+
+        <!-- PRICE section -->
+        @if (facetPriceRange()) {
+          <div class="sb-sec" [class.sb-sec--open]="secOpen().price">
+            <button class="sb-sec__hdr" (click)="toggleSection('price')">
+              <span class="sb-sec__label">PRICE</span>
+              @if (hasPriceFilter()) { <span class="sb-badge">1</span> }
+              <svg class="sb-sec__chevron" [class.sb-sec__chevron--open]="secOpen().price"
+                width="10" height="7" viewBox="0 0 10 7" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            <div class="sb-sec__body">
+              <div class="sb-sec__inner">
+              <div class="price-display">
+                <span class="price-display__val">{{ lowLabel() }}</span>
+                <span class="price-display__dash">–</span>
+                <span class="price-display__val">{{ highLabel() }}</span>
+              </div>
+              <div class="price-slider"
+                [style.--low]="sliderLowPct() + '%'"
+                [style.--high]="sliderHighPct() + '%'">
+                <div class="price-slider__fill"></div>
+                <input type="range" class="price-slider__input"
+                  [min]="facetPriceRange()!.min"
+                  [max]="facetPriceRange()!.max"
+                  [value]="sliderLow()"
+                  (input)="onSliderLow($event)"
+                  (change)="onSliderChange()">
+                <input type="range" class="price-slider__input price-slider__input--high"
+                  [min]="facetPriceRange()!.min"
+                  [max]="facetPriceRange()!.max"
+                  [value]="sliderHigh()"
+                  (input)="onSliderHigh($event)"
+                  (change)="onSliderChange()">
+              </div>
+              <div class="price-ends">
+                <span>₹{{ facetPriceRange()!.min.toLocaleString('en-IN') }}</span>
+                <span>₹{{ facetPriceRange()!.max.toLocaleString('en-IN') }}</span>
+              </div>
+              </div>
+            </div>
+          </div>
+        }
+
+      }
+
     </div>

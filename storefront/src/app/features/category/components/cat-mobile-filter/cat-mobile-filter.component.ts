@@ -4,6 +4,7 @@ import {
   output,
   signal,
   computed,
+  effect,
 } from '@angular/core';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc';
@@ -46,20 +47,35 @@ export class CatMobileFilterComponent {
   readonly activeColors    = input<string[]>([]);
   readonly activeMinPrice  = input<number | null>(null);
   readonly activeMaxPrice  = input<number | null>(null);
+  readonly previewCount    = input<number>(0);
 
   // ── Outputs ───────────────────────────────────────────────────────────────────
-  readonly sortSelected    = output<SortOption>();
-  readonly filtersApplied  = output<MobileFilters>();
+  readonly sortSelected         = output<SortOption>();
+  readonly filtersApplied       = output<MobileFilters>();
+  readonly previewFiltersChange = output<MobileFilters>();
 
-  // ── Sheet state ───────────────────────────────────────────────────────────────
+  // ── Sheet / drawer state ──────────────────────────────────────────────────────
   readonly sheetOpen = signal<SheetType>('none');
 
-  // ── Pending state (inside filter sheet — not committed until APPLY) ───────────
+  // ── Pending state ─────────────────────────────────────────────────────────────
   readonly pendingCat    = signal<string>('all');
   readonly pendingSizes  = signal<string[]>([]);
   readonly pendingColors = signal<string[]>([]);
   readonly pendingMin    = signal<number | null>(null);
   readonly pendingMax    = signal<number | null>(null);
+
+  // ── Accordion open state for filter drawer (collapsed by default on mobile) ──
+  readonly secOpen = signal({ cat: false, size: false, color: false, price: false });
+
+  private previewDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    // Seed price slider from active values when facet range changes
+    effect(() => {
+      this.pendingMin.set(this.activeMinPrice());
+      this.pendingMax.set(this.activeMaxPrice());
+    });
+  }
 
   readonly sortOptions: { value: SortOption; label: string }[] = [
     { value: 'newest',     label: 'Newest First' },
@@ -87,7 +103,7 @@ export class CatMobileFilterComponent {
 
   readonly sortShortLabel = computed(() => {
     const map: Record<SortOption, string> = {
-      'newest': 'NEWEST', 'price-asc': 'PRICE ↑', 'price-desc': 'PRICE ↓',
+      newest: 'NEWEST', 'price-asc': 'PRICE ↑', 'price-desc': 'PRICE ↓',
     };
     return map[this.sortBy()];
   });
@@ -111,20 +127,54 @@ export class CatMobileFilterComponent {
       .sort((a, b) => b.count - a.count)
   );
 
-  // ── Sheet open/close ──────────────────────────────────────────────────────────
+  // ── Price slider (pending) ───────────────────────────────────────────────────
+  readonly sliderLow = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range) return 0;
+    return this.pendingMin() ?? range.min;
+  });
+
+  readonly sliderHigh = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range) return 0;
+    return this.pendingMax() ?? range.max;
+  });
+
+  readonly sliderLowPct = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range || range.max === range.min) return 0;
+    return ((this.sliderLow() - range.min) / (range.max - range.min)) * 100;
+  });
+
+  readonly sliderHighPct = computed(() => {
+    const range = this.facetPriceRange();
+    if (!range || range.max === range.min) return 100;
+    return ((this.sliderHigh() - range.min) / (range.max - range.min)) * 100;
+  });
+
+  readonly lowLabel  = computed(() => '₹' + this.sliderLow().toLocaleString('en-IN'));
+  readonly highLabel = computed(() => '₹' + this.sliderHigh().toLocaleString('en-IN'));
+
+  // ── Sheet open / close ───────────────────────────────────────────────────────
   openSort(): void { this.sheetOpen.set('sort'); }
 
   openFilter(): void {
-    // Seed pending state from current active values
     this.pendingCat.set(this.activeCat());
     this.pendingSizes.set([...this.activeSizes()]);
     this.pendingColors.set([...this.activeColors()]);
     this.pendingMin.set(this.activeMinPrice());
     this.pendingMax.set(this.activeMaxPrice());
+    this.secOpen.set({ cat: false, size: false, color: false, price: false });
     this.sheetOpen.set('filter');
+    this.schedulePreview();
   }
 
   closeSheet(): void { this.sheetOpen.set('none'); }
+
+  // ── Accordion ─────────────────────────────────────────────────────────────────
+  toggleSection(key: 'cat' | 'size' | 'color' | 'price'): void {
+    this.secOpen.update(s => ({ ...s, [key]: !s[key] }));
+  }
 
   // ── Sort ──────────────────────────────────────────────────────────────────────
   selectSortMobile(value: SortOption): void {
@@ -132,14 +182,18 @@ export class CatMobileFilterComponent {
     this.sortSelected.emit(value);
   }
 
-  // ── Filter sheet interactions ────────────────────────────────────────────────
-  setPendingCat(slug: string): void { this.pendingCat.set(slug); }
+  // ── Filter interactions ───────────────────────────────────────────────────────
+  setPendingCat(slug: string): void {
+    this.pendingCat.set(slug);
+    this.schedulePreview();
+  }
 
   togglePendingSize(size: string): void {
     const curr = this.pendingSizes();
     this.pendingSizes.set(
       curr.includes(size) ? curr.filter(s => s !== size) : [...curr, size]
     );
+    this.schedulePreview();
   }
 
   togglePendingColor(name: string): void {
@@ -147,17 +201,29 @@ export class CatMobileFilterComponent {
     this.pendingColors.set(
       curr.includes(name) ? curr.filter(c => c !== name) : [...curr, name]
     );
+    this.schedulePreview();
   }
 
-  onMinInput(e: Event): void {
-    const val = (e.target as HTMLInputElement).valueAsNumber;
-    this.pendingMin.set(isNaN(val) ? null : val);
+  onSliderLow(e: Event): void {
+    const range = this.facetPriceRange();
+    if (!range) return;
+    let val = (e.target as HTMLInputElement).valueAsNumber;
+    val = Math.min(val, this.sliderHigh() - 1);
+    (e.target as HTMLInputElement).value = String(val);
+    this.pendingMin.set(val === range.min ? null : val);
   }
 
-  onMaxInput(e: Event): void {
-    const val = (e.target as HTMLInputElement).valueAsNumber;
-    this.pendingMax.set(isNaN(val) ? null : val);
+  onSliderHigh(e: Event): void {
+    const range = this.facetPriceRange();
+    if (!range) return;
+    let val = (e.target as HTMLInputElement).valueAsNumber;
+    val = Math.max(val, this.sliderLow() + 1);
+    (e.target as HTMLInputElement).value = String(val);
+    this.pendingMax.set(val === range.max ? null : val);
   }
+
+  // On handle release, schedule a preview search
+  onSliderChange(): void { this.schedulePreview(); }
 
   clearAll(): void {
     this.pendingCat.set('all');
@@ -165,6 +231,7 @@ export class CatMobileFilterComponent {
     this.pendingColors.set([]);
     this.pendingMin.set(null);
     this.pendingMax.set(null);
+    this.schedulePreview();
   }
 
   applyFilters(): void {
@@ -176,5 +243,19 @@ export class CatMobileFilterComponent {
       minPrice: this.pendingMin(),
       maxPrice: this.pendingMax(),
     });
+  }
+
+  // ── Preview count (debounced 400ms, fires on any pending change) ─────────────
+  private schedulePreview(): void {
+    if (this.previewDebounce) clearTimeout(this.previewDebounce);
+    this.previewDebounce = setTimeout(() => {
+      this.previewFiltersChange.emit({
+        cat:      this.pendingCat(),
+        sizes:    this.pendingSizes(),
+        colors:   this.pendingColors(),
+        minPrice: this.pendingMin(),
+        maxPrice: this.pendingMax(),
+      });
+    }, 400);
   }
 }
