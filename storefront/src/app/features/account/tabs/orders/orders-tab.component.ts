@@ -138,6 +138,12 @@ export class OrdersTabComponent implements OnInit {
 
   shortId(id: string): string { return '#' + id.slice(-8).toUpperCase(); }
 
+  savedAmount(item: OrderItem): string {
+    if (!item.compareAtPriceAtPurchase) return '';
+    const saved = (+item.compareAtPriceAtPurchase - +item.priceAtPurchase) * item.quantity;
+    return formatINR(saved);
+  }
+
   toggleOrder(order: OrderListItem) {
     if (this.expandedId() === order.id) { this.expandedId.set(null); return; }
     this.expandedId.set(order.id);

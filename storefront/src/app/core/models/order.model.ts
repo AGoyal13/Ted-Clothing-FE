@@ -66,6 +66,7 @@ export interface OrderItem {
   id: string;
   quantity: number;
   priceAtPurchase: string;
+  compareAtPriceAtPurchase: string | null;
   sku: OrderItemSku;
 }
 

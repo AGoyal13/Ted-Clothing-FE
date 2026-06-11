@@ -237,6 +237,24 @@
     font-weight: 600;
     color: var(--cream);
     margin: 0 0 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+
+    &--strike {
+      text-decoration: line-through;
+      opacity: 0.45;
+      font-size: 0.78rem;
+      font-weight: 400;
+    }
+  }
+
+  &__saved-label {
+    font-size: 0.72rem;
+    color: #4caf7d;
+    font-weight: 400;
+    letter-spacing: 0.03em;
   }
 }
 

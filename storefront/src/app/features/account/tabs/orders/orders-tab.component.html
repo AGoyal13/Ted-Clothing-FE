@@ -85,7 +85,15 @@
                           <p class="detail-item__meta">
                             {{ item.sku.color.colorName }} · {{ item.sku.sizeLabel }} · Qty {{ item.quantity }}
                           </p>
-                          <p class="detail-item__price">{{ formatINR(+item.priceAtPurchase * item.quantity) }}</p>
+                          @if (item.compareAtPriceAtPurchase) {
+                            <p class="detail-item__price">
+                              <span class="detail-item__price--strike">{{ formatINR(+item.compareAtPriceAtPurchase * item.quantity) }}</span>
+                              <span>{{ formatINR(+item.priceAtPurchase * item.quantity) }}</span>
+                              <span class="detail-item__saved-label">You saved {{ savedAmount(item) }}</span>
+                            </p>
+                          } @else {
+                            <p class="detail-item__price">{{ formatINR(+item.priceAtPurchase * item.quantity) }}</p>
+                          }
 
                           <!-- Return / exchange tag -->
                           @if (order.status === 'RETURN_REQUESTED' || order.status === 'RETURNED') {
