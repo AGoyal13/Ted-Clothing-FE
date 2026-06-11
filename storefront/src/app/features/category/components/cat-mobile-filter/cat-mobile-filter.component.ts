@@ -229,7 +229,9 @@ export class CatMobileFilterComponent {
   onSliderChange(): void { this.schedulePreview(); }
 
   clearAll(): void {
-    this.pendingCat.set('all');
+    // On leaf pages (parentLabel is set), reset to the leaf slug so APPLY stays on this page.
+    // On non-leaf pages, 'all' correctly clears the category filter.
+    this.pendingCat.set(this.parentLabel() ? this.selectedCat() : 'all');
     this.pendingSizes.set([]);
     this.pendingColors.set([]);
     this.pendingMin.set(null);

@@ -153,7 +153,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Facet data — populated from search response on every fresh load ───────────
   readonly facetSizes      = signal<Record<string, number>>({});
   readonly facetColors     = signal<Record<string, number>>({});
-  readonly facetPriceRange = signal<{ min: number; max: number } | null>(null);
+  readonly facetPriceRange = signal({ min: 0, max: 30000 });
   readonly colorHexMap     = signal<Record<string, string>>({});
 
   private prevSlug = '';
@@ -232,7 +232,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.leafParentName.set('');
           this.facetSizes.set({});
           this.facetColors.set({});
-          this.facetPriceRange.set(null);
         }
         this.loadCategoryMeta();
         this.titleService.setTitle(`${this.displayName()} — Ted Clothing`);
@@ -393,7 +392,6 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           // Facets come from the search response — only update on fresh load, not append
           this.facetSizes.set(res.facetDistribution?.['sizes'] ?? {});
           this.facetColors.set(res.facetDistribution?.['colorNames'] ?? {});
-          this.facetPriceRange.set(res.facetStats?.['basePrice'] ?? null);
           // After DOM settles, check if sentinel is already in view
           // (handles categories with fewer products than a screenful).
           setTimeout(() => {
@@ -477,11 +475,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onFiltersApplied(filters: MobileFilters): void {
     const isLeaf = this.pageType() === 'leaf';
-    if (isLeaf && filters.cat !== 'all' && filters.cat !== this.activeCat()) {
+    if (isLeaf && filters.cat !== 'all' && filters.cat !== this.activeCat() && filters.cat !== this.slug()) {
       this.router.navigate(['/category', filters.cat]);
       return;
     }
-    if (isLeaf && filters.cat === 'all' && this.leafParentSlug()) {
+    if (isLeaf && filters.cat === 'all' && this.leafParentSlug() && this.categoryOptions().length > 0) {
       this.router.navigate(['/category', this.leafParentSlug()]);
       return;
     }
@@ -536,7 +534,16 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       if (filters.cat !== 'all') params.categorySlug = filters.cat;
       else params.gender = genderEnum;
     } else {
-      params.categorySlug = filters.cat !== 'all' ? filters.cat : slug;
+      if (filters.cat !== 'all') {
+        params.categorySlug = filters.cat;
+      } else {
+        const previewSlug = (this.pageType() === 'leaf' && this.leafParentSlug())
+          ? this.leafParentSlug()
+          : slug;
+        const pg = GENDER_SLUGS[previewSlug.toLowerCase()];
+        if (pg) params.gender = pg;
+        else    params.categorySlug = previewSlug;
+      }
     }
     this.searchService.searchPlp(params).subscribe({
       next: (res) => {

@@ -9,7 +9,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { UpperCasePipe } from '@angular/common';
 import { NavCategory } from '../../../core/models/category.model';
 
@@ -23,6 +23,7 @@ import { NavCategory } from '../../../core/models/category.model';
 })
 export class CategoryStripV2Component implements OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly router     = inject(Router);
 
   @Input() navTree: NavCategory[] = [];
   @Input() stripScrolled = false;
@@ -97,7 +98,12 @@ export class CategoryStripV2Component implements OnDestroy {
   }
 
   setActiveGroup(slug: string): void {
-    this.activeGroupSlug.set(slug);
+    if (this.activeGroupSlug() === slug) {
+      this.router.navigate(['/category', slug]);
+      this.closeDrawer();
+    } else {
+      this.activeGroupSlug.set(slug);
+    }
   }
 
   onSwipeStart(e: TouchEvent): void {
