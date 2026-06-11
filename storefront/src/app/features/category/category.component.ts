@@ -561,7 +561,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Arrow fn so it's the same reference for removeEventListener
   private readonly onScroll = (): void => {
-    if (!this.sentinel) return;
+    if (!this.sentinel || !isPlatformBrowser(this.platformId)) return;
     const rect = this.sentinel.nativeElement.getBoundingClientRect();
     if (rect.top < window.innerHeight + 200) {
       this.ngZone.run(() => this.loadMore());
