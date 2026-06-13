@@ -1,20 +1,14 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ReactiveFormsModule as RF } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { CategoryDialogComponent } from './category-dialog.component';
-import { SizeTemplateDialogComponent } from './size-template-dialog.component';
 import { SizeGuideDialogComponent } from './size-guide-dialog.component';
 
 export type ProductGender = 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
@@ -27,7 +21,6 @@ export interface Category {
   gender?: ProductGender | null;
   imageUrl?: string | null;
   parent?: { id: string; name: string } | null;
-  sizeTemplate?: { measurements: string[]; sizes: string[] } | null;
   sizeGuide?: { id: string; name: string } | null;
   _count?: { products: number };
 }
@@ -79,20 +72,6 @@ export interface Category {
           <th mat-header-cell *matHeaderCellDef>Gender</th>
           <td mat-cell *matCellDef="let c">{{ c.gender ?? '—' }}</td>
         </ng-container>
-        <ng-container matColumnDef="sizeTemplate">
-          <th mat-header-cell *matHeaderCellDef>Size Template</th>
-          <td mat-cell *matCellDef="let c">
-            @if (c.sizeTemplate) {
-              <mat-chip-set>
-                @for (s of c.sizeTemplate.sizes; track s) {
-                  <mat-chip>{{ s }}</mat-chip>
-                }
-              </mat-chip-set>
-            } @else {
-              <span class="muted">None</span>
-            }
-          </td>
-        </ng-container>
         <ng-container matColumnDef="sizeGuide">
           <th mat-header-cell *matHeaderCellDef>Size Guide</th>
           <td mat-cell *matCellDef="let c">
@@ -107,7 +86,6 @@ export interface Category {
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let c">
             <button mat-icon-button title="Edit" (click)="openEdit(c)"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button title="Size Template" (click)="openSizeTemplate(c)"><mat-icon>straighten</mat-icon></button>
             <button mat-icon-button title="Size Guide" (click)="openSizeGuide(c)"><mat-icon>table_chart</mat-icon></button>
             <button mat-icon-button color="warn" title="Delete" (click)="delete(c)"><mat-icon>delete</mat-icon></button>
           </td>
@@ -132,7 +110,7 @@ export class CategoriesComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
 
-  cols = ['image', 'name', 'slug', 'parent', 'gender', 'sizeTemplate', 'sizeGuide', 'actions'];
+  cols = ['image', 'name', 'slug', 'parent', 'gender', 'sizeGuide', 'actions'];
   categories = signal<Category[]>([]);
   loading = signal(false);
 
@@ -154,11 +132,6 @@ export class CategoriesComponent implements OnInit {
 
   openEdit(cat: Category) {
     this.dialog.open(CategoryDialogComponent, { width: '400px', maxWidth: '95vw', data: { category: cat, categories: this.categories() } })
-      .afterClosed().subscribe(result => { if (result) this.load(true); });
-  }
-
-  openSizeTemplate(cat: Category) {
-    this.dialog.open(SizeTemplateDialogComponent, { width: '500px', maxWidth: '95vw', data: { category: cat } })
       .afterClosed().subscribe(result => { if (result) this.load(true); });
   }
 

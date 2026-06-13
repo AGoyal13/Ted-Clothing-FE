@@ -48,27 +48,16 @@ import { Product } from './products.component';
             <input matInput type="number" formControlName="discountPercent" min="0" max="100" />
           </mat-form-field>
         </div>
-        <div class="row">
-          <mat-form-field appearance="outline">
-            <mat-label>Gender</mat-label>
-            <mat-select formControlName="gender">
-              <mat-option value="WOMEN">Women</mat-option>
-              <mat-option value="MEN">Men</mat-option>
-              <mat-option value="KIDS">Kids</mat-option>
-              <mat-option value="UNISEX">Unisex</mat-option>
+        @if (data.product) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="DRAFT">Draft</mat-option>
+              <mat-option value="ACTIVE">Active</mat-option>
+              <mat-option value="ARCHIVED">Archived</mat-option>
             </mat-select>
           </mat-form-field>
-          @if (data.product) {
-            <mat-form-field appearance="outline">
-              <mat-label>Status</mat-label>
-              <mat-select formControlName="status">
-                <mat-option value="DRAFT">Draft</mat-option>
-                <mat-option value="ACTIVE">Active</mat-option>
-                <mat-option value="ARCHIVED">Archived</mat-option>
-              </mat-select>
-            </mat-form-field>
-          }
-        </div>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -102,7 +91,6 @@ export class ProductDialogComponent implements OnInit {
     categoryId: ['', Validators.required],
     basePrice: [0, [Validators.required, Validators.min(0)]],
     discountPercent: [0, [Validators.min(0), Validators.max(100)]],
-    gender: ['UNISEX', Validators.required],
     status: ['DRAFT'],
   });
 
@@ -110,7 +98,7 @@ export class ProductDialogComponent implements OnInit {
     this.api.get<{ id: string; name: string }[]>('categories').subscribe(c => this.categories.set(c));
     if (this.data.product) {
       const p = this.data.product;
-      this.form.patchValue({ title: p.title, description: p.description, categoryId: p.category.id, basePrice: p.basePrice, discountPercent: p.discountPercent, gender: p.gender, status: p.status });
+      this.form.patchValue({ title: p.title, description: p.description, categoryId: p.category.id, basePrice: p.basePrice, discountPercent: p.discountPercent, status: p.status });
     }
   }
 

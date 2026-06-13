@@ -11,8 +11,9 @@ import { ApiService } from '../../core/services/api.service';
 
 export interface WarehouseDialogData {
   warehouse?: {
-    id: string; name: string; code: string; pincode: string;
-    city: string; isActive: boolean; isDefault: boolean;
+    id: string; name: string; code: string;
+    address: string; address2: string | null; city: string; state: string; pincode: string;
+    isActive: boolean; isDefault: boolean;
   };
 }
 
@@ -46,11 +47,16 @@ export interface WarehouseDialogData {
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Pincode</mat-label>
-          <input matInput formControlName="pincode" placeholder="400001" maxlength="6" />
-          @if (form.get('pincode')?.invalid && form.get('pincode')?.touched) {
-            <mat-error>Enter a valid 6-digit pincode</mat-error>
+          <mat-label>Address Line 1</mat-label>
+          <input matInput formControlName="address" placeholder="Plot 12, Dharavi Road" />
+          @if (form.get('address')?.invalid && form.get('address')?.touched) {
+            <mat-error>Address is required</mat-error>
           }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Address Line 2 (optional)</mat-label>
+          <input matInput formControlName="address2" placeholder="Near XYZ landmark" />
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -58,6 +64,22 @@ export interface WarehouseDialogData {
           <input matInput formControlName="city" placeholder="Mumbai" />
           @if (form.get('city')?.invalid && form.get('city')?.touched) {
             <mat-error>City is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>State</mat-label>
+          <input matInput formControlName="state" placeholder="Maharashtra" />
+          @if (form.get('state')?.invalid && form.get('state')?.touched) {
+            <mat-error>State is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Pincode</mat-label>
+          <input matInput formControlName="pincode" placeholder="400001" maxlength="6" />
+          @if (form.get('pincode')?.invalid && form.get('pincode')?.touched) {
+            <mat-error>Enter a valid 6-digit pincode</mat-error>
           }
         </mat-form-field>
 
@@ -95,8 +117,11 @@ export class WarehouseDialogComponent implements OnInit {
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     code: ['', Validators.required],
-    pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+    address: ['', Validators.required],
+    address2: [''],
     city: ['', Validators.required],
+    state: ['', Validators.required],
+    pincode: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
     isActive: [true],
     isDefault: [false],
   });

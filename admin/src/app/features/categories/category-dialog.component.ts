@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -90,7 +91,7 @@ import { Category, ProductGender } from './categories.component';
     .image-hint { font-size: 11px; color: #999; }
   `],
 })
-export class CategoryDialogComponent implements OnInit {
+export class CategoryDialogComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private api = inject(ApiService);
   private ref = inject(MatDialogRef<CategoryDialogComponent>);
@@ -107,18 +108,33 @@ export class CategoryDialogComponent implements OnInit {
   previewUrl = signal<string | null>(null);
   removeImage = signal(false);
 
+  private sub = new Subscription();
+
   ngOnInit() {
     if (this.data.category) {
       this.form.patchValue({
         name: this.data.category.name,
         parentId: this.data.category.parentId,
         gender: this.data.category.gender ?? null,
-      });
+      }, { emitEvent: false });
       if (this.data.category.imageUrl) {
         this.previewUrl.set(this.data.category.imageUrl);
       }
     }
+
+    // Pre-fill gender from parent when parentId is selected (admin can override)
+    this.sub.add(
+      this.form.get('parentId')!.valueChanges.subscribe(parentId => {
+        if (!parentId) return;
+        const parent = this.data.categories.find(c => c.id === parentId);
+        if (parent?.gender) {
+          this.form.patchValue({ gender: parent.gender }, { emitEvent: false });
+        }
+      })
+    );
   }
+
+  ngOnDestroy() { this.sub.unsubscribe(); }
 
   onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];

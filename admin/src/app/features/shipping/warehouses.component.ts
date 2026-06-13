@@ -15,8 +15,11 @@ interface Warehouse {
   id: string;
   name: string;
   code: string;
-  pincode: string;
+  address: string;
+  address2: string | null;
   city: string;
+  state: string;
+  pincode: string;
   isActive: boolean;
   isDefault: boolean;
   createdAt: string;
@@ -53,8 +56,11 @@ interface Warehouse {
         </ng-container>
 
         <ng-container matColumnDef="location">
-          <mat-header-cell *matHeaderCellDef>Location</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{ row.city }} – {{ row.pincode }}</mat-cell>
+          <mat-header-cell *matHeaderCellDef>Address</mat-header-cell>
+          <mat-cell *matCellDef="let row">
+            <div class="addr-line">{{ row.address }}{{ row.address2 ? ', ' + row.address2 : '' }}</div>
+            <div class="addr-sub">{{ row.city }}, {{ row.state }} – {{ row.pincode }}</div>
+          </mat-cell>
         </ng-container>
 
         <ng-container matColumnDef="status">
@@ -109,6 +115,8 @@ interface Warehouse {
     .table { width: 100%; border: 1px solid #e0e0e0; box-shadow: none; }
     .wh-name { font-weight: 600; font-size: 0.88rem; }
     .wh-code { font-size: 0.75rem; color: #888; font-family: monospace; }
+    .addr-line { font-size: 0.85rem; }
+    .addr-sub { font-size: 0.75rem; color: #888; }
     .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .badge {
       padding: 2px 8px; border-radius: 3px; font-size: 0.72rem;

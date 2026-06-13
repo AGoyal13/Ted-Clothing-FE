@@ -43,13 +43,15 @@ import { AuthService } from '../core/services/auth.service';
             <span matListItemTitle>Products</span>
           </a>
           <a mat-list-item routerLink="/skus" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
-            <mat-icon matListItemIcon>qr_code</mat-icon>
-            <span matListItemTitle>SKUs</span>
+            <mat-icon matListItemIcon>inventory</mat-icon>
+            <span matListItemTitle>Inventory</span>
           </a>
+          <!-- Inventory Upload commented out — superseded by Inventory dashboard + Product Import
           <a mat-list-item routerLink="/inventory" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>upload_file</mat-icon>
             <span matListItemTitle>Inventory Upload</span>
           </a>
+          -->
           <a mat-list-item routerLink="/product-import" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>cloud_upload</mat-icon>
             <span matListItemTitle>Product Import</span>

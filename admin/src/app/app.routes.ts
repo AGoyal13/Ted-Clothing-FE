@@ -33,10 +33,11 @@ export const routes: Routes = [
         path: 'skus',
         loadComponent: () => import('./features/skus/skus.component').then(m => m.SkusComponent),
       },
-      {
-        path: 'inventory',
-        loadComponent: () => import('./features/skus/inventory-upload.component').then(m => m.InventoryUploadComponent),
-      },
+      // Inventory Upload route disabled — page superseded by Inventory dashboard + Product Import
+      // {
+      //   path: 'inventory',
+      //   loadComponent: () => import('./features/skus/inventory-upload.component').then(m => m.InventoryUploadComponent),
+      // },
       {
         path: 'product-import',
         loadComponent: () => import('./features/products/product-import.component').then(m => m.ProductImportComponent),
