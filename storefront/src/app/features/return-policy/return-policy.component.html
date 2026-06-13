@@ -3,212 +3,283 @@
 
     <header class="policy__header">
       <p class="policy__breadcrumb">Help &rsaquo; Returns &amp; Exchanges</p>
-      <h1 class="policy__title">{{ returnEnabled() ? 'Return &amp; Refund Policy' : 'Exchange Policy' }}</h1>
+      <h1 class="policy__title">
+        @switch (returnMode()) {
+          @case ('return')   { Return &amp; Refund Policy }
+          @case ('exchange') { Exchange Policy }
+          @case ('both')     { Return &amp; Exchange Policy }
+          @default           { Returns &amp; Exchanges }
+        }
+      </h1>
       <p class="policy__subtitle">We want you to love what you wear. If something isn't right, we'll make it right.</p>
       @if (returnWindowDays() > 0) {
         <div class="policy__window-badge">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
           </svg>
-          {{ returnWindowDays() }}-Day Easy {{ returnEnabled() ? 'Returns' : 'Exchanges' }}
+          {{ returnWindowDays() }}-Day Easy
+          @switch (returnMode()) {
+            @case ('return')   { Returns }
+            @case ('exchange') { Exchanges }
+            @case ('both')     { Returns &amp; Exchanges }
+          }
         </div>
       }
     </header>
 
     <div class="policy__body">
 
-      <!-- § 1 Overview -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">1. Overview</h2>
-        @if (returnEnabled()) {
-          <p>At Ted Clothing, every piece is crafted with care. If your order arrives damaged, defective, or simply isn't the right fit, you may request a <strong>return</strong> within <strong>{{ returnWindowDays() > 0 ? returnWindowDays() + ' day' + (returnWindowDays() === 1 ? '' : 's') : 'the applicable window' }}</strong> of delivery — provided it meets the conditions below. A pickup is automatically arranged at your delivery address.</p>
-        } @else {
-          <p>At Ted Clothing, we want every item to fit perfectly. If your size isn't right, you may request an <strong>exchange</strong> within <strong>{{ returnWindowDays() > 0 ? returnWindowDays() + ' day' + (returnWindowDays() === 1 ? '' : 's') : 'the applicable window' }}</strong> of delivery. Our delivery partner will deliver your new size and collect the old item in a single visit — no separate trips needed.</p>
-        }
-        <p>This policy applies to all purchases made directly on <strong>tedclothing.com</strong>. Orders placed through third-party marketplaces are subject to those platforms' own policies.</p>
-      </section>
+      @if (returnMode() === 'none') {
 
-      <!-- § 2 Window -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">2. {{ returnEnabled() ? 'Return' : 'Exchange' }} Window</h2>
-        @if (returnWindowDays() > 0) {
-          <div class="policy__highlight">
-            You have <strong>{{ returnWindowDays() }} day{{ returnWindowDays() === 1 ? '' : 's' }} from the date of delivery</strong> to initiate a {{ returnEnabled() ? 'return' : 'size exchange' }}. Requests raised after this window will not be accepted.
-          </div>
-        } @else {
+        <!-- ── None: both disabled ─────────────────────────────────────── -->
+        <section class="policy__section">
           <div class="policy__highlight policy__highlight--warn">
-            {{ returnEnabled() ? 'Returns' : 'Exchanges' }} are currently paused. Please contact us at <a href="mailto:hello@tedclothing.in">hello&#64;tedclothing.in</a> for assistance.
+            Returns and exchanges are not currently available at Ted Clothing. For any queries, write to us at
+            <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a>.
           </div>
-        }
-        <p>The delivery date is determined by the tracking update from our logistics partner. You can verify your delivery date under <strong>My Orders</strong> in your Ted Clothing account.</p>
-      </section>
+        </section>
 
-      <!-- § 3 Eligibility -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">3. Eligibility Conditions</h2>
-        <p>To be eligible, the item must meet <em>all</em> of the following conditions at the time of pickup:</p>
-        <ul class="policy__list">
-          <li><strong>Unworn &amp; unwashed</strong> — not worn, washed, or altered in any way.</li>
-          <li><strong>Original tags intact</strong> — all brand tags and labels attached as received.</li>
-          <li><strong>Original packaging</strong> — in the original Ted Clothing poly-bag or box.</li>
-          <li><strong>No damage by customer</strong> — not torn, stained, perfumed, or damaged after delivery.</li>
-          <li><strong>Correct item</strong> — the item matches the order it was placed against.</li>
-        </ul>
-        <p class="policy__note">
-          <strong>Doorstep quality check:</strong> Our delivery partner performs an inspection at pickup. Items that fail the quality check will be refused and returned to you — no {{ returnEnabled() ? 'refund' : 'exchange' }} will be processed for refused items.
-        </p>
-      </section>
-
-      <!-- § 4 Non-Eligible Items -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">4. Non-Eligible Items</h2>
-        <p>The following are <strong>not eligible</strong> under any circumstances:</p>
-        <ul class="policy__list">
-          <li>Innerwear, lingerie, and swimwear (hygiene reasons)</li>
-          <li>Personalized or made-to-order items</li>
-          <li>Items marked <em>"Final Sale"</em> or <em>"Non-Returnable"</em> at time of purchase</li>
-          <li>Free gifts or promotional items</li>
-          <li>Items used, washed, or damaged after delivery</li>
-        </ul>
-      </section>
-
-      <!-- § 5 How to Initiate -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">5. How to Initiate</h2>
-        <p>Requests can only be raised through your Ted Clothing account — we do not accept walk-in or self-shipped returns.</p>
-
-        @if (returnEnabled()) {
-          <!-- Return flow -->
-          <ol class="policy__steps">
-            <li>
-              <span class="policy__step-num">1</span>
-              <div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Return</strong>.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">2</span>
-              <div>Select your <strong>reason</strong> from the list and upload <strong>1–4 photos</strong> of the item clearly showing its condition.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">3</span>
-              <div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> for the refund transfer.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">4</span>
-              <div>Submit — a pickup is <strong>automatically scheduled</strong> with our logistics partner. You will receive a confirmation.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">5</span>
-              <div>Keep the item <strong>packed in its original packaging</strong> with all tags intact. Hand it to the agent after the quality check.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">6</span>
-              <div>Once received and inspected at our warehouse, your <strong>refund is initiated within 2 business days</strong>.</div>
-            </li>
-          </ol>
-        } @else {
-          <!-- Exchange flow -->
-          <ol class="policy__steps">
-            <li>
-              <span class="policy__step-num">1</span>
-              <div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Exchange</strong>.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">2</span>
-              <div>Select your <strong>reason</strong> and upload <strong>1–4 photos</strong> of the item.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">3</span>
-              <div>Choose your <strong>replacement size</strong>. Only in-stock sizes are shown — out-of-stock sizes are greyed out.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">4</span>
-              <div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> in case a cash refund is needed (e.g. if your size goes out of stock before dispatch).</div>
-            </li>
-            <li>
-              <span class="policy__step-num">5</span>
-              <div>Submit — an exchange shipment is <strong>automatically booked</strong>. Your replacement size is reserved immediately.</div>
-            </li>
-            <li>
-              <span class="policy__step-num">6</span>
-              <div>Our delivery agent arrives at your address, <strong>delivers the new size</strong>, and collects the old item in a single visit after a doorstep quality check.</div>
-            </li>
-          </ol>
-        }
-      </section>
-
-      <!-- § 6 Refunds -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">6. Refunds</h2>
-
-        @if (returnEnabled()) {
-          <h3 class="policy__subsection-title">Refund Methods</h3>
-          <table class="policy__table">
-            <thead>
-              <tr>
-                <th>Original Payment</th>
-                <th>Refund To</th>
-                <th>Timeline</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Credit / Debit Card</td>
-                <td>Original card</td>
-                <td>5–7 business days after warehouse receipt</td>
-              </tr>
-              <tr>
-                <td>UPI / Net Banking</td>
-                <td>Original account</td>
-                <td>5–7 business days after warehouse receipt</td>
-              </tr>
-              <tr>
-                <td>Cash on Delivery (COD)</td>
-                <td>UPI ID or bank account provided at time of request</td>
-                <td>7–10 business days after warehouse receipt</td>
-              </tr>
-            </tbody>
-          </table>
-          <h3 class="policy__subsection-title">Important Notes</h3>
+        <section class="policy__section">
+          <h2 class="policy__section-title">Damaged, Defective, or Wrong Items</h2>
+          <p>Even though our standard return and exchange window is currently closed, if your item arrives damaged, defective, or different from what you ordered, contact us within <strong>48 hours of delivery</strong> at <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a> with:</p>
           <ul class="policy__list">
-            <li>Shipping charges are non-refundable unless the return is due to a defect or wrong item sent by us.</li>
-            <li>COD handling charges, if any, are non-refundable.</li>
-            <li>Refund timelines are subject to your bank's processing schedule.</li>
-            <li>You will receive an email once your refund is initiated.</li>
+            <li>Your order number</li>
+            <li>Clear photographs of the item and packaging</li>
+            <li>A brief description of the issue</li>
           </ul>
-        } @else {
-          <p>For successful exchanges, <strong>no refund is issued</strong> — the old item is collected and the new size is delivered in the same visit.</p>
-          <p>A cash refund may be issued in the following exceptional cases:</p>
+          <p>Verified cases are resolved with a full replacement (subject to stock) or a complete refund — at no cost to you.</p>
+        </section>
+
+        <section class="policy__section">
+          <h2 class="policy__section-title">Grievance Redressal</h2>
+          <p>In accordance with the <em>Consumer Protection (E-Commerce) Rules, 2020</em>, any grievance may be raised with our Grievance Officer:</p>
+          <div class="policy__grievance">
+            <p><strong>Grievance Officer</strong><br>
+            Ted Clothing<br>
+            Email: <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a></p>
+            <p class="policy__grievance-note">We acknowledge all grievances within <strong>48 hours</strong> and resolve them within <strong>30 days</strong> of receipt.</p>
+          </div>
+        </section>
+
+      } @else {
+
+        <!-- ── Return / Exchange / Both ────────────────────────────────── -->
+
+        <!-- § 1 Overview -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">1. Overview</h2>
+          @switch (returnMode()) {
+            @case ('return') {
+              <p>At Ted Clothing, every piece is crafted with care. If your order arrives damaged, defective, or simply isn't the right fit, you may request a <strong>return</strong> within <strong>{{ returnWindowDays() }} day{{ returnWindowDays() === 1 ? '' : 's' }}</strong> of delivery — provided it meets the conditions below. A pickup is automatically arranged at your delivery address.</p>
+            }
+            @case ('exchange') {
+              <p>At Ted Clothing, we want every item to fit perfectly. If your size isn't right, you may request an <strong>exchange</strong> within <strong>{{ returnWindowDays() }} day{{ returnWindowDays() === 1 ? '' : 's' }}</strong> of delivery. Our delivery partner will deliver your new size and collect the old item in a single visit — no separate trips needed.</p>
+            }
+            @case ('both') {
+              <p>At Ted Clothing, we want every piece to fit and feel right. Within <strong>{{ returnWindowDays() }} day{{ returnWindowDays() === 1 ? '' : 's' }}</strong> of delivery you may choose to <strong>return</strong> an item for a refund or <strong>exchange</strong> it for a different size — whichever suits you best. Both options are subject to the eligibility conditions below.</p>
+            }
+          }
+          <p>This policy applies to all purchases made directly on <strong>tedclothing.com</strong>. Orders placed through third-party marketplaces are subject to those platforms' own policies.</p>
+        </section>
+
+        <!-- § 2 Window -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">2.
+            @switch (returnMode()) {
+              @case ('return')   { Return Window }
+              @case ('exchange') { Exchange Window }
+              @case ('both')     { Return &amp; Exchange Window }
+            }
+          </h2>
+          <div class="policy__highlight">
+            You have <strong>{{ returnWindowDays() }} day{{ returnWindowDays() === 1 ? '' : 's' }} from the date of delivery</strong> to initiate a
+            @switch (returnMode()) {
+              @case ('return')   { return }
+              @case ('exchange') { size exchange }
+              @case ('both')     { return or exchange }
+            }.
+            Requests raised after this window will not be accepted.
+          </div>
+          <p>The delivery date is determined by the tracking update from our logistics partner. You can verify your delivery date under <strong>My Orders</strong> in your Ted Clothing account.</p>
+        </section>
+
+        <!-- § 3 Eligibility -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">3. Eligibility Conditions</h2>
+          <p>To be eligible, the item must meet <em>all</em> of the following conditions at the time of pickup:</p>
           <ul class="policy__list">
-            <li>Your selected exchange size goes out of stock before the agent dispatches.</li>
-            <li>The item fails quality inspection and no replacement is possible.</li>
+            <li><strong>Unworn &amp; unwashed</strong> — not worn, washed, or altered in any way.</li>
+            <li><strong>Original tags intact</strong> — all brand tags and labels attached as received.</li>
+            <li><strong>Original packaging</strong> — in the original Ted Clothing poly-bag or box.</li>
+            <li><strong>No damage by customer</strong> — not torn, stained, perfumed, or damaged after delivery.</li>
+            <li><strong>Correct item</strong> — the item matches the order it was placed against.</li>
           </ul>
-          <p>In these cases, the refund is processed to the UPI ID or bank account you provided during the exchange request, within 7–10 business days.</p>
-        }
-      </section>
+          <p class="policy__note">
+            <strong>Doorstep quality check:</strong> Our delivery partner performs an inspection at pickup. Items that fail the quality check will be refused and returned to you — no
+            @switch (returnMode()) {
+              @case ('return')   { refund }
+              @case ('exchange') { exchange }
+              @case ('both')     { refund or exchange }
+            }
+            will be processed for refused items.
+          </p>
+        </section>
 
-      <!-- § 7 Damaged / Wrong Items -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">7. Damaged, Defective, or Wrong Items</h2>
-        <p>If your item arrives damaged, defective, or different from what you ordered, contact us within <strong>48 hours of delivery</strong> at <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a> with:</p>
-        <ul class="policy__list">
-          <li>Your order number</li>
-          <li>Clear photographs of the item and packaging</li>
-          <li>A brief description of the issue</li>
-        </ul>
-        <p>Verified cases are resolved with a full replacement (subject to stock) or a complete refund — at no cost to you.</p>
-      </section>
+        <!-- § 4 Non-Eligible Items -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">4. Non-Eligible Items</h2>
+          <p>The following are <strong>not eligible</strong> under any circumstances:</p>
+          <ul class="policy__list">
+            <li>Innerwear, lingerie, and swimwear (hygiene reasons)</li>
+            <li>Personalized or made-to-order items</li>
+            <li>Items marked <em>"Final Sale"</em> or <em>"Non-Returnable"</em> at time of purchase</li>
+            <li>Free gifts or promotional items</li>
+            <li>Items used, washed, or damaged after delivery</li>
+          </ul>
+        </section>
 
-      <!-- § 8 Grievance -->
-      <section class="policy__section">
-        <h2 class="policy__section-title">8. Grievance Redressal</h2>
-        <p>In accordance with the <em>Consumer Protection (E-Commerce) Rules, 2020</em>, any grievance may be raised with our Grievance Officer:</p>
-        <div class="policy__grievance">
-          <p><strong>Grievance Officer</strong><br>
-          Ted Clothing<br>
-          Email: <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a></p>
-          <p class="policy__grievance-note">We acknowledge all grievances within <strong>48 hours</strong> and resolve them within <strong>30 days</strong> of receipt. If unsatisfied, you may approach the Consumer Disputes Redressal Commission under the Consumer Protection Act, 2019.</p>
-        </div>
-      </section>
+        <!-- § 5 How to Initiate -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">5. How to Initiate</h2>
+          <p>Requests can only be raised through your Ted Clothing account — we do not accept walk-in or self-shipped returns.</p>
+
+          @switch (returnMode()) {
+
+            @case ('return') {
+              <ol class="policy__steps">
+                <li><span class="policy__step-num">1</span><div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Return</strong>.</div></li>
+                <li><span class="policy__step-num">2</span><div>Select your <strong>reason</strong> from the list and upload <strong>1–4 photos</strong> of the item clearly showing its condition.</div></li>
+                <li><span class="policy__step-num">3</span><div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> for the refund transfer.</div></li>
+                <li><span class="policy__step-num">4</span><div>Submit — a pickup is <strong>automatically scheduled</strong> with our logistics partner. You will receive a confirmation.</div></li>
+                <li><span class="policy__step-num">5</span><div>Keep the item <strong>packed in its original packaging</strong> with all tags intact. Hand it to the agent after the quality check.</div></li>
+                <li><span class="policy__step-num">6</span><div>Once received and inspected at our warehouse, your <strong>refund is initiated within 2 business days</strong>.</div></li>
+              </ol>
+            }
+
+            @case ('exchange') {
+              <ol class="policy__steps">
+                <li><span class="policy__step-num">1</span><div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Exchange</strong>.</div></li>
+                <li><span class="policy__step-num">2</span><div>Select your <strong>reason</strong> and upload <strong>1–4 photos</strong> of the item.</div></li>
+                <li><span class="policy__step-num">3</span><div>Choose your <strong>replacement size</strong>. Only in-stock sizes are shown — out-of-stock sizes are greyed out.</div></li>
+                <li><span class="policy__step-num">4</span><div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> in case a cash refund is needed (e.g. if your size goes out of stock before dispatch).</div></li>
+                <li><span class="policy__step-num">5</span><div>Submit — an exchange shipment is <strong>automatically booked</strong>. Your replacement size is reserved immediately.</div></li>
+                <li><span class="policy__step-num">6</span><div>Our delivery agent arrives at your address, <strong>delivers the new size</strong>, and collects the old item in a single visit after a doorstep quality check.</div></li>
+              </ol>
+            }
+
+            @case ('both') {
+              <p>When you open the request form you will first choose whether you want a <strong>return</strong> (refund) or an <strong>exchange</strong> (size swap). The process then follows the selected flow:</p>
+
+              <h3 class="policy__subsection-title">Requesting a Return</h3>
+              <ol class="policy__steps">
+                <li><span class="policy__step-num">1</span><div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Return / Exchange</strong>. Select <strong>Return</strong>.</div></li>
+                <li><span class="policy__step-num">2</span><div>Select your <strong>reason</strong> from the list and upload <strong>1–4 photos</strong> of the item clearly showing its condition.</div></li>
+                <li><span class="policy__step-num">3</span><div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> for the refund transfer.</div></li>
+                <li><span class="policy__step-num">4</span><div>Submit — a pickup is <strong>automatically scheduled</strong>. You will receive a confirmation.</div></li>
+                <li><span class="policy__step-num">5</span><div>Keep the item <strong>packed in its original packaging</strong> with all tags intact. Hand it to the agent after the quality check.</div></li>
+                <li><span class="policy__step-num">6</span><div>Once received and inspected at our warehouse, your <strong>refund is initiated within 2 business days</strong>.</div></li>
+              </ol>
+
+              <h3 class="policy__subsection-title">Requesting an Exchange</h3>
+              <ol class="policy__steps">
+                <li><span class="policy__step-num">1</span><div>Log in at <strong>tedclothing.com</strong> → <strong>My Account → Orders</strong> → expand the delivered order → tap <strong>Request Return / Exchange</strong>. Select <strong>Exchange</strong>.</div></li>
+                <li><span class="policy__step-num">2</span><div>Select your <strong>reason</strong> and upload <strong>1–4 photos</strong> of the item.</div></li>
+                <li><span class="policy__step-num">3</span><div>Choose your <strong>replacement size</strong>. Only in-stock sizes are shown — out-of-stock sizes are greyed out.</div></li>
+                <li><span class="policy__step-num">4</span><div><em>COD orders only:</em> enter your <strong>UPI ID or bank account details</strong> in case a cash refund is needed.</div></li>
+                <li><span class="policy__step-num">5</span><div>Submit — an exchange shipment is <strong>automatically booked</strong>. Your replacement size is reserved immediately.</div></li>
+                <li><span class="policy__step-num">6</span><div>Our delivery agent arrives at your address, <strong>delivers the new size</strong>, and collects the old item in a single visit after a doorstep quality check.</div></li>
+              </ol>
+            }
+
+          }
+        </section>
+
+        <!-- § 6 Refunds -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">6. Refunds</h2>
+
+          @switch (returnMode()) {
+
+            @case ('return') {
+              <h3 class="policy__subsection-title">Refund Methods</h3>
+              <table class="policy__table">
+                <thead>
+                  <tr><th>Original Payment</th><th>Refund To</th><th>Timeline</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Credit / Debit Card</td><td>Original card</td><td>5–7 business days after warehouse receipt</td></tr>
+                  <tr><td>UPI / Net Banking</td><td>Original account</td><td>5–7 business days after warehouse receipt</td></tr>
+                  <tr><td>Cash on Delivery (COD)</td><td>UPI ID or bank account provided at time of request</td><td>7–10 business days after warehouse receipt</td></tr>
+                </tbody>
+              </table>
+              <h3 class="policy__subsection-title">Important Notes</h3>
+              <ul class="policy__list">
+                <li>Shipping charges are non-refundable unless the return is due to a defect or wrong item sent by us.</li>
+                <li>COD handling charges, if any, are non-refundable.</li>
+                <li>Refund timelines are subject to your bank's processing schedule.</li>
+                <li>You will receive an email once your refund is initiated.</li>
+              </ul>
+            }
+
+            @case ('exchange') {
+              <p>For successful exchanges, <strong>no refund is issued</strong> — the old item is collected and the new size is delivered in the same visit.</p>
+              <p>A cash refund may be issued in the following exceptional cases:</p>
+              <ul class="policy__list">
+                <li>Your selected exchange size goes out of stock before the agent dispatches.</li>
+                <li>The item fails quality inspection and no replacement is possible.</li>
+              </ul>
+              <p>In these cases, the refund is processed to the UPI ID or bank account you provided during the exchange request, within 7–10 business days.</p>
+            }
+
+            @case ('both') {
+              <h3 class="policy__subsection-title">Return Refunds</h3>
+              <table class="policy__table">
+                <thead>
+                  <tr><th>Original Payment</th><th>Refund To</th><th>Timeline</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Credit / Debit Card</td><td>Original card</td><td>5–7 business days after warehouse receipt</td></tr>
+                  <tr><td>UPI / Net Banking</td><td>Original account</td><td>5–7 business days after warehouse receipt</td></tr>
+                  <tr><td>Cash on Delivery (COD)</td><td>UPI ID or bank account provided at time of request</td><td>7–10 business days after warehouse receipt</td></tr>
+                </tbody>
+              </table>
+              <ul class="policy__list">
+                <li>Shipping charges are non-refundable unless the return is due to a defect or wrong item sent by us.</li>
+                <li>Refund timelines are subject to your bank's processing schedule.</li>
+                <li>You will receive an email once your refund is initiated.</li>
+              </ul>
+              <h3 class="policy__subsection-title">Exchange Refunds</h3>
+              <p>For successful exchanges, <strong>no refund is issued</strong> — the old item is collected and the new size is delivered in the same visit. A cash refund may be issued only if your selected size goes out of stock before dispatch or the item fails quality inspection, processed within 7–10 business days.</p>
+            }
+
+          }
+        </section>
+
+        <!-- § 7 Damaged / Wrong Items -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">7. Damaged, Defective, or Wrong Items</h2>
+          <p>If your item arrives damaged, defective, or different from what you ordered, contact us within <strong>48 hours of delivery</strong> at <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a> with:</p>
+          <ul class="policy__list">
+            <li>Your order number</li>
+            <li>Clear photographs of the item and packaging</li>
+            <li>A brief description of the issue</li>
+          </ul>
+          <p>Verified cases are resolved with a full replacement (subject to stock) or a complete refund — at no cost to you.</p>
+        </section>
+
+        <!-- § 8 Grievance -->
+        <section class="policy__section">
+          <h2 class="policy__section-title">8. Grievance Redressal</h2>
+          <p>In accordance with the <em>Consumer Protection (E-Commerce) Rules, 2020</em>, any grievance may be raised with our Grievance Officer:</p>
+          <div class="policy__grievance">
+            <p><strong>Grievance Officer</strong><br>
+            Ted Clothing<br>
+            Email: <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a></p>
+            <p class="policy__grievance-note">We acknowledge all grievances within <strong>48 hours</strong> and resolve them within <strong>30 days</strong> of receipt. If unsatisfied, you may approach the Consumer Disputes Redressal Commission under the Consumer Protection Act, 2019.</p>
+          </div>
+        </section>
+
+      } <!-- end @else -->
 
       <div class="policy__footer-note">
         <p>This policy was last updated in June 2026 and is subject to change. The version in effect at the time of your purchase applies to your order. For questions, write to <a href="mailto:hello@tedclothing.in" class="policy__link">hello&#64;tedclothing.in</a>.</p>

@@ -9,13 +9,13 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   ViewChild,
   ElementRef,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, filter } from 'rxjs';
+import { filter } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CategoryService } from '../../core/services/category.service';
@@ -65,7 +65,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      if (this.authService.isLoggedIn()) this.addressService.load();
+      if (this.authService.isLoggedIn()) untracked(() => this.addressService.load());
     });
     // Re-measure nav after navTree loads from API
     effect(() => {
@@ -85,10 +85,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  readonly navTree = toSignal(
-    this.categoryService.getNavTree().pipe(catchError(() => of([]))),
-    { initialValue: [] }
-  );
+  readonly navTree = computed(() => this.categoryService.navCategories());
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;

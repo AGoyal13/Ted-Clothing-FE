@@ -16,6 +16,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import {
   provideClientHydration,
   withEventReplay,
+  withIncrementalHydration,
 } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
@@ -28,7 +29,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions(), withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(withEventReplay(), withIncrementalHydration()),
     provideAnimationsAsync(),
     {
       provide: APP_INITIALIZER,

@@ -41,7 +41,6 @@ export class FeedbackFormComponent {
     effect(() => {
       const user = this.auth.currentUser();
       if (user?.name) this.name = user.name;
-      if (user) this.addressService.load();
     });
 
     effect(() => {

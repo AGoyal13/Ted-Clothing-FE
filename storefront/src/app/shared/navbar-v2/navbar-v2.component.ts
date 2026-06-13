@@ -9,12 +9,12 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   ViewChild,
   ElementRef,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, NavigationStart } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Subject, Subscription, catchError, of, filter, debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -80,7 +80,7 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      if (this.authService.isLoggedIn()) this.addressService.load();
+      if (this.authService.isLoggedIn()) untracked(() => this.addressService.load());
     });
     effect(() => {
       const tree = this.navTree();
@@ -94,10 +94,7 @@ export class NavbarV2Component implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  readonly navTree = toSignal(
-    this.categoryService.getNavTree().pipe(catchError(() => of([]))),
-    { initialValue: [] }
-  );
+  readonly navTree = computed(() => this.categoryService.navCategories());
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;

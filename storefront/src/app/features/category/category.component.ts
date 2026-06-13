@@ -259,71 +259,82 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     if (slug === 'sale') {
       this.pageType.set('leaf');
       this.breadcrumbs.set([{ label: 'SALE' }]);
-      this.categoryService.getNavTree().subscribe({
-        next: (tree) => {
-          if (this.slug() !== slug) return;
-          this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
-        },
-        error: () => {},
-      });
+      this.categoryOptions.set(
+        this.categoryService.navCategories().map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
+      );
     } else if (slug === 'new-arrivals') {
       this.pageType.set('leaf');
       this.breadcrumbs.set([{ label: 'NEW ARRIVALS' }]);
-      this.categoryService.getNavTree().subscribe({
-        next: (tree) => {
-          if (this.slug() !== slug) return;
-          this.categoryOptions.set(tree.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
-        },
-        error: () => {},
-      });
+      this.categoryOptions.set(
+        this.categoryService.navCategories().map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
+      );
     } else if (genderEnum) {
       this.pageType.set('gender');
       this.breadcrumbs.set([{ label: slug.toUpperCase() }]);
-      this.categoryService.getNavTreeByGender(genderEnum).subscribe({
-        next: (groups) => {
-          if (this.slug() !== slug) return;
-          this.categoryOptions.set(
-            groups.flatMap(g => g.categories.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })))
-          );
-        },
-        error: () => {},
-      });
+      const groups = this.categoryService.navTree()?.byGender[genderEnum] ?? [];
+      this.categoryOptions.set(
+        groups.flatMap(g => g.categories.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })))
+      );
     } else {
-      this.categoryService.getBySlug(slug).subscribe({
-        next: (cat) => {
-          if (this.slug() !== slug) return;
-          this.breadcrumbs.set(
-            cat.parent
-              ? [{ label: cat.parent.name.toUpperCase(), slug: cat.parent.slug }, { label: cat.name.toUpperCase() }]
-              : [{ label: cat.name.toUpperCase() }]
-          );
-
-          if ((cat.children?.length ?? 0) > 0) {
-            this.pageType.set('parent');
+      // Try navTreeMap first — synchronous, zero HTTP on warm cache
+      const entry = this.categoryService.navTreeMap().get(slug);
+      if (entry) {
+        const { cat, parent } = entry;
+        this.breadcrumbs.set(
+          parent
+            ? [{ label: parent.name.toUpperCase(), slug: parent.slug }, { label: cat.name.toUpperCase() }]
+            : [{ label: cat.name.toUpperCase() }]
+        );
+        if ((cat.children?.length ?? 0) > 0) {
+          this.pageType.set('parent');
+          this.categoryOptions.set(cat.children!.map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
+        } else {
+          this.pageType.set('leaf');
+          if (parent) {
+            this.leafParentSlug.set(parent.slug);
+            this.leafParentName.set(parent.name);
+            // siblings live on the parent node already in the map — no second HTTP call
+            const parentEntry = this.categoryService.navTreeMap().get(parent.slug);
             this.categoryOptions.set(
-              (cat.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
+              (parentEntry?.cat.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
             );
           } else {
-            this.pageType.set('leaf');
-            if (cat.parent) {
-              this.leafParentSlug.set(cat.parent.slug);
-              this.leafParentName.set(cat.parent.name);
-              this.categoryService.getBySlug(cat.parent.slug).subscribe({
-                next: (parent) => {
-                  if (this.slug() !== slug) return;
-                  this.categoryOptions.set(
-                    (parent.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug }))
-                  );
-                },
-                error: () => this.categoryOptions.set([]),
-              });
-            } else {
-              this.categoryOptions.set([]);
-            }
+            this.categoryOptions.set([]);
           }
-        },
-        error: () => this.pageType.set('leaf'),
-      });
+        }
+      } else {
+        // Fallback: navTree not yet loaded or category absent from tree
+        this.categoryService.getBySlug(slug).subscribe({
+          next: (cat) => {
+            if (this.slug() !== slug) return;
+            this.breadcrumbs.set(
+              cat.parent
+                ? [{ label: cat.parent.name.toUpperCase(), slug: cat.parent.slug }, { label: cat.name.toUpperCase() }]
+                : [{ label: cat.name.toUpperCase() }]
+            );
+            if ((cat.children?.length ?? 0) > 0) {
+              this.pageType.set('parent');
+              this.categoryOptions.set((cat.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
+            } else {
+              this.pageType.set('leaf');
+              if (cat.parent) {
+                this.leafParentSlug.set(cat.parent.slug);
+                this.leafParentName.set(cat.parent.name);
+                this.categoryService.getBySlug(cat.parent.slug).subscribe({
+                  next: (parent) => {
+                    if (this.slug() !== slug) return;
+                    this.categoryOptions.set((parent.children ?? []).map(c => ({ label: c.name.toUpperCase(), slug: c.slug })));
+                  },
+                  error: () => this.categoryOptions.set([]),
+                });
+              } else {
+                this.categoryOptions.set([]);
+              }
+            }
+          },
+          error: () => this.pageType.set('leaf'),
+        });
+      }
     }
   }
 

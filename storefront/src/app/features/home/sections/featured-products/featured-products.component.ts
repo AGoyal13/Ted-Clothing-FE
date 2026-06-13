@@ -1,14 +1,8 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ProductService } from '../../../../core/services/product.service';
-import { Product } from '../../../../core/models/product.model';
 import { ProductCardComponent } from '../../../../shared/product-card/product-card.component';
 import { AnimateOnScrollDirective } from '../../../../core/directives/animate-on-scroll.directive';
+import { HomeFeaturedService } from '../../home-featured.service';
 
 @Component({
   selector: 'app-featured-products',
@@ -17,22 +11,9 @@ import { AnimateOnScrollDirective } from '../../../../core/directives/animate-on
   templateUrl: './featured-products.component.html',
   styleUrl: './featured-products.component.scss',
 })
-export class FeaturedProductsComponent implements OnInit {
-  private readonly productService = inject(ProductService);
+export class FeaturedProductsComponent {
+  private readonly homeFeatured = inject(HomeFeaturedService);
 
-  readonly loading = signal(true);
-  readonly products = signal<Product[]>([]);
-
-  ngOnInit(): void {
-    this.productService.getFeatured(8).subscribe({
-      next: (res) => {
-        this.products.set(res.items ?? []);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.products.set([]);
-        this.loading.set(false);
-      },
-    });
-  }
+  readonly loading  = computed(() => !this.homeFeatured.loaded());
+  readonly products = this.homeFeatured.products;
 }

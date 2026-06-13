@@ -19,6 +19,7 @@ export class ApiService {
     if (params) {
       Object.entries(params).forEach(([k, v]) => httpParams = httpParams.set(k, String(v)));
     }
+    httpParams = httpParams.set('_t', Date.now());
     return this.http
       .get<ApiResponse<T>>(`${this.base}/${path}`, { params: httpParams })
       .pipe(map((r) => r.data));

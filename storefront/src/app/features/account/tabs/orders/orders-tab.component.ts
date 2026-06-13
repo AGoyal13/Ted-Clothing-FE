@@ -129,7 +129,6 @@ export class OrdersTabComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.siteConfig.load();
     this.orderService.getMyOrders().subscribe({
       next: list => { this.orders.set(list); this.loading.set(false); },
       error: () => this.loading.set(false),

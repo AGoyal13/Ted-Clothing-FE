@@ -1,12 +1,7 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CategoryService } from '../../../../core/services/category.service';
-import { Category } from '../../../../core/models/category.model';
+import { NavCategory } from '../../../../core/models/category.model';
 
 interface GridCategory {
   id: string;
@@ -33,6 +28,27 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
   { id: '5', name: 'New Arrivals',slug: 'new-arrivals',accent: 'rgba(139, 94, 60, 0.15)', image: null },
 ];
 
+const ACCENTS = [
+  'rgba(139, 94, 60, 0.25)',
+  'rgba(201, 168, 76, 0.15)',
+  'rgba(107, 101, 96, 0.2)',
+  'rgba(201, 168, 76, 0.1)',
+  'rgba(139, 94, 60, 0.15)',
+  'rgba(107, 101, 96, 0.15)',
+  'rgba(139, 94, 60, 0.2)',
+  'rgba(201, 168, 76, 0.12)',
+];
+
+function toGridCategories(cats: NavCategory[]): GridCategory[] {
+  return cats.map((c, i) => ({
+    id:     c.id,
+    name:   c.name,
+    slug:   c.slug,
+    image:  c.imageUrl ?? CATEGORY_IMAGES[c.slug] ?? null,
+    accent: ACCENTS[i % ACCENTS.length],
+  }));
+}
+
 @Component({
   selector: 'app-category-grid',
   standalone: true,
@@ -40,48 +56,14 @@ const FALLBACK_CATEGORIES: GridCategory[] = [
   templateUrl: './category-grid.component.html',
   styleUrl: './category-grid.component.scss',
 })
-export class CategoryGridComponent implements OnInit {
+export class CategoryGridComponent {
   private readonly categoryService = inject(CategoryService);
 
-  readonly loading = signal(true);
-  readonly categories = signal<GridCategory[]>([]);
+  readonly loading = computed(() => this.categoryService.navTree() === null);
 
-  ngOnInit(): void {
-    this.categoryService.getAll().subscribe({
-      next: (cats) => {
-        if (cats && cats.length > 0) {
-          const accents = [
-            'rgba(139, 94, 60, 0.25)',
-            'rgba(201, 168, 76, 0.15)',
-            'rgba(107, 101, 96, 0.2)',
-            'rgba(201, 168, 76, 0.1)',
-            'rgba(139, 94, 60, 0.15)',
-            'rgba(107, 101, 96, 0.15)',
-            'rgba(139, 94, 60, 0.2)',
-            'rgba(201, 168, 76, 0.12)',
-          ];
-          const flat = Array.isArray(cats)
-            ? cats
-            : (cats as { items?: Category[] }).items ?? [];
-          const roots = flat.filter(c => c.parentId === null);
-          this.categories.set(
-            (roots.length > 0 ? roots : flat).map((c, i) => ({
-              image: c.imageUrl ?? CATEGORY_IMAGES[c.slug] ?? null,
-              id: c.id,
-              name: c.name,
-              slug: c.slug,
-              accent: accents[i % accents.length],
-            }))
-          );
-        } else {
-          this.categories.set(FALLBACK_CATEGORIES);
-        }
-        this.loading.set(false);
-      },
-      error: () => {
-        this.categories.set(FALLBACK_CATEGORIES);
-        this.loading.set(false);
-      },
-    });
-  }
+  readonly categories = computed<GridCategory[]>(() => {
+    const cats = this.categoryService.navCategories();
+    if (!cats.length) return FALLBACK_CATEGORIES;
+    return toGridCategories(cats);
+  });
 }

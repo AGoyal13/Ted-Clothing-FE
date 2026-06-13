@@ -227,7 +227,6 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.shippingService.ensureAddresses();
-    this.siteConfig.load();
     this.route.params.subscribe(params => {
       const slug = params['slug'];
       if (slug) this.loadProduct(slug);

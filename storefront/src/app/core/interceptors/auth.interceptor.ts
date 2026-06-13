@@ -6,9 +6,26 @@ import { AuthService } from '../services/auth.service';
 
 const SESSION_ID_KEY = 'ted_session_id';
 
+// Requests to these paths carry no credentials — Transfer Cache can cache them
+// for logged-in users without breaking user-specific endpoints.
+const PUBLIC_API_PATHS = [
+  '/api/v1/products',
+  '/api/v1/categories',
+  '/api/v1/feedback',
+  '/api/v1/search',
+  '/api/v1/site-config',
+  '/api/v1/shipping/etd',
+];
+
+function isPublicEndpoint(url: string): boolean {
+  return PUBLIC_API_PATHS.some(path => url.includes(path));
+}
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const platformId = inject(PLATFORM_ID);
   if (!isPlatformBrowser(platformId)) return next(req);
+
+  if (isPublicEndpoint(req.url)) return next(req);
 
   const authService = inject(AuthService);
 

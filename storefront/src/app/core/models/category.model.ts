@@ -16,7 +16,14 @@ export interface NavGroup {
   categories: Array<{ id: string; name: string; slug: string; gender: string | null }>;
 }
 
-export type GenderNavTree = NavGroup[];
+export interface NavTreeResponse {
+  categories: NavCategory[];
+  byGender: {
+    WOMEN: NavGroup[];
+    MEN:   NavGroup[];
+    KIDS:  NavGroup[];
+  };
+}
 
 export interface CategoriesResponse {
   items: Category[];

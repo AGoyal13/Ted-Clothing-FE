@@ -32,6 +32,7 @@ export interface Product {
   description: string;
   slug: string;
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  gender: 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX';
   basePrice: number;
   discountPercent: number;
   category: { id: string; name: string };

@@ -25,6 +25,7 @@
 
     .strip-inner {
       display: flex;
+      justify-content: space-evenly;
       overflow-x: auto;
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;

@@ -35,6 +35,27 @@ app.use(
   }),
 );
 
+// Cache-Control headers for SSR routes.
+// Must be set before Angular handles the request — writeResponseToNodeResponse
+// merges Angular's response headers without overwriting pre-set headers.
+//
+// WARNING: any Set-Cookie on these responses will cause Vercel's edge to silently
+// skip caching entirely (permanent MISS). These routes make no auth calls during
+// SSR (auth interceptor + tryRefresh() are both browser-only), so no cookies are set.
+app.use('/product/:slug', (_req, res, next) => {
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=3600');
+  next();
+});
+app.use('/category/:slug', (_req, res, next) => {
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=3600');
+  next();
+});
+// Order-confirmed pages are unique per order — must never be edge-cached.
+app.use('/order-confirmed/:id', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 /**
  * Handle all other requests by rendering the Angular application.
  */

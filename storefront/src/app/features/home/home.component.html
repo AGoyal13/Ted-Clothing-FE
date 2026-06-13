@@ -7,17 +7,9 @@
     <div style="height:44px;background:var(--gold);"></div>
   }
 
-  @defer (on viewport) {
-    <app-category-grid />
-  } @placeholder {
-    <div style="height:500px;"></div>
-  }
+  <app-category-grid />
 
-  @defer (on viewport) {
-    <app-featured-products />
-  } @placeholder {
-    <div style="height:600px;"></div>
-  }
+  <app-featured-products />
 
   @defer (on viewport) {
     <app-promo-banners />
@@ -25,10 +17,8 @@
     <div style="height:300px;"></div>
   }
 
-  @defer (on viewport) {
+  @defer (hydrate on viewport) {
     <app-testimonials />
-  } @placeholder {
-    <div style="height:400px;"></div>
   }
 
   @defer (on viewport) {

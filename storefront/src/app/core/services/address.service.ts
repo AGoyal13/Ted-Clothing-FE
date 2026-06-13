@@ -14,6 +14,7 @@ export class AddressService {
   readonly loading = signal(false);
 
   load() {
+    if (this.loading()) return;
     this.loading.set(true);
     this.http.get<ApiResponse<Address[]>>(this.baseUrl).subscribe({
       next: r => { this.addresses.set(r.data); this.loading.set(false); },

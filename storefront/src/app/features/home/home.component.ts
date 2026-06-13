@@ -8,10 +8,12 @@ import { PromoBannersComponent } from './sections/promo-banners/promo-banners.co
 import { TestimonialsComponent } from './sections/testimonials/testimonials.component';
 import { FeedbackFormComponent } from './sections/feedback-form/feedback-form.component';
 import { NewsletterComponent } from './sections/newsletter/newsletter.component';
+import { HomeFeaturedService } from './home-featured.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
+  providers: [HomeFeaturedService],
   imports: [
     HeroComponent,
     MarqueeComponent,

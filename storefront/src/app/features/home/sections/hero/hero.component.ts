@@ -1,9 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { map, catchError, of } from 'rxjs';
-import { ApiService } from '../../../../core/services/api.service';
-import { ProductListResponse } from '../../../../core/models/product.model';
+import { HomeFeaturedService } from '../../home-featured.service';
 
 @Component({
   selector: 'app-hero',
@@ -13,18 +10,10 @@ import { ProductListResponse } from '../../../../core/models/product.model';
   styleUrl: './hero.component.scss',
 })
 export class HeroComponent {
-  private api = inject(ApiService);
-
-  private productTotal = toSignal(
-    this.api.get<ProductListResponse>('/products', { status: 'ACTIVE', limit: 1 }).pipe(
-      map(res => res.total),
-      catchError(() => of(null)),
-    ),
-    { initialValue: null },
-  );
+  private readonly homeFeatured = inject(HomeFeaturedService);
 
   readonly uniquePieces = computed(() => {
-    const total = this.productTotal();
+    const total = this.homeFeatured.total();
     return total !== null ? `${total}+` : '—';
   });
 }
