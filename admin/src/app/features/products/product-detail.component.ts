@@ -17,6 +17,7 @@ import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { ColorDialogComponent } from './color-dialog.component';
 import { AddColorVariantDialogComponent } from './add-color-variant-dialog.component';
+import { SizeGuideFormDialogComponent, SizeGuide } from './size-guide-form-dialog.component';
 
 interface ProductColor { id: string; colorName: string; colorHex: string | null; images: string[]; }
 interface Sku { id: string; skuCode: string; colorId: string; sizeLabel: string; stockQty: number; priceOverride: number | null; }
@@ -38,7 +39,7 @@ interface ProductDetail {
     MatTabsModule, MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatChipsModule, MatSelectModule,
     MatProgressBarModule, MatSnackBarModule, MatDialogModule,
-    MatTooltipModule, DecimalPipe,
+    MatTooltipModule, DecimalPipe, SizeGuideFormDialogComponent,
   ],
   template: `
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
@@ -228,11 +229,15 @@ interface ProductDetail {
                 </mat-select>
               </mat-form-field>
 
-              <div style="margin-top:8px">
+              <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <button mat-flat-button color="primary"
                   [disabled]="savingSizeGuide() || selectedSizeGuideId === (product()!.sizeGuide?.id ?? null)"
                   (click)="saveSizeGuide()">
                   {{ savingSizeGuide() ? 'Saving…' : 'Save' }}
+                </button>
+                <span style="color:#bbb;font-size:13px">or</span>
+                <button mat-stroked-button type="button" (click)="openCreateSizeGuide()">
+                  <mat-icon>add</mat-icon> Create new guide
                 </button>
               </div>
             </div>
@@ -491,6 +496,25 @@ export class ProductDetailComponent implements OnInit {
   }
 
   // ─── Size Guide override ──────────────────────────────────────────────────
+
+  openCreateSizeGuide() {
+    this.dialog.open(SizeGuideFormDialogComponent, {
+      width: '640px', maxWidth: '95vw', data: {},
+    }).afterClosed().subscribe((guide: SizeGuide | undefined) => {
+      if (!guide) return;
+      this.api.get<SizeGuideStub[]>('size-guides').subscribe({
+        next: (gs) => {
+          this.allSizeGuides.set(gs);
+          this.selectedSizeGuideId = guide.id;
+          this.saveSizeGuide();
+        },
+        error: () => {
+          this.selectedSizeGuideId = guide.id;
+          this.saveSizeGuide();
+        },
+      });
+    });
+  }
 
   saveSizeGuide() {
     this.savingSizeGuide.set(true);
