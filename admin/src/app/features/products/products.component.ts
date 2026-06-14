@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ProductDialogComponent } from './product-dialog.component';
@@ -46,14 +47,25 @@ export interface Product {
     MatTableModule, MatButtonModule, MatIconModule, MatDialogModule,
     MatCardModule, MatChipsModule, MatProgressBarModule, MatSnackBarModule,
     MatBadgeModule, MatSelectModule, MatPaginatorModule, MatCheckboxModule,
-    MatTooltipModule, FormsModule, DecimalPipe,
+    MatTooltipModule, MatProgressSpinnerModule, FormsModule, DecimalPipe,
   ],
   template: `
     <div class="page-header">
       <h1>Products</h1>
-      <button mat-flat-button color="primary" (click)="openCreate()">
-        <mat-icon>add</mat-icon> New Product
-      </button>
+      <div class="header-actions">
+        <button mat-stroked-button (click)="reindexSearch()" [disabled]="reindexing()"
+          matTooltip="Rebuild the storefront search index from the database. Use if PLP stock/price looks stale vs the product detail.">
+          @if (reindexing()) {
+            <mat-spinner diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner>
+          } @else {
+            <mat-icon>sync</mat-icon>
+          }
+          Reindex Search
+        </button>
+        <button mat-flat-button color="primary" (click)="openCreate()">
+          <mat-icon>add</mat-icon> New Product
+        </button>
+      </div>
     </div>
 
     <div class="filters">
@@ -183,6 +195,7 @@ export interface Product {
   `,
   styles: [`
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
     h1 { margin: 0; }
     .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; align-items: center; }
     .filters mat-select { width: 180px; }
@@ -215,6 +228,7 @@ export class ProductsComponent implements OnInit {
   products = signal<Product[]>([]);
   loading = signal(false);
   bulkLoading = signal(false);
+  reindexing = signal(false);
   total = signal(0);
   page = signal(1);
   pageSize = 20;
@@ -344,6 +358,23 @@ export class ProductsComponent implements OnInit {
   openCreate() {
     this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: {} })
       .afterClosed().subscribe(r => { if (r) this.load(true); });
+  }
+
+  // Rebuild the storefront Meilisearch index from the DB. Fixes stale PLP data
+  // (e.g. stock/price that diverged from the product detail page).
+  reindexSearch() {
+    if (this.reindexing()) return;
+    this.reindexing.set(true);
+    this.api.post<{ indexed: number }>('search/reindex', {}).subscribe({
+      next: res => {
+        this.reindexing.set(false);
+        this.snack.open(`Search reindexed — ${res.indexed} products refreshed`, 'OK', { duration: 4000 });
+      },
+      error: err => {
+        this.reindexing.set(false);
+        this.snack.open(err?.error?.error?.message ?? 'Reindex failed', 'OK', { duration: 5000 });
+      },
+    });
   }
 
   openEdit(p: Product) {

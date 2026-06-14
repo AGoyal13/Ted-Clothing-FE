@@ -158,8 +158,10 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
 
     const baseBody = {
       name: this.form.value.name,
-      parentId: this.form.value.parentId || undefined,
-      gender: this.form.value.gender || undefined,
+      // Use ?? null (not || undefined) so an explicit "— None —" selection is SENT to the API
+      // and actually clears the field. With || undefined the key is dropped and the clear is lost.
+      parentId: this.form.value.parentId ?? null,
+      gender: this.form.value.gender ?? null,
     };
 
     if (this.data.category) {

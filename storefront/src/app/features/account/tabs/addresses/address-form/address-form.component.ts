@@ -82,7 +82,9 @@ export class AddressFormComponent implements OnDestroy {
     }
     this.saving.set(true);
     this.formError.set('');
-    const payload = { ...f, line2: f.line2 || undefined, landmark: f.landmark || undefined };
+    // Send null (not undefined) for emptied optional fields so editing an address can actually
+    // CLEAR line2/landmark — `|| undefined` drops the key and the backend keeps the old value.
+    const payload = { ...f, line2: f.line2 || null, landmark: f.landmark || null };
     const req$ = this._address
       ? this.addressService.update(this._address.id, payload)
       : this.addressService.create(payload);

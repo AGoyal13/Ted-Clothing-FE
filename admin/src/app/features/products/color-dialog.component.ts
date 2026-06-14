@@ -90,7 +90,7 @@ export class ColorDialogComponent implements OnInit {
     this.loading.set(true);
     const body = {
       colorName: this.form.value.colorName!,
-      colorHex: this.form.value.colorHex || undefined,
+      colorHex: this.form.value.colorHex || null,  // null (not undefined) so editing can clear the hex
       images: this.currentImages,
     };
     const req = this.data.color

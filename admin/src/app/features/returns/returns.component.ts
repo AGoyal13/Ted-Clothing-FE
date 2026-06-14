@@ -108,6 +108,7 @@ const REASON_LABELS: Record<string, string> = {
   WRONG_ITEM_DELIVERED: 'Wrong item delivered',
   DAMAGED_IN_TRANSIT: 'Damaged in transit',
   CHANGED_MIND: 'Changed mind',
+  RTO: 'RTO (Return to Origin)',
 };
 
 @Component({
@@ -301,6 +302,20 @@ const REASON_LABELS: Record<string, string> = {
                           <mat-icon>local_shipping</mat-icon> Schedule Pickup
                         </button>
                       }
+                      <!-- Manual reverse-leg steps (fallback when reverse-AWB webhook didn't fire) -->
+                      @if (row.status === 'PICKUP_SCHEDULED') {
+                        <button mat-stroked-button [disabled]="acting() === row.id" (click)="markInTransit(row)">
+                          <mat-icon>local_shipping</mat-icon> Mark Picked Up
+                        </button>
+                      }
+                      @if (['PICKUP_SCHEDULED', 'IN_TRANSIT'].includes(row.status)) {
+                        <button mat-stroked-button [disabled]="acting() === row.id" (click)="markExchangeDelivered(row)">
+                          <mat-icon>move_to_inbox</mat-icon> Mark Exchange Delivered
+                        </button>
+                        <button mat-stroked-button color="warn" [disabled]="acting() === row.id" (click)="markExchangeFailed(row)">
+                          <mat-icon>report_problem</mat-icon> Mark Exchange Failed
+                        </button>
+                      }
                       @if (['EXCHANGE_DELIVERED', 'IN_TRANSIT', 'PICKUP_SCHEDULED'].includes(row.status)) {
                         <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="markReceived(row)">
                           <mat-icon>inventory</mat-icon> Mark Received
@@ -325,6 +340,12 @@ const REASON_LABELS: Record<string, string> = {
                             <mat-icon>local_shipping</mat-icon> Schedule Pickup
                           </button>
                         }
+                      }
+                      <!-- Manual reverse-leg step (fallback when reverse-AWB webhook didn't fire) -->
+                      @if (row.status === 'PICKUP_SCHEDULED') {
+                        <button mat-stroked-button [disabled]="acting() === row.id" (click)="markInTransit(row)">
+                          <mat-icon>local_shipping</mat-icon> Mark Picked Up
+                        </button>
                       }
                       @if (['APPROVED', 'PICKUP_SCHEDULED', 'IN_TRANSIT'].includes(row.status)) {
                         <button mat-stroked-button color="primary" [disabled]="acting() === row.id" (click)="markReceived(row)">
@@ -682,6 +703,34 @@ export class ReturnsComponent implements OnInit {
     this.acting.set(row.id);
     this.api.patch<AdminReturn>(`admin/returns/${row.id}/mark-received`, {}).subscribe({
       next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Marked received — stock restored, photos deleted', 'OK', { duration: 4000 }); },
+      error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
+    });
+  }
+
+  // Manual reverse-leg fallback: PICKUP_SCHEDULED → IN_TRANSIT (webhook DISPATCHED step)
+  markInTransit(row: AdminReturn) {
+    this.acting.set(row.id);
+    this.api.patch<AdminReturn>(`admin/returns/${row.id}/mark-in-transit`, {}).subscribe({
+      next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Marked picked up — in transit to warehouse', 'OK', { duration: 4000 }); },
+      error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
+    });
+  }
+
+  // Manual reverse-leg fallback (exchange): → EXCHANGE_DELIVERED (webhook DELIVERED step)
+  markExchangeDelivered(row: AdminReturn) {
+    this.acting.set(row.id);
+    this.api.patch<AdminReturn>(`admin/returns/${row.id}/mark-exchange-delivered`, {}).subscribe({
+      next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Exchange delivered — new item with customer, old item collected', 'OK', { duration: 4000 }); },
+      error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
+    });
+  }
+
+  // Manual reverse-leg fallback (exchange): delivery failed → REJECTED (webhook RTO/QC step)
+  markExchangeFailed(row: AdminReturn) {
+    if (!window.confirm('Mark this exchange as failed? It will be rejected, reserved stock released, and the order reverts to DELIVERED (customer keeps the original item).')) return;
+    this.acting.set(row.id);
+    this.api.patch<AdminReturn>(`admin/returns/${row.id}/mark-exchange-failed`, {}).subscribe({
+      next: updated => { this.updateRow(updated); this.acting.set(null); this.snackBar.open('Exchange failed — rejected, stock released, order reverted to delivered', 'OK', { duration: 4000 }); },
       error: err => { this.acting.set(null); this.snackBar.open(err?.error?.error?.message ?? 'Action failed', 'OK', { duration: 4000 }); },
     });
   }

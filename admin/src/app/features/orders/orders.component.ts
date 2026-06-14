@@ -18,6 +18,8 @@ type OrderStatus =
   | 'PENDING'
   | 'CONFIRMED'
   | 'SHIPPED'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERY_FAILED'
   | 'DELIVERED'
   | 'CANCELLED'
   | 'RETURN_REQUESTED'
@@ -60,10 +62,14 @@ interface OrdersPage {
   orders: AdminOrder[];
 }
 
+// Note: DELIVERY_FAILED resolution (re-attempt / cancel / RTO) is handled in the
+// dedicated NDR queue page, so it is intentionally absent from this generic menu.
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
   CONFIRMED: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['DELIVERED'],
+  SHIPPED: ['OUT_FOR_DELIVERY', 'DELIVERED'],
+  OUT_FOR_DELIVERY: ['DELIVERED'],
+  DELIVERY_FAILED: [],
   DELIVERED: [],
   RETURN_REQUESTED: [],
   RETURNED: [],
@@ -74,11 +80,21 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   PENDING: '#f39c12',
   CONFIRMED: '#3498db',
   SHIPPED: '#9b59b6',
+  OUT_FOR_DELIVERY: '#8e44ad',
+  DELIVERY_FAILED: '#c0392b',
   DELIVERED: '#27ae60',
   CANCELLED: '#e74c3c',
   RETURN_REQUESTED: '#e67e22',
   RETURNED: '#95a5a6',
 };
+
+// Statuses from which an admin can manually flag a failed delivery (NDR fallback).
+// TODO(delhivery-live) — plan.md TASK 8b: this manual "Mark delivery failed" control is a
+// FALLBACK for when the automated Delhivery NDR webhook does NOT fire. Once the webhook is the
+// verified source of truth, gate this so it only appears for shipments the webhook missed
+// (e.g. stuck in OUT_FOR_DELIVERY past the expected window, or a "webhook healthy" flag off).
+// It stays unconditionally visible now only because the webhook cannot fire pre-integration.
+const NDR_MARKABLE: OrderStatus[] = ['SHIPPED', 'OUT_FOR_DELIVERY'];
 
 @Component({
   selector: 'app-orders',
@@ -175,7 +191,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
         <ng-container matColumnDef="actions">
           <mat-header-cell *matHeaderCellDef></mat-header-cell>
           <mat-cell *matCellDef="let row">
-            @if (nextStatuses(row.status).length > 0) {
+            @if (nextStatuses(row.status).length > 0 || canMarkNdr(row.status)) {
               <button mat-icon-button [matMenuTriggerFor]="menu" [disabled]="saving()">
                 <mat-icon>more_vert</mat-icon>
               </button>
@@ -184,6 +200,12 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
                   <button mat-menu-item (click)="updateStatus(row, ns)">
                     <mat-icon>arrow_forward</mat-icon>
                     Mark as {{ ns }}
+                  </button>
+                }
+                @if (canMarkNdr(row.status)) {
+                  <button mat-menu-item (click)="markNdr(row)">
+                    <mat-icon>report_problem</mat-icon>
+                    Mark delivery failed
                   </button>
                 }
               </mat-menu>
@@ -362,7 +384,7 @@ export class OrdersComponent implements OnInit {
 
   readonly columns = ['order', 'customer', 'items', 'amount', 'status', 'actions'];
   readonly allStatuses: OrderStatus[] = [
-    'PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED',
+    'PENDING', 'CONFIRMED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED', 'RETURNED',
   ];
   readonly limit = 20;
 
@@ -402,6 +424,27 @@ export class OrdersComponent implements OnInit {
 
   nextStatuses(status: OrderStatus): OrderStatus[] {
     return STATUS_TRANSITIONS[status] ?? [];
+  }
+
+  canMarkNdr(status: OrderStatus): boolean {
+    return NDR_MARKABLE.includes(status);
+  }
+
+  // Manual NDR fallback (when the automated Delhivery webhook isn't available).
+  markNdr(order: AdminOrder) {
+    const reason = (window.prompt('Reason for failed delivery (optional):', '') ?? '').trim();
+    this.saving.set(true);
+    this.api.post<{ status: OrderStatus; ndrAttemptCount: number }>(`shipping/orders/${order.id}/mark-ndr`, { reason }).subscribe({
+      next: (res) => {
+        this.orders.update(list => list.map(o => o.id === order.id ? { ...o, status: res.status } : o));
+        this.saving.set(false);
+        this.snackBar.open(`Order marked as delivery failed (attempt #${res.ndrAttemptCount})`, 'OK', { duration: 4000 });
+      },
+      error: () => {
+        this.saving.set(false);
+        this.snackBar.open('Failed to mark delivery failed', 'OK', { duration: 3000 });
+      },
+    });
   }
 
   statusColor(status: OrderStatus): string {

@@ -60,6 +60,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>receipt_long</mat-icon>
             <span matListItemTitle>Orders</span>
           </a>
+          <a mat-list-item routerLink="/ndr" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
+            <mat-icon matListItemIcon>report_problem</mat-icon>
+            <span matListItemTitle>NDR Queue</span>
+          </a>
           <a mat-list-item routerLink="/returns" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>assignment_return</mat-icon>
             <span matListItemTitle>Returns</span>

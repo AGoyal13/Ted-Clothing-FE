@@ -3,6 +3,7 @@ export type OrderStatus =
   | 'CONFIRMED'
   | 'SHIPPED'
   | 'OUT_FOR_DELIVERY'
+  | 'DELIVERY_FAILED'
   | 'DELIVERED'
   | 'CANCELLED'
   | 'RETURN_REQUESTED'

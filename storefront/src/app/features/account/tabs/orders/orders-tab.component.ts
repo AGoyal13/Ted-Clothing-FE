@@ -37,6 +37,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   CONFIRMED: 'Confirmed',
   SHIPPED: 'Shipped',
   OUT_FOR_DELIVERY: 'Out for Delivery',
+  DELIVERY_FAILED: 'Delivery Attempted',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
   RETURN_REQUESTED: 'Return Requested',

@@ -38,6 +38,7 @@
               <span class="order-card__status" [style.color]="order.status === 'DELIVERED' ? '#4caf7d' :
                 order.status === 'SHIPPED' ? '#a78bfa' :
                 order.status === 'OUT_FOR_DELIVERY' ? '#818cf8' :
+                order.status === 'DELIVERY_FAILED' ? '#e0a052' :
                 order.status === 'CANCELLED' ? '#e05252' :
                 order.status === 'RETURN_REQUESTED' ? '#f97316' :
                 order.status === 'RETURNED' && order.return?.status === 'EXCHANGE_COMPLETE' ? '#60a5fa' :
@@ -64,6 +65,18 @@
                   }
                 </div>
               } @else if (expandedOrder(); as full) {
+
+                <!-- NDR notice: delivery attempted but not completed -->
+                @if (order.status === 'DELIVERY_FAILED') {
+                  <div class="detail-section ndr-notice">
+                    <h4 class="ndr-notice__title">Delivery attempted</h4>
+                    <p class="ndr-notice__text">
+                      Our courier tried to deliver your order but couldn't complete it. They'll attempt again soon.
+                      If your address or contact details need updating, please
+                      <a routerLink="/help/track-order">contact support</a> so we can get your order to you.
+                    </p>
+                  </div>
+                }
 
                 <!-- Items -->
                 <div class="detail-section">
