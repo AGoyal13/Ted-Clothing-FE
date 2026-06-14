@@ -116,8 +116,18 @@ export interface InitiateOrderResponse {
   currency: string;
   keyId: string;
   subtotal: number;
+  discount: number;
+  couponCode: string | null;
   shippingCharge: number;
   total: number;
+}
+
+export interface CouponValidation {
+  valid: boolean;
+  code: string;
+  couponId: string;
+  discount: number;
+  finalSubtotal: number;
 }
 
 export interface RazorpayPaymentResponse {

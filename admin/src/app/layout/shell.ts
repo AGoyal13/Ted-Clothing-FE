@@ -84,6 +84,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>star_rate</mat-icon>
             <span matListItemTitle>Reviews</span>
           </a>
+          <a mat-list-item routerLink="/coupons" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
+            <mat-icon matListItemIcon>confirmation_number</mat-icon>
+            <span matListItemTitle>Coupons</span>
+          </a>
           <a mat-list-item routerLink="/settings" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
             <mat-icon matListItemIcon>tune</mat-icon>
             <span matListItemTitle>Settings</span>

@@ -62,6 +62,14 @@
               }
             </div>
 
+            <!-- Admin-promoted coupon offer -->
+            @if (promoCoupon(); as promo) {
+              <p class="pdp__coupon" role="note">
+                Use code <span class="pdp__coupon-code">{{ promo.code }}</span>
+                for {{ promo.headline }} {{ promo.detail }}
+              </p>
+            }
+
             <!-- Color Selector -->
             @if (product()!.colors && product()!.colors.length > 0) {
               <div class="pdp__field">

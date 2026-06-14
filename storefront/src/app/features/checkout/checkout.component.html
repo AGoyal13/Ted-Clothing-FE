@@ -177,6 +177,12 @@
             <span>Subtotal</span>
             <span>{{ fmt(subtotal()) }}</span>
           </div>
+          @if (appliedCoupon(); as coupon) {
+            <div class="checkout__summary-row checkout__summary-row--discount">
+              <span>Discount ({{ coupon.code }})</span>
+              <span>−{{ fmt(discount()) }}</span>
+            </div>
+          }
           <div class="checkout__summary-row">
             <span>Shipping</span>
             @if (rateLoading()) {
@@ -204,6 +210,55 @@
             <span>TOTAL</span>
             <span>{{ fmt(total()) }}</span>
           </div>
+        </div>
+
+        <!-- Coupon -->
+        <div class="checkout__coupon">
+          @if (appliedCoupon(); as coupon) {
+            <div class="checkout__coupon-applied">
+              <span>Coupon <strong>{{ coupon.code }}</strong> applied — you saved {{ fmt(discount()) }}</span>
+              <button type="button" class="checkout__coupon-remove" (click)="removeCoupon()">Remove</button>
+            </div>
+          } @else {
+            <div class="checkout__coupon-input-row">
+              <input
+                type="text"
+                class="checkout__coupon-input"
+                placeholder="Coupon code"
+                [ngModel]="couponCodeInput()"
+                (ngModelChange)="couponCodeInput.set($event)"
+                (keyup.enter)="applyCoupon()"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="checkout__coupon-apply"
+                (click)="applyCoupon()"
+                [disabled]="couponLoading() || !couponCodeInput().trim()"
+              >
+                @if (couponLoading()) { … } @else { APPLY }
+              </button>
+            </div>
+            @if (couponError()) {
+              <div class="checkout__coupon-error">{{ couponError() }}</div>
+            }
+            @if (offers().length) {
+              <div class="checkout__offers">
+                <span class="checkout__offers-label">Available offers</span>
+                @for (offer of offers(); track offer.code) {
+                  <button
+                    type="button"
+                    class="checkout__offer"
+                    (click)="applyOffer(offer.code)"
+                    [disabled]="couponLoading()"
+                  >
+                    <span class="checkout__offer-code">{{ offer.code }}</span>
+                    <span class="checkout__offer-text">{{ offer.headline }} {{ offer.detail }}</span>
+                  </button>
+                }
+              </div>
+            }
+          }
         </div>
 
         @if (!isServiceable() && shippingRate()) {

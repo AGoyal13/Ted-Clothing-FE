@@ -33,6 +33,8 @@ import { SizeGuide } from '../../core/models/product.model';
 import { FALLBACK_GUIDES, getSizeGuideGroup } from './components/size-guide-fallback';
 import { ShippingService } from '../../core/services/shipping.service';
 import { SiteConfigService } from '../../core/services/site-config.service';
+import { PromoCouponService } from '../../core/services/promo-coupon.service';
+import { formatCouponPromo } from '../../core/models/promo-coupon.model';
 
 @Component({
   selector: 'app-product',
@@ -49,12 +51,19 @@ export class ProductComponent implements OnInit, OnDestroy {
   private readonly wishlistService = inject(WishlistService);
   private readonly shippingService = inject(ShippingService);
   private readonly siteConfig = inject(SiteConfigService);
+  private readonly promoCoupons = inject(PromoCouponService);
   private readonly meta = inject(Meta);
   private readonly titleService = inject(Title);
   private readonly platformId = inject(PLATFORM_ID);
 
   readonly etdLabel = this.shippingService.etdLabel;
   readonly returnWindowDays = this.siteConfig.returnWindowDays;
+
+  // Admin-promoted coupon offer line (shared one-fetch signal).
+  readonly promoCoupon = computed(() => {
+    const c = this.promoCoupons.topCoupon();
+    return c ? formatCouponPromo(c) : null;
+  });
 
   readonly loading = signal(true);
   readonly notFound = signal(false);

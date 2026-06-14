@@ -158,6 +158,27 @@
       padding: 0.2rem 0.5rem;
     }
 
+    .pdp__coupon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      color: var(--cream);
+      background: rgba(201, 168, 76, 0.1);
+      border: 1px dashed rgba(201, 168, 76, 0.45);
+      padding: 0.5rem 0.75rem;
+      margin: 0 0 1.5rem;
+    }
+
+    .pdp__coupon-code {
+      font-family: var(--font-display);
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
     .pdp__field {
       margin-bottom: 1.5rem;
     }

@@ -19,7 +19,9 @@ import { OrderService } from '../../core/services/order.service';
 import { Address, AddressFormData } from '../../core/models/address.model';
 import { CartItem } from '../../core/models/cart.model';
 import { formatINR } from '../../core/models/product.model';
-import { RazorpayPaymentResponse, ShippingRate } from '../../core/models/order.model';
+import { CouponValidation, RazorpayPaymentResponse, ShippingRate } from '../../core/models/order.model';
+import { PromoCouponService } from '../../core/services/promo-coupon.service';
+import { formatCouponPromo } from '../../core/models/promo-coupon.model';
 import { environment } from '../../../environments/environment';
 
 declare const Razorpay: any;
@@ -39,6 +41,7 @@ export class CheckoutComponent implements OnInit {
   private readonly addressService = inject(AddressService);
   private readonly authService = inject(AuthService);
   private readonly orderService = inject(OrderService);
+  private readonly promoCoupons = inject(PromoCouponService);
 
   readonly items = this.cartService.items;
   readonly cartLoading = this.cartService.loading;
@@ -97,6 +100,54 @@ export class CheckoutComponent implements OnInit {
     this.items().reduce((sum, i) => sum + i.price * i.quantity, 0),
   );
 
+  // ── Coupon (Phase 9) ──────────────────────────────────────────────────────
+  readonly couponCodeInput = signal('');
+  readonly appliedCoupon = signal<CouponValidation | null>(null);
+  readonly couponError = signal<string | null>(null);
+  readonly couponLoading = signal(false);
+
+  // Admin-promoted coupons offered as one-tap chips (shared one-fetch signal).
+  readonly offers = computed(() =>
+    this.promoCoupons.publicCoupons().map(c => ({ ...formatCouponPromo(c) })),
+  );
+
+  applyOffer(code: string) {
+    this.couponCodeInput.set(code);
+    this.applyCoupon();
+  }
+
+  // Cap at the current subtotal in case the cart changed after the coupon was applied;
+  // the backend re-validates and is authoritative for the persisted total.
+  readonly discount = computed(() => {
+    const c = this.appliedCoupon();
+    if (!c) return 0;
+    return Math.min(c.discount, this.subtotal());
+  });
+
+  applyCoupon() {
+    const code = this.couponCodeInput().trim();
+    if (!code) return;
+    this.couponError.set(null);
+    this.couponLoading.set(true);
+    this.orderService.validateCoupon(code, this.subtotal()).subscribe({
+      next: res => {
+        this.appliedCoupon.set(res);
+        this.couponLoading.set(false);
+      },
+      error: (err: any) => {
+        this.appliedCoupon.set(null);
+        this.couponError.set(err?.error?.error?.message ?? 'This coupon code is not valid.');
+        this.couponLoading.set(false);
+      },
+    });
+  }
+
+  removeCoupon() {
+    this.appliedCoupon.set(null);
+    this.couponCodeInput.set('');
+    this.couponError.set(null);
+  }
+
   // Use real Delhivery rate when available; fall back to SiteConfig cart charge while loading
   readonly liveShippingCharge = computed(() => {
     const rate = this.shippingRate();
@@ -109,7 +160,9 @@ export class CheckoutComponent implements OnInit {
   readonly isCod = computed(() => this.paymentMethod() === 'COD');
 
   readonly total = computed(() =>
-    this.subtotal() + this.liveShippingCharge() + (this.isCod() ? this.liveCodCharge() : 0),
+    Math.max(0, this.subtotal() - this.discount()) +
+    this.liveShippingCharge() +
+    (this.isCod() ? this.liveCodCharge() : 0),
   );
   readonly isFreeShipping = computed(() => this.liveShippingCharge() === 0);
 
@@ -198,6 +251,7 @@ export class CheckoutComponent implements OnInit {
       this.liveShippingCharge(),
       this.liveCodCharge(),
       this.etdDays() ?? 0,
+      this.appliedCoupon()?.code,
     ).subscribe({
       next: order => {
         this.paying.set(false);
@@ -226,7 +280,7 @@ export class CheckoutComponent implements OnInit {
       return;
     }
 
-    this.orderService.initiateOrder(addressId, this.liveShippingCharge()).subscribe({
+    this.orderService.initiateOrder(addressId, this.liveShippingCharge(), this.appliedCoupon()?.code).subscribe({
       next: data => {
         const user = this.currentUser();
         const rzp = new Razorpay({
@@ -264,7 +318,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   private onPaymentSuccess(addressId: string, payment: RazorpayPaymentResponse) {
-    this.orderService.verifyPayment(addressId, payment).subscribe({
+    this.orderService.verifyPayment(addressId, payment, this.appliedCoupon()?.code).subscribe({
       next: order => {
         this.paying.set(false);
         this.router.navigate(['/order-confirmed', order.id]);
