@@ -114,7 +114,7 @@
     .pdp__bc-current {
       font-family: var(--font-sans);
       font-size: 0.75rem;
-      color: rgba(245, 240, 232, 0.5);
+      color: rgba(var(--cream-rgb), 0.5);
     }
 
     .pdp__title {
@@ -216,7 +216,7 @@
 
       &--active {
         border-color: var(--cream);
-        box-shadow: 0 0 0 1px rgba(245, 240, 232, 0.4);
+        box-shadow: 0 0 0 1px rgba(var(--cream-rgb), 0.4);
         transform: scale(1.1);
       }
 
@@ -230,7 +230,7 @@
           left: -3px;
           right: -3px;
           height: 1.5px;
-          background: rgba(245, 240, 232, 0.8);
+          background: rgba(var(--cream-rgb), 0.8);
           transform: translateY(-50%) rotate(-45deg);
         }
       }
@@ -245,7 +245,7 @@
     .pdp__size-chip {
       min-width: 48px;
       padding: 0.5rem 0.875rem;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       color: var(--cream);
       font-family: var(--font-sans);
       font-size: 0.875rem;
@@ -278,7 +278,7 @@
       gap: 0.5rem;
       margin-bottom: 1.5rem;
 
-      &[data-status="in"] .pdp__stock-dot { background: #4caf7d; }
+      &[data-status="in"] .pdp__stock-dot { background: var(--success); }
       &[data-status="low"] .pdp__stock-dot { background: #e8a84c; }
       &[data-status="oos"] .pdp__stock-dot { background: #e84c4c; }
     }
@@ -336,7 +336,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       background: transparent;
       color: var(--muted);
       cursor: pointer;
@@ -359,7 +359,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       background: transparent;
       color: var(--muted);
       cursor: pointer;
@@ -405,7 +405,7 @@
 
     .pdp__description,
     .pdp__measurements {
-      border-top: 1px solid rgba(245, 240, 232, 0.08);
+      border-top: 1px solid rgba(var(--cream-rgb), 0.08);
       margin-top: 1.5rem;
       padding-top: 1rem;
     }
@@ -434,7 +434,7 @@
       padding-top: 1rem;
       font-family: var(--font-serif);
       font-size: 1rem;
-      color: rgba(245, 240, 232, 0.7);
+      color: rgba(var(--cream-rgb), 0.7);
       line-height: 1.8;
       animation: fadeUp 0.3s ease both;
     }
@@ -453,7 +453,7 @@
         padding: 0.5rem 0;
         font-family: var(--font-sans);
         font-size: 0.8rem;
-        border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+        border-bottom: 1px solid rgba(var(--cream-rgb), 0.06);
       }
 
       th {

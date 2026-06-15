@@ -14,7 +14,7 @@
             [attr.aria-expanded]="activeCategory()?.slug === cat.slug && drawerOpen()"
             role="listitem">
             <!-- Art zone -->
-            <div class="chip-art" [style.background]="getCategoryBg(cat.slug)">
+            <div class="chip-art" [style.background]="cat.imageUrl ? null : getCategoryBg(cat.slug)">
               @if (cat.imageUrl) {
                 <img [src]="cat.imageUrl" [alt]="" loading="lazy" class="chip-art-img" aria-hidden="true" />
               }

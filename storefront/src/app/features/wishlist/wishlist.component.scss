@@ -110,7 +110,7 @@
       position: relative;
       aspect-ratio: 3 / 4;
       overflow: hidden;
-      background: rgba(245, 240, 232, 0.04);
+      background: rgba(var(--cream-rgb), 0.04);
       margin-bottom: 0.875rem;
     }
 
@@ -125,7 +125,7 @@
     .wl-card__img-placeholder {
       width: 100%;
       height: 100%;
-      background: rgba(245, 240, 232, 0.06);
+      background: rgba(var(--cream-rgb), 0.06);
     }
 
     /* Filled heart remove button — top-right of image */
@@ -182,7 +182,7 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       flex-shrink: 0;
     }
 
@@ -224,6 +224,6 @@
 
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 600px) {
-      .wl-page { padding: 0 4% 4rem; padding-top: var(--nav-offset-mobile, 7.5rem); }
+      .wl-page { padding: 0 4% 4rem; padding-top: var(--nav-offset-mobile, 7.5rem); margin-top: 1rem; }
       .wl-page__grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem 0.75rem; }
     }

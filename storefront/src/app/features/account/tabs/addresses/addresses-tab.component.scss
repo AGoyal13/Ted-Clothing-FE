@@ -43,11 +43,11 @@
 }
 
 .addr-card {
-  border: 1px solid rgba(245, 240, 232, 0.1);
+  border: 1px solid rgba(var(--cream-rgb), 0.1);
   padding: 1.1rem 1.25rem;
   position: relative;
   transition: border-color 0.2s;
-  &:hover { border-color: rgba(245, 240, 232, 0.2); }
+  &:hover { border-color: rgba(var(--cream-rgb), 0.2); }
 }
 
 .addr-card--default {
@@ -93,7 +93,7 @@
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(245, 240, 232, 0.06);
+  border-top: 1px solid rgba(var(--cream-rgb), 0.06);
 }
 
 .addr-card__act {

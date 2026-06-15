@@ -5,7 +5,7 @@
       bottom: 2rem;
       left: 50%;
       transform: translateX(-50%);
-      background: #1a1714;
+      background: var(--surface);
       border: 1px solid rgba(201, 168, 76, 0.5);
       color: var(--cream, #f5f0e8);
       font-family: var(--font-sans);
@@ -83,8 +83,8 @@
 
     .fb__input,
     .fb__textarea {
-      background: rgba(245, 240, 232, 0.04);
-      border: 1px solid rgba(245, 240, 232, 0.1);
+      background: rgba(var(--cream-rgb), 0.04);
+      border: 1px solid rgba(var(--cream-rgb), 0.1);
       color: var(--cream);
       font-family: var(--font-sans);
       font-size: 0.9rem;
@@ -94,7 +94,7 @@
       transition: border-color 0.2s ease;
       resize: vertical;
 
-      &::placeholder { color: rgba(245, 240, 232, 0.2); }
+      &::placeholder { color: rgba(var(--cream-rgb), 0.2); }
       &:focus { border-color: rgba(201, 168, 76, 0.5); }
     }
 
@@ -106,7 +106,7 @@
 
     .fb__star {
       font-size: 1.75rem;
-      color: rgba(245, 240, 232, 0.15);
+      color: rgba(var(--cream-rgb), 0.15);
       transition: color 0.15s ease, transform 0.1s ease;
       line-height: 1;
       padding: 0 2px;

@@ -102,6 +102,11 @@ export class CheckoutComponent implements OnInit {
     this.items().reduce((sum, i) => sum + i.price * i.quantity, 0),
   );
 
+  // Product-level savings vs MRP (basePrice) — informational; already baked into subtotal
+  readonly mrpSavings = computed(() =>
+    this.items().reduce((sum, i) => sum + (i.basePrice - i.price) * i.quantity, 0),
+  );
+
   // ── Coupon (Phase 9) ──────────────────────────────────────────────────────
   readonly couponCodeInput = signal('');
   readonly appliedCoupon = signal<CouponValidation | null>(null);
@@ -125,6 +130,9 @@ export class CheckoutComponent implements OnInit {
     if (!c) return 0;
     return Math.min(c.discount, this.subtotal());
   });
+
+  // Total savings shown under TOTAL: MRP discounts + coupon discount (when applied)
+  readonly totalSavings = computed(() => this.mrpSavings() + this.discount());
 
   applyCoupon() {
     const code = this.couponCodeInput().trim();
@@ -231,6 +239,8 @@ export class CheckoutComponent implements OnInit {
   }
 
   getImage(item: CartItem): string { return item.image ?? ''; }
+
+  discountLabel(item: CartItem): string { return `${Math.round(item.discountPct)}% OFF`; }
 
   async pay() {
     const addressId = this.selectedAddressId();

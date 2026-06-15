@@ -85,7 +85,7 @@
       grid-template-columns: 100px 1fr auto;
       gap: 1.25rem;
       padding: 1.5rem 0;
-      border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+      border-bottom: 1px solid rgba(var(--cream-rgb), 0.06);
 
       @media (max-width: 500px) {
         grid-template-columns: 80px 1fr;
@@ -105,7 +105,7 @@
       aspect-ratio: 3/4;
       overflow: hidden;
       background: var(--surface);
-      border: 1px solid rgba(245, 240, 232, 0.06);
+      border: 1px solid rgba(var(--cream-rgb), 0.06);
       flex-shrink: 0;
 
       img {
@@ -170,7 +170,7 @@
     .cart-row__qty-btn {
       width: 28px;
       height: 28px;
-      border: 1px solid rgba(245, 240, 232, 0.15);
+      border: 1px solid rgba(var(--cream-rgb), 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -238,7 +238,7 @@
     /* Summary */
     .cart-page__summary-card {
       background: var(--surface);
-      border: 1px solid rgba(245, 240, 232, 0.06);
+      border: 1px solid rgba(var(--cream-rgb), 0.06);
       padding: 2rem;
       position: sticky;
       top: var(--nav-offset, 114px);
@@ -272,10 +272,12 @@
         color: var(--cream);
         margin-top: 0.5rem;
       }
+
+      &--savings { color: var(--success); }
     }
 
     .cart-page__free {
-      color: #4caf7d;
+      color: var(--success);
       font-size: 0.75rem;
       letter-spacing: 0.1em;
       font-family: var(--font-display);
@@ -286,7 +288,7 @@
       align-items: center;
       gap: 0.4rem;
       font-size: 0.75rem;
-      color: rgba(245, 240, 232, 0.55);
+      color: rgba(var(--cream-rgb), 0.55);
       margin-top: 0.5rem;
 
       svg { flex-shrink: 0; }
@@ -295,7 +297,7 @@
     .cart-page__summary-divider {
       width: 100%;
       height: 1px;
-      background: rgba(245, 240, 232, 0.06);
+      background: rgba(var(--cream-rgb), 0.06);
       margin: 1rem 0;
     }
 
@@ -319,7 +321,7 @@
     .cart-page__shipping-bar {
       width: 100%;
       height: 2px;
-      background: rgba(245, 240, 232, 0.1);
+      background: rgba(var(--cream-rgb), 0.1);
       border-radius: 1px;
       margin-top: 0.5rem;
       overflow: hidden;
@@ -327,7 +329,7 @@
 
     .cart-page__shipping-bar-fill {
       height: 100%;
-      background: #4caf7d;
+      background: var(--success);
       border-radius: 1px;
       transition: width 0.4s ease;
     }
@@ -374,7 +376,7 @@
       grid-template-columns: 100px 1fr;
       gap: 1.25rem;
       padding: 1.5rem 0;
-      border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+      border-bottom: 1px solid rgba(var(--cream-rgb), 0.06);
     }
 
     .cart-skeleton-row__img {
@@ -389,7 +391,7 @@
     }
 
     .skeleton-pulse {
-      background: rgba(245, 240, 232, 0.06);
+      background: rgba(var(--cream-rgb), 0.06);
       border-radius: 2px;
       animation: skeleton-pulse 1.4s ease-in-out infinite;
     }
@@ -416,7 +418,7 @@
     .cart-row__discount-label {
       font-family: var(--font-sans);
       font-size: 0.72rem;
-      color: #4caf7d;
+      color: var(--success);
       letter-spacing: 0.03em;
     }
 
@@ -424,7 +426,7 @@
     .cart-oos-section {
       margin-top: 2rem;
       padding-top: 1.5rem;
-      border-top: 1px solid rgba(245, 240, 232, 0.1);
+      border-top: 1px solid rgba(var(--cream-rgb), 0.1);
     }
 
     .cart-oos-section__title {
@@ -449,7 +451,7 @@
       left: 0;
       right: 0;
       background: rgba(13, 13, 13, 0.75);
-      color: var(--muted);
+      color: rgba(var(--on-media-rgb), 0.85); /* OOS band over item image — light in every theme */
       font-family: var(--font-sans);
       font-size: 0.55rem;
       letter-spacing: 0.12em;
@@ -478,7 +480,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       background: none;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       color: var(--cream);
       padding: 0.35rem 0.75rem;
       cursor: pointer;

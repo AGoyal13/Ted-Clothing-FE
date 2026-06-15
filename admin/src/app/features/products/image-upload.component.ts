@@ -38,6 +38,7 @@ import { ApiService } from '../../core/services/api.service';
       </div>
 
       <p class="hint">JPG / PNG / WebP · max 10 MB each · up to 12 images<br>
+        Upload at least <strong>1200 × 1600px (3:4 portrait)</strong> — auto-cropped to 3:4 &amp; converted to WebP. Smaller images look blurry.<br>
         Uploaded automatically, saved with color</p>
 
       <input #fileInput type="file" accept="image/jpeg,image/png,image/webp"

@@ -1,7 +1,7 @@
 .faqs__header {
   margin-bottom: 2.5rem;
   padding-bottom: 1.75rem;
-  border-bottom: 1px solid rgba(245, 240, 232, 0.1);
+  border-bottom: 1px solid rgba(var(--cream-rgb), 0.1);
 }
 
 .faqs__breadcrumb {
@@ -30,11 +30,11 @@
 .faqs__list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid rgba(245, 240, 232, 0.08);
+  border-top: 1px solid rgba(var(--cream-rgb), 0.08);
 }
 
 .faqs__item {
-  border-bottom: 1px solid rgba(245, 240, 232, 0.08);
+  border-bottom: 1px solid rgba(var(--cream-rgb), 0.08);
 }
 
 .faqs__item--open .faqs__chevron {
@@ -74,7 +74,7 @@
   p {
     font-size: 0.88rem;
     line-height: 1.75;
-    color: rgba(245, 240, 232, 0.75);
+    color: rgba(var(--cream-rgb), 0.75);
     margin: 0;
   }
 }
@@ -83,8 +83,8 @@
 .faqs__footer {
   margin-top: 2.5rem;
   padding: 1.5rem;
-  background: rgba(245, 240, 232, 0.03);
-  border: 1px solid rgba(245, 240, 232, 0.07);
+  background: rgba(var(--cream-rgb), 0.03);
+  border: 1px solid rgba(var(--cream-rgb), 0.07);
   text-align: center;
 
   p {

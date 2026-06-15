@@ -30,6 +30,10 @@ export class CartComponent {
   readonly shippingCharge = this.cartService.shippingCharge;
   readonly freeShippingThreshold = this.cartService.freeShippingThreshold;
   readonly subtotal = computed(() => formatINR(this.total()));
+  // Product-level savings vs MRP (basePrice) — informational; already baked into the prices
+  readonly mrpSavings = computed(() =>
+    this.items().reduce((sum, i) => sum + (i.basePrice - i.price) * i.quantity, 0),
+  );
   readonly grandTotal = computed(() => formatINR(this.total() + this.shippingCharge()));
   readonly amountForFreeShipping = computed(() =>
     Math.max(0, this.freeShippingThreshold() - this.total())

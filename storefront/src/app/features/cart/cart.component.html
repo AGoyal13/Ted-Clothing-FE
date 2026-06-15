@@ -162,6 +162,12 @@
                     <span>Subtotal ({{ inStockCount() }} {{ inStockCount() === 1 ? 'item' : 'items' }})</span>
                     <span>{{ subtotal() }}</span>
                   </div>
+                  @if (mrpSavings() > 0) {
+                    <div class="cart-page__summary-row cart-page__summary-row--savings">
+                      <span>You save (MRP)</span>
+                      <span>{{ formatINR(mrpSavings()) }}</span>
+                    </div>
+                  }
                   <div class="cart-page__summary-row">
                     <span>Shipping</span>
                     @if (total() === 0) {

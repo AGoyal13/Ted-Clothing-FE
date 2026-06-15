@@ -13,7 +13,7 @@
     .cat-page__mobile-hdr {
       padding: 0.75rem 4% 0.6rem;
       background: var(--surface);
-      border-bottom: 1px solid rgba(245,240,232,.06);
+      border-bottom: 1px solid rgba(var(--cream-rgb),.06);
 
       @media (min-width: 769px) { display: none; }
     }
@@ -82,7 +82,7 @@
       flex-shrink: 0;
       /* no align-self: flex-start — must stretch to grid height so sticky works */
       /* no overflow: hidden — would break position: sticky on inner .sidebar */
-      border-right: 1px solid rgba(245,240,232,.06);
+      border-right: 1px solid rgba(var(--cream-rgb),.06);
       transition: width .28s ease;
 
       &--collapsed {
@@ -121,7 +121,7 @@
       margin-left: -2.5%;
       margin-right: -2.5%;
       padding: .75rem 2.5%;
-      border-bottom: 1px solid rgba(245,240,232,.06);
+      border-bottom: 1px solid rgba(var(--cream-rgb),.06);
       margin-bottom: 1.25rem;
 
       @media (max-width: 768px) { display: none; }

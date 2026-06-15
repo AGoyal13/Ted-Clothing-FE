@@ -173,7 +173,7 @@
       color: var(--muted);
       text-decoration: none;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(245, 240, 232, 0.05);
+      border-bottom: 1px solid rgba(var(--cream-rgb), 0.05);
       transition: color 0.15s ease, padding-left 0.15s ease;
       &:last-child { border-bottom: none; }
       &:hover { color: var(--cream); padding-left: 6px; }

@@ -65,7 +65,7 @@ import { Category, ProductGender } from './categories.component';
               }
               <input #fileInput type="file" accept="image/jpeg,image/png,image/webp"
                      style="display:none" (change)="onFileSelected($event)" />
-              <span class="image-hint">JPEG, PNG or WebP · Portrait (2:3) recommended</span>
+              <span class="image-hint">JPEG, PNG or WebP · Portrait 3:4, upload ≥ 1200 × 1600px · converted to WebP · smaller looks blurry</span>
             </div>
           </div>
         </div>

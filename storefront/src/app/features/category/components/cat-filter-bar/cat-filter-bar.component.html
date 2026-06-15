@@ -105,7 +105,7 @@
                       [class.sb-color-item--active]="activeColors().includes(entry.name)"
                       (click)="toggleColor(entry.name)">
                       <span class="sb-color-circle"
-                        [style.background]="colorHexMap()[entry.name] || 'rgba(245,240,232,.25)'">
+                        [style.background]="colorHexMap()[entry.name] || 'rgba(var(--cream-rgb),.25)'">
                       </span>
                       <span class="sb-color-name">{{ entry.name }}</span>
                     </button>

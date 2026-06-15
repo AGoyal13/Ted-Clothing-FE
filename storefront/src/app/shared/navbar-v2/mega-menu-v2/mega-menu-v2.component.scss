@@ -4,7 +4,7 @@
       top: 100%;
       left: 0;
       right: 0;
-      background: rgba(14, 13, 11, 0.98);
+      background: var(--panel-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid rgba(201, 168, 76, 0.12);
@@ -53,6 +53,7 @@
       color: var(--gold);
       font-weight: 500;
       margin-bottom: 10px;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
     }
 
     .mega-v2__hero-title {
@@ -64,6 +65,7 @@
       color: var(--cream);
       letter-spacing: 0.01em;
       margin-bottom: 14px;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
     }
 
     .mega-v2__shop-all {
@@ -109,8 +111,16 @@
       overflow: hidden;
       border-radius: 1px;
 
-      > div,
+      /* :not(.scrim) — the scrim is also a direct > div; without this exclusion
+         it inherits position:relative and collapses, so the overlay never renders */
+      > div:not(.mega-v2__hero-scrim),
       > a { position: relative; z-index: 1; }
+
+      /* Title + Shop-All sit over the dark hero-image scrim → light in every theme.
+         (Scoped to --img so the no-image hero keeps themed --cream on the light panel.) */
+      .mega-v2__hero-title,
+      .mega-v2__shop-all { color: var(--on-media); }
+      .mega-v2__shop-all:hover { color: var(--gold); }
     }
 
     .mega-v2__hero-bg {
@@ -126,11 +136,16 @@
     .mega-v2__hero-scrim {
       position: absolute;
       inset: 0;
+      /* darker where text sits (top: title/eyebrow, bottom: "Shop All") so cream/gold
+         stays readable even over a pure-white image (accessories/kids); opens up
+         through the mid-band to keep imagery visible */
       background: linear-gradient(
         to bottom,
-        rgba(13, 13, 11, 0.18) 0%,
-        rgba(13, 13, 11, 0.48) 55%,
-        rgba(13, 13, 11, 0.82) 100%
+        rgba(13, 13, 11, 0.82) 0%,
+        rgba(13, 13, 11, 0.62) 26%,
+        rgba(13, 13, 11, 0.28) 52%,
+        rgba(13, 13, 11, 0.55) 78%,
+        rgba(13, 13, 11, 0.88) 100%
       );
     }
 
@@ -139,8 +154,8 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 0 28px;
-      border-left: 1px solid rgba(201, 168, 76, 0.1);
-      padding-left: 44px;
+      /* no border divider — the hero image's right edge reads as the divider;
+         removing the border + its 44px padding also closes the excess gap */
       align-content: start;
     }
 
@@ -285,7 +300,7 @@
     .mega-v2__card-title {
       font-family: var(--font-serif);
       font-size: 1.1rem;
-      color: var(--cream);
+      color: var(--on-media); /* over the card image scrim — light in every theme */
       font-weight: 400;
       margin-top: 3px;
       line-height: 1.2;
@@ -325,9 +340,10 @@
 
     .mega-v2__thumb-label {
       position: absolute;
-      bottom: 8px;
-      left: 7px;
-      right: 7px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 14px 7px 8px;
       font-family: var(--font-sans);
       font-size: 0.5rem;
       letter-spacing: 0.18em;
@@ -335,4 +351,6 @@
       color: white;
       font-weight: 500;
       text-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
+      /* dark band so the white label stays readable over white-bg thumbnails (every theme) */
+      background: linear-gradient(to top, rgba(13, 13, 11, 0.85) 0%, transparent 100%);
     }

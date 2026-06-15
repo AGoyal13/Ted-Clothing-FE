@@ -326,7 +326,7 @@ interface AdminStats {
             @for (entry of orderEntries(); track entry.status) {
               <div class="order-status-card" [attr.data-status]="entry.status">
                 <div class="order-status-card__count">{{ entry.count }}</div>
-                <div class="order-status-card__label">{{ entry.status }}</div>
+                <div class="order-status-card__label">{{ entry.label }}</div>
               </div>
             }
           </div>
@@ -390,7 +390,7 @@ interface AdminStats {
               @for (e of returnReasonEntries(); track e.key) {
                 <div class="order-status-card">
                   <div class="order-status-card__count">{{ e.count }}</div>
-                  <div class="order-status-card__label">{{ e.key }}</div>
+                  <div class="order-status-card__label">{{ e.label }}</div>
                 </div>
               }
             </div>
@@ -617,22 +617,22 @@ interface AdminStats {
     }
 
     /* Orders */
-    .section-card--orders { margin-bottom: 0; }
-
     .orders-grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
       gap: 12px;
-      flex-wrap: wrap;
       margin-bottom: 20px;
     }
 
     .order-status-card {
-      flex: 1;
-      min-width: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       text-align: center;
       border: 1px solid #e0e0e0;
       border-radius: 6px;
-      padding: 12px;
+      padding: 12px 8px;
 
       &[data-status="DELIVERED"] { border-color: #4caf50; }
       &[data-status="SHIPPED"] { border-color: #2196f3; }
@@ -650,8 +650,10 @@ interface AdminStats {
       font-size: 11px;
       color: #757575;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-top: 2px;
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
     }
 
     .revenue-row {
@@ -660,6 +662,14 @@ interface AdminStats {
       flex-wrap: wrap;
       border-top: 1px solid #f0f0f0;
       padding-top: 16px;
+    }
+
+    .revenue-row + .revenue-row {
+      margin-top: 20px;
+    }
+
+    .revenue-row + .orders-grid {
+      margin-top: 20px;
     }
 
     .revenue-item__label {
@@ -676,10 +686,16 @@ interface AdminStats {
     }
 
     .revenue-item__sub {
-      display: block;
       font-size: 13px;
       font-weight: 500;
-      color: #757575;
+      color: #9e9e9e;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+    .revenue-item__sub::before {
+      content: '·';
+      margin-right: 8px;
+      color: #bdbdbd;
     }
 
     .revenue-item--clickable {
@@ -740,12 +756,12 @@ export class DashboardComponent implements OnInit {
 
   readonly orderEntries = computed(() => {
     const byStatus = this.stats()?.orders.byStatus ?? {};
-    return Object.entries(byStatus).map(([status, count]) => ({ status, count }));
+    return Object.entries(byStatus).map(([status, count]) => ({ status, count, label: status.replace(/_/g, ' ') }));
   });
 
   readonly returnReasonEntries = computed(() => {
     const byReason = this.stats()?.returns.byReason ?? {};
-    return Object.entries(byReason).map(([key, count]) => ({ key, count }));
+    return Object.entries(byReason).map(([key, count]) => ({ key, count, label: key.replace(/_/g, ' ') }));
   });
 
   // ── Sales trend sparklines (reuse the registrations sparkline math) ──────────

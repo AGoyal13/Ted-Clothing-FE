@@ -11,7 +11,7 @@
         height: calc(56px + env(safe-area-inset-bottom, 0px));
         padding-bottom: env(safe-area-inset-bottom, 0px);
         background: var(--surface);
-        border-top: 1px solid rgba(245,240,232,.1);
+        border-top: 1px solid rgba(var(--cream-rgb),.1);
         z-index: 1010;
         align-items: stretch;
       }
@@ -32,13 +32,13 @@
       cursor: pointer;
       transition: color .2s, background .2s;
 
-      &:hover   { color: var(--cream); background: rgba(245,240,232,.04); }
+      &:hover   { color: var(--cream); background: rgba(var(--cream-rgb),.04); }
       &--active { color: var(--gold);  background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.3); }
     }
 
     .cat-page__mob-divider {
       width: 1px;
-      background: rgba(245,240,232,.08);
+      background: rgba(var(--cream-rgb),.08);
       margin: 10px 0;
       align-self: stretch;
     }
@@ -78,7 +78,7 @@
 
     .cat-page__sheet-handle {
       width: 40px; height: 4px;
-      background: rgba(245,240,232,.2);
+      background: rgba(var(--cream-rgb),.2);
       border-radius: 2px;
       margin: .875rem auto 0;
       flex-shrink: 0;
@@ -96,7 +96,7 @@
 
     .cat-page__sheet-rule {
       height: 1px;
-      background: rgba(245,240,232,.06);
+      background: rgba(var(--cream-rgb),.06);
       margin: 0 1.5rem .5rem;
       flex-shrink: 0;
     }
@@ -124,14 +124,14 @@
       transition: background .15s;
       box-sizing: border-box;
 
-      &:hover { background: rgba(245,240,232,.04); }
+      &:hover { background: rgba(var(--cream-rgb),.04); }
       &--active { color: var(--gold); }
     }
 
     .cat-page__radio {
       width: 18px; height: 18px;
       border-radius: 50%;
-      border: 1.5px solid rgba(245,240,232,.3);
+      border: 1.5px solid rgba(var(--cream-rgb),.3);
       flex-shrink: 0;
       position: relative;
       transition: border-color .15s;
@@ -193,7 +193,7 @@
 
     .cat-page__drawer-rule {
       height: 1px;
-      background: rgba(245,240,232,.06);
+      background: rgba(var(--cream-rgb),.06);
       flex-shrink: 0;
     }
 
@@ -209,7 +209,7 @@
       gap: .75rem;
       padding: .875rem 1.25rem;
       padding-bottom: calc(.875rem + env(safe-area-inset-bottom, 0px));
-      border-top: 1px solid rgba(245,240,232,.06);
+      border-top: 1px solid rgba(var(--cream-rgb),.06);
       flex-shrink: 0;
     }
 
@@ -217,7 +217,7 @@
       flex: 0 0 auto;
       padding: .75rem 1rem;
       background: transparent;
-      border: 1px solid rgba(245,240,232,.15);
+      border: 1px solid rgba(var(--cream-rgb),.15);
       color: var(--muted);
       font-family: var(--font-sans);
       font-size: .72rem;
@@ -308,7 +308,7 @@
 
     .mob-sec__divider {
       height: 1px;
-      background: rgba(245,240,232,.06);
+      background: rgba(var(--cream-rgb),.06);
       margin: 0 1.5rem;
     }
 
@@ -326,7 +326,7 @@
       gap: .25rem;
       padding: .45rem .7rem;
       background: transparent;
-      border: 1px solid rgba(245,240,232,.15);
+      border: 1px solid rgba(var(--cream-rgb),.15);
       color: var(--cream);
       font-family: var(--font-sans);
       font-size: .78rem;
@@ -361,13 +361,13 @@
       transition: background .15s;
       box-sizing: border-box;
 
-      &:active { background: rgba(245,240,232,.04); }
+      &:active { background: rgba(var(--cream-rgb),.04); }
       &--active { color: var(--gold); }
     }
 
     .cat-page__mob-checkbox {
       width: 18px; height: 18px;
-      border: 1.5px solid rgba(245,240,232,.3);
+      border: 1.5px solid rgba(var(--cream-rgb),.3);
       flex-shrink: 0;
       position: relative;
       transition: border-color .15s, background .15s;
@@ -391,7 +391,7 @@
       width: 18px; height: 18px;
       border-radius: 50%;
       flex-shrink: 0;
-      border: 1px solid rgba(245,240,232,.2);
+      border: 1px solid rgba(var(--cream-rgb),.2);
     }
 
     .cat-page__mob-color-name { flex: 1; text-align: left; }

@@ -1,6 +1,6 @@
 
     .pdp__reviews {
-      border-top: 1px solid rgba(245, 240, 232, 0.08);
+      border-top: 1px solid rgba(var(--cream-rgb), 0.08);
       margin-top: 3rem;
       padding-top: 2.5rem;
     }
@@ -52,7 +52,7 @@
 
     .pdp__rev-stars-row .pdp__rev-star,
     .pdp__rev-card-stars span {
-      color: rgba(245, 240, 232, 0.2);
+      color: rgba(var(--cream-rgb), 0.2);
       transition: color 0.15s;
     }
 
@@ -96,7 +96,7 @@
     .pdp__rev-bar-track {
       flex: 1;
       height: 4px;
-      background: rgba(245, 240, 232, 0.08);
+      background: rgba(var(--cream-rgb), 0.08);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -125,7 +125,7 @@
 
     .pdp__rev-card {
       padding: 1.5rem 0;
-      border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+      border-bottom: 1px solid rgba(var(--cream-rgb), 0.06);
     }
 
     .pdp__rev-card-top {
@@ -145,7 +145,7 @@
       font-family: var(--font-sans);
       font-size: 0.7rem;
       letter-spacing: 0.04em;
-      color: #4caf7d;
+      color: var(--success);
       background: rgba(76, 175, 80, 0.08);
       padding: 2px 8px;
       border-radius: 2px;
@@ -170,7 +170,7 @@
     .pdp__rev-card-meta {
       font-family: var(--font-sans);
       font-size: 0.72rem;
-      color: rgba(245, 240, 232, 0.35);
+      color: rgba(var(--cream-rgb), 0.35);
       margin: 0;
       letter-spacing: 0.03em;
     }
@@ -187,7 +187,7 @@
       text-transform: uppercase;
       color: var(--cream);
       background: transparent;
-      border: 1px solid rgba(245, 240, 232, 0.2);
+      border: 1px solid rgba(var(--cream-rgb), 0.2);
       cursor: pointer;
       transition: border-color 0.2s, color 0.2s;
 

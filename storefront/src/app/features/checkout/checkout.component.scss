@@ -238,7 +238,7 @@
       border-color: var(--gold);
     }
 
-    &::placeholder { color: rgba(245, 240, 232, 0.25); }
+    &::placeholder { color: rgba(var(--cream-rgb), 0.25); }
   }
 }
 
@@ -319,6 +319,24 @@
   font-size: 0.9rem;
   color: var(--cream);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  text-align: right;
+}
+
+.checkout__item-price--strike {
+  text-decoration: line-through;
+  opacity: 0.45;
+  font-size: 0.78rem;
+}
+
+.checkout__item-discount-label {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--success);
+  letter-spacing: 0.03em;
 }
 
 // ─── Summary sidebar ──────────────────────────────────────────────────────────
@@ -356,7 +374,7 @@
 }
 
 .checkout__free-ship {
-  color: #4caf7d;
+  color: var(--success);
   font-size: 0.8rem;
   letter-spacing: 0.05em;
 }
@@ -367,7 +385,14 @@
 }
 
 .checkout__summary-row--discount {
-  color: #4caf7d;
+  color: var(--success);
+}
+
+.checkout__summary-row--savings {
+  color: var(--success);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
 }
 
 // ─── Coupon ─────────────────────────────────────────────────────────────────
@@ -417,9 +442,9 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 0.8rem;
-  color: #4caf7d;
-  background: rgba(76, 175, 125, 0.1);
-  border: 1px solid rgba(76, 175, 125, 0.3);
+  color: var(--success);
+  background: rgba(var(--success-rgb), 0.1);
+  border: 1px solid rgba(var(--success-rgb), 0.3);
   padding: 0.7rem 0.85rem;
 
   strong { color: var(--cream); letter-spacing: 0.05em; }

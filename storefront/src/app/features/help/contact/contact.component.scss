@@ -1,7 +1,7 @@
 .contact__header {
   margin-bottom: 2.5rem;
   padding-bottom: 1.75rem;
-  border-bottom: 1px solid rgba(245, 240, 232, 0.1);
+  border-bottom: 1px solid rgba(var(--cream-rgb), 0.1);
 }
 
 .contact__breadcrumb {
@@ -47,8 +47,8 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1.25rem 1.1rem;
-  background: rgba(245, 240, 232, 0.03);
-  border: 1px solid rgba(245, 240, 232, 0.08);
+  background: rgba(var(--cream-rgb), 0.03);
+  border: 1px solid rgba(var(--cream-rgb), 0.08);
   text-decoration: none;
   transition: border-color 0.2s, background 0.2s;
 
@@ -93,7 +93,7 @@
   p {
     font-size: 0.9rem;
     line-height: 1.75;
-    color: rgba(245, 240, 232, 0.82);
+    color: rgba(var(--cream-rgb), 0.82);
     margin: 0 0 0.9rem;
     &:last-child { margin-bottom: 0; }
   }
@@ -106,7 +106,7 @@
   color: var(--cream);
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(245, 240, 232, 0.08);
+  border-bottom: 1px solid rgba(var(--cream-rgb), 0.08);
 }
 
 // ── Hours table ───────────────────────────────────────────────────────────────
@@ -117,8 +117,8 @@
 
   td {
     padding: 0.65rem 0;
-    color: rgba(245, 240, 232, 0.8);
-    border-bottom: 1px solid rgba(245, 240, 232, 0.06);
+    color: rgba(var(--cream-rgb), 0.8);
+    border-bottom: 1px solid rgba(var(--cream-rgb), 0.06);
     line-height: 1.5;
 
     &:first-child {
@@ -146,7 +146,7 @@
     gap: 0.75rem;
     font-size: 0.88rem;
     line-height: 1.65;
-    color: rgba(245, 240, 232, 0.82);
+    color: rgba(var(--cream-rgb), 0.82);
 
     &::before { content: '—'; color: var(--gold); flex-shrink: 0; }
   }
@@ -154,14 +154,14 @@
 
 // ── Address ───────────────────────────────────────────────────────────────────
 .contact__address {
-  background: rgba(245, 240, 232, 0.03);
-  border: 1px solid rgba(245, 240, 232, 0.07);
+  background: rgba(var(--cream-rgb), 0.03);
+  border: 1px solid rgba(var(--cream-rgb), 0.07);
   padding: 1.25rem 1.4rem;
 
   p {
     font-size: 0.88rem;
     line-height: 1.75;
-    color: rgba(245, 240, 232, 0.82);
+    color: rgba(var(--cream-rgb), 0.82);
     margin: 0 0 0.75rem;
     &:last-child { margin-bottom: 0; }
   }
