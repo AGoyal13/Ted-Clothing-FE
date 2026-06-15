@@ -11,7 +11,8 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Meta, Title } from '@angular/platform-browser';
+import { SeoService } from '../../core/services/seo.service';
+import { environment } from '../../../environments/environment';
 import { ProductService } from '../../core/services/product.service';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -22,6 +23,7 @@ import {
   formatINR,
   getEffectivePrice,
   getBasePrice,
+  getFirstImage,
   hasDiscount,
 } from '../../core/models/product.model';
 import { PdpGalleryComponent } from './components/pdp-gallery/pdp-gallery.component';
@@ -52,8 +54,7 @@ export class ProductComponent implements OnInit, OnDestroy {
   private readonly shippingService = inject(ShippingService);
   private readonly siteConfig = inject(SiteConfigService);
   private readonly promoCoupons = inject(PromoCouponService);
-  private readonly meta = inject(Meta);
-  private readonly titleService = inject(Title);
+  private readonly seo = inject(SeoService);
   private readonly platformId = inject(PLATFORM_ID);
 
   readonly etdLabel = this.shippingService.etdLabel;
@@ -253,15 +254,97 @@ export class ProductComponent implements OnInit, OnDestroy {
         }
         this.autoSelectSku();
         this.loading.set(false);
-        this.titleService.setTitle(`${product.title} — Ted Clothing`);
-        this.meta.updateTag({ name: 'description', content: product.description?.slice(0, 160) ?? '' });
-        this.meta.updateTag({ property: 'og:title', content: `${product.title} — Ted Clothing` });
+        this.applySeo(product);
       },
       error: () => {
         this.notFound.set(true);
         this.loading.set(false);
       },
     });
+  }
+
+  // ── SEO: meta tags + JSON-LD structured data (SSR-rendered) ──────────────────
+  private applySeo(product: ProductDetail): void {
+    const path = `/product/${product.slug}`;
+    const title = `${product.title} — Ted Clothing`;
+    this.seo.updateSeo({
+      title,
+      description: product.description ?? '',
+      path,
+      image: getFirstImage(product),
+      type: 'product',
+    });
+    this.seo.setJsonLd('ld-product', this.buildProductSchema(product, path));
+    this.seo.setJsonLd('ld-breadcrumb', this.buildBreadcrumbSchema(product, path));
+  }
+
+  private buildProductSchema(product: ProductDetail, path: string): object {
+    // Flatten + dedupe absolute image URLs across all colours.
+    const images = [
+      ...new Set(
+        product.colors.flatMap(c => c.images).map(img => this.seo.toAbsolute(img)),
+      ),
+    ];
+    // Crawler sees SSR output (cart state is browser-only) → use raw stockQty.
+    const inStock = product.skus.some(s => s.stockQty > 0);
+
+    const schema: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.title,
+      description: product.description ?? '',
+      image: images,
+      brand: { '@type': 'Brand', name: 'Ted Clothing' },
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: 'INR',
+        price: getEffectivePrice(product),
+        url: this.seo.toAbsolute(path),
+        availability: inStock
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+      },
+    };
+
+    const sku = product.skus[0]?.skuCode;
+    if (sku) schema['sku'] = sku;
+
+    // Only emit aggregateRating when the backend supplies real counts —
+    // a zero-count rating is a Google structured-data error.
+    if (product.avgRating != null && (product.reviewCount ?? 0) > 0) {
+      schema['aggregateRating'] = {
+        '@type': 'AggregateRating',
+        ratingValue: product.avgRating,
+        reviewCount: product.reviewCount,
+      };
+    }
+
+    return schema;
+  }
+
+  private buildBreadcrumbSchema(product: ProductDetail, path: string): object {
+    const siteUrl = (environment.siteUrl ?? '').replace(/\/+$/, '');
+    const items: { name: string; url: string }[] = [
+      { name: 'Home', url: `${siteUrl}/` },
+    ];
+    if (product.category) {
+      items.push({
+        name: product.category.name,
+        url: `${siteUrl}/category/${product.category.slug}`,
+      });
+    }
+    items.push({ name: product.title, url: this.seo.toAbsolute(path) });
+
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: items.map((it, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: it.name,
+        item: it.url,
+      })),
+    };
   }
 
   selectColor(colorId: string): void {
@@ -289,6 +372,9 @@ export class ProductComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.addedTimer) clearTimeout(this.addedTimer);
     if (this.copiedTimer) clearTimeout(this.copiedTimer);
+    // Drop PDP-specific structured data so it doesn't leak to the next route.
+    this.seo.removeJsonLd('ld-product');
+    this.seo.removeJsonLd('ld-breadcrumb');
   }
 
   toggleDescription(): void {

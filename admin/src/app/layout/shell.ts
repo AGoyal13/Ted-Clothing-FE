@@ -92,6 +92,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon matListItemIcon>tune</mat-icon>
             <span matListItemTitle>Settings</span>
           </a>
+          <a mat-list-item routerLink="/error-logs" routerLinkActive="active" (click)="isMobile() && sidenavOpen.set(false)">
+            <mat-icon matListItemIcon>bug_report</mat-icon>
+            <span matListItemTitle>Error Logs</span>
+          </a>
         </mat-nav-list>
         <div class="sidenav-footer">
           <button mat-button (click)="auth.logout()">

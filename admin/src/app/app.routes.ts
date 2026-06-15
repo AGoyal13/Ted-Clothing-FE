@@ -82,6 +82,10 @@ export const routes: Routes = [
         path: 'audit-logs',
         loadComponent: () => import('./features/audit/audit-logs.component').then(m => m.AuditLogsComponent),
       },
+      {
+        path: 'error-logs',
+        loadComponent: () => import('./features/error-logs/error-logs.component').then(m => m.ErrorLogsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

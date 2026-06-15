@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { Meta, Title } from '@angular/platform-browser';
+import { SeoService } from '../../core/services/seo.service';
+import { environment } from '../../../environments/environment';
 import { HeroComponent } from './sections/hero/hero.component';
 import { MarqueeComponent } from './sections/marquee/marquee.component';
 import { CategoryGridComponent } from './sections/category-grid/category-grid.component';
@@ -28,13 +29,24 @@ import { HomeFeaturedService } from './home-featured.service';
   styleUrl: './home.component.scss',
 })
 export class HomeComponent {
-  private readonly meta = inject(Meta);
-  private readonly title = inject(Title);
+  private readonly seo = inject(SeoService);
 
   constructor() {
-    this.title.setTitle('Ted Clothing — Quiet Luxury');
-    this.meta.updateTag({ name: 'description', content: 'Shop Ted Clothing — premium handcrafted Indian clothing for men, women, and kids. Quiet luxury. New arrivals every Friday.' });
-    this.meta.updateTag({ property: 'og:title', content: 'Ted Clothing — Quiet Luxury' });
-    this.meta.updateTag({ property: 'og:description', content: 'Shop Ted Clothing — premium handcrafted Indian clothing for men, women, and kids.' });
+    this.seo.updateSeo({
+      title: 'Ted Clothing — Quiet Luxury',
+      description: 'Shop Ted Clothing — premium handcrafted Indian clothing for men, women, and kids. Quiet luxury. New arrivals every Friday.',
+      path: '/',
+    });
+
+    // Organization schema for brand entity / knowledge panel.
+    // (sameAs social links omitted until available.)
+    const siteUrl = (environment.siteUrl ?? '').replace(/\/+$/, '');
+    this.seo.setJsonLd('ld-org', {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Ted Clothing',
+      url: siteUrl,
+      logo: this.seo.toAbsolute('/images/hero-editorial.webp'),
+    });
   }
 }

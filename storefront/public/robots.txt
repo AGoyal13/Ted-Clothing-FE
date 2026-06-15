@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Private / non-indexable routes (auth-gated, no SEO value)
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account/
+Disallow: /wishlist
+
+# Pre-launch: replace with the real canonical domain.
+Sitemap: https://ted-clothing-o0ea301pc-aman-goyal-s-projects.vercel.app/sitemap.xml

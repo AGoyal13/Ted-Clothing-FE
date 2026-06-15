@@ -10,12 +10,16 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ApiService } from '../../core/services/api.service';
+import { AbandonedCartsDialogComponent } from './abandoned-carts-dialog.component';
 
 type Preset = '7d' | '30d' | '90d' | 'custom';
 
 interface DailyReg { date: string; count: number; }
 interface TopProduct { productId: string; title: string; slug: string; count: number; }
+interface TopSeller { productId: string; title: string; slug: string; units: number; revenue: number; }
+interface DailySale { date: string; orders: number; revenue: number; }
 interface WaitlistItem { productId: string; waitlistCount: number; product: { id: string; title: string; slug: string } | null; }
 
 interface AdminStats {
@@ -24,6 +28,15 @@ interface AdminStats {
   cart: { customersWithCart: number; topProducts: TopProduct[]; };
   orders: { total: number; byStatus: Record<string, number>; pending: number; };
   revenue: { total: number; shippingRevenue: number; avgOrderValue: number; };
+  sales: {
+    topProducts: TopSeller[];
+    daily: DailySale[];
+    byPaymentMethod: Record<string, { count: number; amount: number }>;
+  };
+  returns: { count: number; refundTotal: number; rate: number; byReason: Record<string, number>; byStatus: Record<string, number>; };
+  inventory: { lowStock: number; outOfStock: number; value: number; };
+  carts: { abandoned: number; abandonedValue: number; };
+  coupons: { redemptions: number; discountGiven: number; };
   waitlist: WaitlistItem[];
 }
 
@@ -35,6 +48,7 @@ interface AdminStats {
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatTooltipModule,
     MatDatepickerModule, MatNativeDateModule, MatFormFieldModule, MatInputModule,
+    MatDialogModule,
   ],
   template: `
     <div class="dash">
@@ -152,6 +166,37 @@ interface AdminStats {
           </div>
         }
 
+        <!-- Sales over time -->
+        @if (stats()!.sales.daily.length >= 1) {
+          <div class="section-card">
+            <h2 class="section-card__title"><mat-icon>trending_up</mat-icon> Sales Over Time</h2>
+            <div class="trend-grid">
+              <div class="trend-block">
+                <div class="trend-block__label">Revenue · {{ formatINR(rangeRevenue()) }}</div>
+                <div class="sparkline-wrap">
+                  <svg class="sparkline" viewBox="0 0 400 80" preserveAspectRatio="none">
+                    <polyline [attr.points]="revenueSparkPoints()" fill="none" stroke="#f9a825" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+                    <polyline [attr.points]="revenueSparkFill()" fill="rgba(249,168,37,0.10)" stroke="none" />
+                  </svg>
+                </div>
+              </div>
+              <div class="trend-block">
+                <div class="trend-block__label">Orders · {{ rangeOrders() | number }}</div>
+                <div class="sparkline-wrap">
+                  <svg class="sparkline" viewBox="0 0 400 80" preserveAspectRatio="none">
+                    <polyline [attr.points]="ordersSparkPoints()" fill="none" stroke="#3f51b5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+                    <polyline [attr.points]="ordersSparkFill()" fill="rgba(63,81,181,0.08)" stroke="none" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="sparkline-labels">
+              <span>{{ stats()!.sales.daily[0].date }}</span>
+              <span>{{ stats()!.sales.daily[stats()!.sales.daily.length - 1].date }}</span>
+            </div>
+          </div>
+        }
+
         <!-- Tables Row -->
         <div class="tables-row">
 
@@ -241,6 +286,35 @@ interface AdminStats {
 
         </div>
 
+        <!-- Top Selling Products (actual sales) -->
+        <div class="section-card">
+          <h2 class="section-card__title"><mat-icon>local_fire_department</mat-icon> Top Selling Products</h2>
+          @if (stats()!.sales.topProducts.length === 0) {
+            <p class="empty-state">No sales in this period.</p>
+          } @else {
+            <table mat-table [dataSource]="stats()!.sales.topProducts" class="dash-table">
+              <ng-container matColumnDef="rank">
+                <th mat-header-cell *matHeaderCellDef>#</th>
+                <td mat-cell *matCellDef="let row; let i = index">{{ i + 1 }}</td>
+              </ng-container>
+              <ng-container matColumnDef="title">
+                <th mat-header-cell *matHeaderCellDef>Product</th>
+                <td mat-cell *matCellDef="let row">{{ row.title }}</td>
+              </ng-container>
+              <ng-container matColumnDef="units">
+                <th mat-header-cell *matHeaderCellDef>Units Sold</th>
+                <td mat-cell *matCellDef="let row"><strong>{{ row.units }}</strong></td>
+              </ng-container>
+              <ng-container matColumnDef="revenue">
+                <th mat-header-cell *matHeaderCellDef>Revenue</th>
+                <td mat-cell *matCellDef="let row">{{ formatINR(row.revenue) }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="['rank','title','units','revenue']"></tr>
+              <tr mat-row *matRowDef="let row; columns: ['rank','title','units','revenue']"></tr>
+            </table>
+          }
+        </div>
+
         <!-- Orders Breakdown -->
         <div class="section-card section-card--orders">
           <h2 class="section-card__title">
@@ -272,6 +346,84 @@ interface AdminStats {
             <div class="revenue-item">
               <span class="revenue-item__label">Pending Orders</span>
               <span class="revenue-item__value">{{ stats()!.orders.pending }}</span>
+            </div>
+          </div>
+          <div class="revenue-row">
+            <div class="revenue-item">
+              <span class="revenue-item__label">Prepaid · {{ stats()!.sales.byPaymentMethod['PREPAID'].count }}</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.sales.byPaymentMethod['PREPAID'].amount) }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">COD · {{ stats()!.sales.byPaymentMethod['COD'].count }}</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.sales.byPaymentMethod['COD'].amount) }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Coupon Redemptions</span>
+              <span class="revenue-item__value">{{ stats()!.coupons.redemptions }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Discount Given</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.coupons.discountGiven) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Returns & Refunds -->
+        <div class="section-card">
+          <h2 class="section-card__title"><mat-icon>assignment_return</mat-icon> Returns &amp; Refunds</h2>
+          <div class="revenue-row">
+            <div class="revenue-item">
+              <span class="revenue-item__label">Returns</span>
+              <span class="revenue-item__value">{{ stats()!.returns.count }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Return Rate</span>
+              <span class="revenue-item__value">{{ (stats()!.returns.rate * 100) | number:'1.0-1' }}%</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Refunds Total</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.returns.refundTotal) }}</span>
+            </div>
+          </div>
+          @if (returnReasonEntries().length > 0) {
+            <div class="orders-grid">
+              @for (e of returnReasonEntries(); track e.key) {
+                <div class="order-status-card">
+                  <div class="order-status-card__count">{{ e.count }}</div>
+                  <div class="order-status-card__label">{{ e.key }}</div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Inventory & Carts (current snapshot) -->
+        <div class="section-card section-card--orders">
+          <h2 class="section-card__title">
+            <mat-icon>inventory_2</mat-icon> Inventory &amp; Carts
+            <span class="section-card__sub">current snapshot</span>
+          </h2>
+          <div class="revenue-row">
+            <div class="revenue-item">
+              <span class="revenue-item__label">Low Stock (≤5)</span>
+              <span class="revenue-item__value">{{ stats()!.inventory.lowStock }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Out of Stock</span>
+              <span class="revenue-item__value">{{ stats()!.inventory.outOfStock }}</span>
+            </div>
+            <div class="revenue-item">
+              <span class="revenue-item__label">Inventory Value</span>
+              <span class="revenue-item__value">{{ formatINR(stats()!.inventory.value) }}</span>
+            </div>
+            <div class="revenue-item revenue-item--clickable"
+                 (click)="openAbandonedCarts()"
+                 matTooltip="Click to see customer details">
+              <span class="revenue-item__label">Abandoned Carts</span>
+              <span class="revenue-item__value">
+                {{ stats()!.carts.abandoned }}
+                <span class="revenue-item__sub">{{ formatINR(stats()!.carts.abandonedValue) }}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -425,6 +577,19 @@ interface AdminStats {
       margin-top: 4px;
     }
 
+    .trend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .trend-block__label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
     /* Tables row */
     .tables-row {
       display: grid;
@@ -509,10 +674,32 @@ interface AdminStats {
       font-weight: 600;
       color: #212121;
     }
+
+    .revenue-item__sub {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #757575;
+    }
+
+    .revenue-item--clickable {
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 4px 8px;
+      margin: -4px -8px;
+      transition: background 0.15s ease;
+    }
+    .revenue-item--clickable:hover {
+      background: #f5f5f5;
+    }
+    .revenue-item--clickable .revenue-item__label {
+      color: #1565c0;
+    }
   `],
 })
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly dialog = inject(MatDialog);
 
   readonly presets: { label: string; value: Preset }[] = [
     { label: '7 Days', value: '7d' },
@@ -556,6 +743,33 @@ export class DashboardComponent implements OnInit {
     return Object.entries(byStatus).map(([status, count]) => ({ status, count }));
   });
 
+  readonly returnReasonEntries = computed(() => {
+    const byReason = this.stats()?.returns.byReason ?? {};
+    return Object.entries(byReason).map(([key, count]) => ({ key, count }));
+  });
+
+  // ── Sales trend sparklines (reuse the registrations sparkline math) ──────────
+  private sparkLine(values: number[]): string {
+    if (values.length < 2) return '';
+    const max = Math.max(...values, 1);
+    return values
+      .map((v, i) => `${((i / (values.length - 1)) * 400).toFixed(1)},${(80 - (v / max) * 70).toFixed(1)}`)
+      .join(' ');
+  }
+  private sparkArea(line: string): string {
+    if (!line) return '';
+    const pts = line.split(' ');
+    const last = pts[pts.length - 1].split(',')[0];
+    return `${line} ${last},80 0,80`;
+  }
+
+  readonly revenueSparkPoints = computed(() => this.sparkLine((this.stats()?.sales.daily ?? []).map(d => d.revenue)));
+  readonly revenueSparkFill = computed(() => this.sparkArea(this.revenueSparkPoints()));
+  readonly ordersSparkPoints = computed(() => this.sparkLine((this.stats()?.sales.daily ?? []).map(d => d.orders)));
+  readonly ordersSparkFill = computed(() => this.sparkArea(this.ordersSparkPoints()));
+  readonly rangeRevenue = computed(() => (this.stats()?.sales.daily ?? []).reduce((s, d) => s + d.revenue, 0));
+  readonly rangeOrders = computed(() => (this.stats()?.sales.daily ?? []).reduce((s, d) => s + d.orders, 0));
+
   ngOnInit(): void {
     this.load();
   }
@@ -571,6 +785,14 @@ export class DashboardComponent implements OnInit {
     if (!start || !end) return;
     this.preset.set('custom');
     this.load();
+  }
+
+  openAbandonedCarts(): void {
+    this.dialog.open(AbandonedCartsDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      autoFocus: false,
+    });
   }
 
   formatINR(value: number): string {

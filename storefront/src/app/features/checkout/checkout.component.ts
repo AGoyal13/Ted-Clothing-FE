@@ -16,6 +16,7 @@ import { CartService } from '../../core/services/cart.service';
 import { AddressService } from '../../core/services/address.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OrderService } from '../../core/services/order.service';
+import { ApiService } from '../../core/services/api.service';
 import { Address, AddressFormData } from '../../core/models/address.model';
 import { CartItem } from '../../core/models/cart.model';
 import { formatINR } from '../../core/models/product.model';
@@ -41,6 +42,7 @@ export class CheckoutComponent implements OnInit {
   private readonly addressService = inject(AddressService);
   private readonly authService = inject(AuthService);
   private readonly orderService = inject(OrderService);
+  private readonly api = inject(ApiService);
   private readonly promoCoupons = inject(PromoCouponService);
 
   readonly items = this.cartService.items;
@@ -265,10 +267,19 @@ export class CheckoutComponent implements OnInit {
           this.cartService.loadCart();
         } else {
           this.formError.set(err?.error?.error?.message ?? 'Failed to place order. Please try again.');
+          if (this.shouldReport(err)) {
+            this.api.reportClientError('cod_order', err?.error?.error?.message ?? 'COD order failed', { statusCode: err?.status });
+          }
         }
         this.paying.set(false);
       },
     });
+  }
+
+  // Infra-level failures worth logging (network down / server 5xx); expected
+  // 4xx (validation, OOS, 401) are normal UX, not errors.
+  private shouldReport(err: any): boolean {
+    return err?.status === 0 || err?.status >= 500;
   }
 
   private async startRazorpayFlow(addressId: string) {
@@ -276,6 +287,7 @@ export class CheckoutComponent implements OnInit {
       await this.loadRazorpayScript();
     } catch {
       this.formError.set('Could not load payment gateway. Please try again.');
+      this.api.reportClientError('razorpay_script', 'Razorpay checkout script failed to load');
       this.paying.set(false);
       return;
     }
@@ -298,8 +310,9 @@ export class CheckoutComponent implements OnInit {
             this.onPaymentSuccess(addressId, response);
           },
         });
-        rzp.on('payment.failed', () => {
+        rzp.on('payment.failed', (resp: any) => {
           this.formError.set('Payment failed. Please try again.');
+          this.api.reportClientError('razorpay_payment_failed', resp?.error?.description ?? 'Razorpay payment.failed event', { meta: { code: resp?.error?.code, reason: resp?.error?.reason } });
           this.paying.set(false);
         });
         rzp.open();
@@ -311,6 +324,9 @@ export class CheckoutComponent implements OnInit {
           this.cartService.loadCart();
         } else {
           this.formError.set(err?.error?.error?.message ?? 'Failed to initiate payment. Please try again.');
+          if (this.shouldReport(err)) {
+            this.api.reportClientError('order_initiate', err?.error?.error?.message ?? 'Order initiate failed', { statusCode: err?.status });
+          }
         }
         this.paying.set(false);
       },
@@ -324,6 +340,13 @@ export class CheckoutComponent implements OnInit {
         this.router.navigate(['/order-confirmed', order.id]);
       },
       error: (err: any) => {
+        // Money-critical: payment may have been captured but the order failed to
+        // persist. Always report regardless of status (incl. 409 sold-out race).
+        this.api.reportClientError(
+          'razorpay_verify',
+          err?.error?.error?.message ?? 'Payment verify / order creation failed',
+          { statusCode: err?.status, meta: { razorpayOrderId: payment?.razorpay_order_id } },
+        );
         if (err?.status === 401) { this.paying.set(false); return; }
         if (err?.status === 409) {
           this.formError.set(

@@ -68,6 +68,11 @@ export interface ProductDetail extends Omit<Product, 'skus'> {
   description: string;
   skus: ProductSku[];
   sizeGuide: SizeGuide | null;
+  // Optional review aggregate for JSON-LD aggregateRating. Not currently in the
+  // SSR payload (reviews load client-side); when the backend supplies these the
+  // PDP schema emits aggregateRating with no further frontend change.
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 export interface ProductListResponse {

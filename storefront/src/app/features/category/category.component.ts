@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Meta, Title } from '@angular/platform-browser';
+import { SeoService } from '../../core/services/seo.service';
 import { combineLatest } from 'rxjs';
 import { SearchService } from '../../core/services/search.service';
 import { CategoryService } from '../../core/services/category.service';
@@ -69,8 +69,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly searchService   = inject(SearchService);
   private readonly categoryService = inject(CategoryService);
   private readonly shippingService = inject(ShippingService);
-  private readonly meta            = inject(Meta);
-  private readonly titleService    = inject(Title);
+  private readonly seo             = inject(SeoService);
 
   readonly etdLabel = this.shippingService.etdLabel;
 
@@ -234,8 +233,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.facetColors.set({});
         }
         this.loadCategoryMeta();
-        this.titleService.setTitle(`${this.displayName()} — Ted Clothing`);
-        this.meta.updateTag({ name: 'description', content: `Shop ${this.displayName()} at Ted Clothing. Premium handcrafted Indian clothing.` });
+        this.seo.updateSeo({
+          title: `${this.displayName()} — Ted Clothing`,
+          description: `Shop ${this.displayName()} at Ted Clothing. Premium handcrafted Indian clothing.`,
+          path: `/category/${newSlug}`,
+        });
       }
 
       if (!restoredFromState) {

@@ -1,17 +1,19 @@
 import { inject, Injectable, PLATFORM_ID, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom, Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthUser, AuthResponse } from '../models/auth.model';
 import { ApiResponse } from '../models/product.model';
+import { ApiService } from './api.service';
 
 const USER_KEY = 'ted_auth_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http       = inject(HttpClient);
+  private readonly api        = inject(ApiService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser  = isPlatformBrowser(this.platformId);
   private readonly baseUrl    = environment.apiUrl;
@@ -47,6 +49,22 @@ export class AuthService {
 
   // ── Auth flows ─────────────────────────────────────────────────────────────
 
+  /**
+   * Report only infra-level auth failures (network down / server 5xx). Expected
+   * 4xx (wrong password, invalid/expired OTP, 401) are normal UX, not errors.
+   * Rethrows so callers' existing error handling is unchanged.
+   */
+  private reportAuthError(source: string, err: any) {
+    if (err?.status === 0 || err?.status >= 500) {
+      this.api.reportClientError(
+        source,
+        err?.error?.error?.message ?? err?.message ?? 'Auth request failed',
+        { statusCode: err?.status },
+      );
+    }
+    return throwError(() => err);
+  }
+
   register(email: string, password: string, name?: string, phone?: string) {
     return this.http
       .post<ApiResponse<AuthResponse>>(
@@ -54,7 +72,7 @@ export class AuthService {
         { email, password, ...(name ? { name } : {}), ...(phone ? { phone } : {}) },
         { withCredentials: true },
       )
-      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)), catchError(e => this.reportAuthError('auth_register', e)));
   }
 
   login(email: string, password: string) {
@@ -64,7 +82,7 @@ export class AuthService {
         { email, password },
         { withCredentials: true },
       )
-      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)), catchError(e => this.reportAuthError('auth_login', e)));
   }
 
   verifyOtp(email: string, otp: string) {
@@ -74,15 +92,17 @@ export class AuthService {
         { email, otp },
         { withCredentials: true },
       )
-      .pipe(map(r => r.data), tap(d => this.persistSession(d)));
+      .pipe(map(r => r.data), tap(d => this.persistSession(d)), catchError(e => this.reportAuthError('auth_otp', e)));
   }
 
   sendOtp(email: string) {
-    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/send-otp`, { email });
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/send-otp`, { email })
+      .pipe(catchError(e => this.reportAuthError('auth_otp', e)));
   }
 
   forgotPassword(email: string) {
-    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/forgot-password`, { email });
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/forgot-password`, { email })
+      .pipe(catchError(e => this.reportAuthError('auth_reset', e)));
   }
 
   resetPassword(email: string, otp: string, newPassword: string) {
@@ -92,7 +112,7 @@ export class AuthService {
         { email, otp, newPassword },
         { withCredentials: true },
       )
-      .pipe(map(r => r.data));
+      .pipe(map(r => r.data), catchError(e => this.reportAuthError('auth_reset', e)));
   }
 
   // ── Profile ────────────────────────────────────────────────────────────────
