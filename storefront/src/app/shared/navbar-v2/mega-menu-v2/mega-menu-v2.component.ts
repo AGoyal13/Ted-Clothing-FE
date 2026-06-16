@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NavCategory } from '../../../core/models/category.model';
+import { FocalPositionPipe } from '../../../core/pipes/focal-position.pipe';
 
 interface MegaGroup {
   slug: string;
@@ -10,7 +11,7 @@ interface MegaGroup {
 @Component({
   selector: 'navbar-mega-v2',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FocalPositionPipe],
   templateUrl: './mega-menu-v2.component.html',
   styleUrl: './mega-menu-v2.component.scss',
 })
@@ -32,7 +33,9 @@ export class MegaMenuV2Component {
 
   getHeroImage(root: NavCategory): string | null {
     if (!root?.slug) return null;
-    return this.HERO_IMAGES[root.slug.toLowerCase()] ?? root.imageUrl ?? null;
+    // API image first (focal point is tuned to it); hardcoded editorial asset is the fallback.
+    // Matches category-grid's `c.imageUrl ?? CATEGORY_IMAGES[...]` ordering.
+    return root.imageUrl ?? this.HERO_IMAGES[root.slug.toLowerCase()] ?? null;
   }
 
   private readonly CATEGORY_COLORS: Record<string, string> = {

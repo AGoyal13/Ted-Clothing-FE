@@ -1327,59 +1327,103 @@ button {
     .drawer-body {
       display: grid;
       grid-template-columns: 110px 1fr;
+      grid-template-rows: 1fr;   /* single row fills the panel height so columns reach the bottom */
       flex: 1;
       overflow: hidden;
       min-height: 0;
     }
 
-    /* Full-width mode: no right panel — left takes entire drawer body */
+    /* Full-width mode: single column holding the dedicated category-tile grid below */
     .drawer-body--full {
       grid-template-columns: 1fr;
+    }
 
-      .drawer-sub { display: none; }
+    /* ──────────────────────────────────────────────────────────────
+       FULL CATEGORY VIEW — self-contained 4:5 tile grid (own markup,
+       NOT the two-panel .drawer-group-* switcher classes)
+       ────────────────────────────────────────────────────────────── */
+    .cat-full {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      min-height: 0;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+    }
 
-      .drawer-groups {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        align-content: start;
-        border-right: none;
+    /* "All [Category]" full-width banner above the grid */
+    .cat-tile-all {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 10px;
+      text-decoration: none;
+      font-family: var(--font-sans);
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--on-media); /* over the colored banner — light in every theme */
+      border-bottom: none;
+
+      &--sale { color: var(--danger); }
+      &:active { opacity: 0.85; }
+    }
+
+    .cat-tile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2px;              /* surface-coloured gaps → empty trailing cell is invisible */
+      align-content: start;
+    }
+
+    .cat-tile {
+      position: relative;
+      display: block;
+      aspect-ratio: 4 / 5;   /* the one fixed shape — focal point frames the image */
+      overflow: hidden;
+      border: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      background: var(--surface);
+      text-decoration: none;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+
+      &:active { opacity: 0.85; }
+      &--sale .cat-tile-label { color: var(--danger); }
+    }
+
+    .cat-tile-img {
+      position: absolute;
+      inset: 0;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;   /* object-position set inline from the category focal point */
+        display: block;
       }
+    }
 
-      /* "All [Category]" spans both columns */
-      .drawer-group-all {
-        grid-column: 1 / -1;
-      }
-
-      /* Leaf links as art cards in full-width grid */
-      .drawer-group-link {
-        min-height: 90px;
-        padding: 0;
-        border-right: 1px solid rgba(201, 168, 76, 0.08);
-
-        &:nth-child(even) { border-right: none; }
-
-        .drawer-group-bg { display: block; }
-
-        .drawer-group-tint {
-          display: block;
-          background: rgba(13, 13, 11, 0.45);
-        }
-
-        .drawer-group-label {
-          margin-top: auto;
-          padding: 5px 4px 8px;
-          background: linear-gradient(to top, rgba(13, 13, 11, 0.88) 0%, transparent 100%);
-          color: var(--on-media); /* art-card label over image gradient — light in every theme */
-          font-size: 0.54rem;
-        }
-
-        &:active {
-          background: transparent;
-          .drawer-group-tint { background: rgba(13, 13, 11, 0.22); }
-        }
-
-        &--sale .drawer-group-label { color: var(--danger); }
-      }
+    .cat-tile-label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      padding: 18px 6px 7px;
+      text-align: center;
+      font-family: var(--font-sans);
+      font-size: 0.56rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--on-media); /* over the bottom scrim — light in every theme */
+      line-height: 1.25;
+      background: linear-gradient(to top, rgba(13,13,11,0.85) 0%, rgba(13,13,11,0.35) 50%, transparent 100%);
     }
 
     /* Left: group list */
@@ -1406,8 +1450,8 @@ button {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: top center;
-      opacity: 0.9; /* was 0.55 — let the photo show (theme-independent) */
+      object-position: top center; /* fallback; per-category focal point set inline */
+      opacity: 1;
     }
 
     /* "All [Category]" pinned */
@@ -1443,11 +1487,13 @@ button {
       text-align: center;
     }
 
-    /* Sub-group rows */
+    /* Sub-group rows — stacked: 4:5 portrait thumbnail on top, full-width label below.
+       (Row layout was too narrow in the 110px column, clipping long names like "Sunglasses".) */
     .drawer-group-item {
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 6px;
       cursor: pointer;
       border: none;
       border-left: 2px solid transparent;
@@ -1456,14 +1502,25 @@ button {
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       overflow: hidden;
-      min-height: 60px;
+      min-height: 64px;
       position: relative;
       background: none;
       width: 100%;
-      padding: 0;
+      padding: 10px 6px;
       font-family: inherit;
       border-right: none;
       border-top: none;
+
+      /* The shared bg div becomes a fixed portrait thumb (not a full-bleed background) */
+      .drawer-group-bg {
+        position: relative;
+        inset: auto;
+        width: 60px;
+        aspect-ratio: 4 / 5;
+        flex-shrink: 0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
 
       &--active {
         background: rgba(201, 168, 76, 0.04);
@@ -1471,32 +1528,42 @@ button {
       }
 
       &--sale.drawer-group-item--active { border-left-color: var(--danger); }
+
+      /* chevron indicator: marks rows that expand sub-categories (vs leaf rows that navigate) */
+      &::after {
+        content: '›';
+        position: absolute;
+        top: 7px;
+        right: 9px;
+        z-index: 2;
+        font-size: 15px;
+        line-height: 1;
+        font-weight: 400;
+        color: var(--gold);
+        opacity: 0.85;
+      }
     }
 
-    .drawer-group-tint {
-      position: absolute;
-      inset: 0;
-      background: rgba(13, 13, 11, 0.45); /* was 0.7 — lighter so tiles aren't muddy; still dark enough for the light label */
-      transition: background 150ms;
-      pointer-events: none;
-
-      .drawer-group-item--active & { background: rgba(13, 13, 11, 0.22); } /* was 0.4 — keep active brighter */
-    }
+    /* Tint no longer needed: the label sits below the thumb, not over it */
+    .drawer-group-item .drawer-group-tint,
+    .drawer-group-link .drawer-group-tint { display: none; }
 
     .drawer-group-label {
       position: relative;
       z-index: 1;
+      flex: initial;
       width: 100%;
-      margin-top: auto;
-      padding: 5px 4px 6px;
+      padding: 0;
       font-family: var(--font-sans);
-      font-size: 0.54rem;
-      letter-spacing: 0.12em;
+      font-size: 0.55rem;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       font-weight: 500;
-      color: var(--on-media); /* image-tile label over dark tint — stays light in every theme */
+      color: var(--cream); /* theme-aware foreground — label is below the thumb, on the panel */
       text-align: center;
-      line-height: 1.3;
+      line-height: 1.25;
+      white-space: normal;       /* allow wrapping so long names aren't clipped */
+      overflow-wrap: anywhere;   /* break a very long single word as a last resort */
 
       .drawer-group-item--active & {
         font-weight: 600;
@@ -1504,14 +1571,16 @@ button {
       }
     }
 
-    /* Flat leaf item — plain text in two-panel, art card in full-width */
+    /* Flat leaf item — same stacked 4:5 thumb + label as parent groups, but NO chevron
+       (leaf rows navigate; only group rows expand). */
     .drawer-group-link {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 8px 10px;
+      gap: 6px;
+      min-height: 64px;
+      padding: 10px 6px;
+      width: 100%;
       border-left: 2px solid transparent;
       border-bottom: 1px solid rgba(201, 168, 76, 0.08);
       text-decoration: none;
@@ -1520,26 +1589,20 @@ button {
       -webkit-tap-highlight-color: transparent;
       transition: border-left-color 150ms, background 150ms;
 
-      // Art hidden in narrow two-panel column
-      .drawer-group-bg,
-      .drawer-group-tint { display: none; }
-
-      // Override shared .drawer-group-label for plain-text mode
-      .drawer-group-label {
-        margin-top: 0;
-        padding: 0;
-        background: none;
-        font-size: 0.54rem;
-        letter-spacing: 0.12em;
-        font-weight: 500;
-        color: var(--muted);
-        line-height: 1.3;
+      /* Same fixed portrait thumb as .drawer-group-item */
+      .drawer-group-bg {
+        position: relative;
+        inset: auto;
+        width: 60px;
+        aspect-ratio: 4 / 5;
+        flex-shrink: 0;
+        border-radius: 8px;
+        overflow: hidden;
       }
 
       &:active {
         border-left-color: rgba(201, 168, 76, 0.4);
         background: rgba(201, 168, 76, 0.04);
-        .drawer-group-label { color: var(--cream); }
       }
 
       &--sale .drawer-group-label { color: rgba(181, 71, 58, 0.75); }
@@ -1578,7 +1641,7 @@ button {
 
     .drawer-chip-thumb {
       width: 64px;
-      height: 76px;
+      height: 80px;   /* 4:5 portrait (was 64×76) */
       border-radius: 10px;
       overflow: hidden;
       position: relative;

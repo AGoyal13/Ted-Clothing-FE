@@ -12,8 +12,13 @@
         <!-- Zone 1: Category hero (optional editorial image for selected slugs) -->
         <div class="mega-v2__hero" [class.mega-v2__hero--img]="getHeroImage(root)">
           @if (getHeroImage(root); as heroSrc) {
+            <!-- Hero uses object-fit:cover (was contain) for an edge-to-edge fill; object-position
+                 honours the category's focal point. The image is root.imageUrl when set (focal maps
+                 to it), otherwise the hardcoded editorial fallback, for which the default focal
+                 (50% 0% = top center) is a safe frame. -->
             <img class="mega-v2__hero-bg"
                  [src]="heroSrc"
+                 [style.object-position]="root | focalPosition"
                  alt=""
                  aria-hidden="true"
                  loading="lazy" />
@@ -91,6 +96,7 @@
               @if (featured[0].imageUrl) {
                 <img class="mega-v2__card-img"
                      [src]="featured[0].imageUrl"
+                     [style.object-position]="featured[0] | focalPosition"
                      [alt]="featured[0].name"
                      loading="lazy" />
               } @else {
@@ -122,6 +128,7 @@
                 @if (item.imageUrl) {
                   <img class="mega-v2__thumb-img"
                        [src]="item.imageUrl"
+                       [style.object-position]="item | focalPosition"
                        [alt]="item.name"
                        loading="lazy" />
                 } @else {

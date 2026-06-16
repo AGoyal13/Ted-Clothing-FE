@@ -18,6 +18,7 @@ import { ApiService } from '../../core/services/api.service';
 import { ColorDialogComponent } from './color-dialog.component';
 import { AddColorVariantDialogComponent } from './add-color-variant-dialog.component';
 import { SizeGuideFormDialogComponent, SizeGuide } from './size-guide-form-dialog.component';
+import { ProductImagePreviewDialogComponent } from './product-image-preview-dialog.component';
 
 interface ProductColor { id: string; colorName: string; colorHex: string | null; images: string[]; }
 interface Sku { id: string; skuCode: string; colorId: string; sizeLabel: string; stockQty: number; priceOverride: number | null; }
@@ -90,8 +91,9 @@ interface ProductDetail {
                   </mat-card-header>
                   @if (color.images.length) {
                     <div class="img-strip">
-                      @for (img of color.images.slice(0, 4); track img) {
-                        <img class="img-thumb" [src]="img" [alt]="color.colorName" loading="lazy" />
+                      @for (img of color.images.slice(0, 4); track img; let i = $index) {
+                        <img class="img-thumb" [src]="img" [alt]="color.colorName" loading="lazy"
+                             (click)="previewImages(color.images, i)" title="Preview on storefront (PLP / PDP)" />
                       }
                       @if (color.images.length > 4) {
                         <div class="img-more">+{{ color.images.length - 4 }}</div>
@@ -269,7 +271,7 @@ interface ProductDetail {
     mat-card-header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 0; }
     .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
     .img-strip { display: flex; gap: 4px; padding: 8px 12px 0; flex-wrap: wrap; }
-    .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+    .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; cursor: zoom-in; }
     .img-more { width: 48px; height: 48px; border-radius: 4px; background: #f5f5f5; border: 1px solid #eee;
       display: flex; align-items: center; justify-content: center; font-size: 12px; color: #777; font-weight: 600; }
     .no-images { margin: 8px 12px 0; font-size: 12px; color: #bbb; font-style: italic; }
@@ -325,6 +327,15 @@ export class ProductDetailComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
   router = inject(Router);
+
+  previewImages(images: string[], index: number) {
+    this.dialog.open(ProductImagePreviewDialogComponent, {
+      data: { images, index },
+      width: '600px',
+      maxWidth: '94vw',
+      autoFocus: false,
+    });
+  }
 
   product = signal<ProductDetail | null>(null);
   loading = signal(false);

@@ -5,6 +5,8 @@ export interface Category {
   parentId: string | null;
   gender: 'MEN' | 'WOMEN' | 'KIDS' | 'UNISEX' | null;
   imageUrl?: string | null;
+  focalX?: number | null;
+  focalY?: number | null;
   parent?: { id: string; name: string; slug: string } | null;
   children?: Category[];
 }
@@ -35,6 +37,8 @@ export interface NavCategory {
   name: string;
   slug: string;
   imageUrl?: string | null;
+  focalX?: number | null;
+  focalY?: number | null;
   children?: NavCategory[];
 }
 

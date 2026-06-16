@@ -16,7 +16,7 @@
             <!-- Art zone -->
             <div class="chip-art" [style.background]="cat.imageUrl ? null : getCategoryBg(cat.slug)">
               @if (cat.imageUrl) {
-                <img [src]="cat.imageUrl" [alt]="" loading="lazy" class="chip-art-img" aria-hidden="true" />
+                <img [src]="cat.imageUrl" [style.object-position]="cat | focalPosition" [alt]="" loading="lazy" class="chip-art-img" aria-hidden="true" />
               }
             </div>
             <!-- Label zone -->
@@ -57,9 +57,56 @@
             </button>
           </div>
 
-          <!-- Body: left item list + right sub-panel -->
+          <!-- Body: full-view tile grid (all-leaf categories) OR left list + right sub-panel -->
           <div class="drawer-body"
                [class.drawer-body--full]="activeGroupLinks().length === 0">
+
+            @if (activeGroupLinks().length === 0) {
+
+            <!-- FULL VIEW: dedicated 4:5 category-tile grid (own markup, self-contained CSS) -->
+            <div class="cat-full">
+              <a [routerLink]="['/category', activeCategory()?.slug]"
+                 class="cat-tile-all"
+                 [class.cat-tile-all--sale]="isSale(activeCategory()?.slug ?? '')"
+                 [style.background]="getCategoryBg(activeCategory()?.slug ?? '')"
+                 (click)="closeDrawer()">
+                All {{ activeCategory()?.name }}
+              </a>
+
+              <nav class="cat-tile-grid" aria-label="Categories">
+                @for (child of allChildren(); track child.slug) {
+                  @if (hasChildren(child)) {
+                    <button class="cat-tile"
+                            [class.cat-tile--sale]="isSale(child.slug)"
+                            (click)="setActiveGroup(child.slug)"
+                            [attr.aria-label]="child.name">
+                      <div class="cat-tile-img" [style.background]="getCategoryBg(child.slug)">
+                        @if (child.imageUrl) {
+                          <img [src]="child.imageUrl" [style.object-position]="child | focalPosition"
+                               [alt]="" loading="lazy" aria-hidden="true" />
+                        }
+                      </div>
+                      <span class="cat-tile-label">{{ child.name }}</span>
+                    </button>
+                  } @else {
+                    <a [routerLink]="['/category', child.slug]"
+                       class="cat-tile"
+                       [class.cat-tile--sale]="isSale(child.slug)"
+                       (click)="closeDrawer()">
+                      <div class="cat-tile-img" [style.background]="getCategoryBg(child.slug)">
+                        @if (child.imageUrl) {
+                          <img [src]="child.imageUrl" [style.object-position]="child | focalPosition"
+                               [alt]="" loading="lazy" aria-hidden="true" />
+                        }
+                      </div>
+                      <span class="cat-tile-label">{{ child.name }}</span>
+                    </a>
+                  }
+                }
+              </nav>
+            </div>
+
+            } @else {
 
             <!-- LEFT: all direct children of the active category.
                  Children WITH sub-categories → group button (reveals right panel).
@@ -89,7 +136,7 @@
                     <div class="drawer-group-bg"
                          [style.background]="getCategoryBg(child.slug)">
                       @if (child.imageUrl) {
-                        <img [src]="child.imageUrl" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
+                        <img [src]="child.imageUrl" [style.object-position]="child | focalPosition" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
                       }
                     </div>
                     <div class="drawer-group-tint"></div>
@@ -103,7 +150,7 @@
                      (click)="closeDrawer()">
                     <div class="drawer-group-bg" [style.background]="getCategoryBg(child.slug)">
                       @if (child.imageUrl) {
-                        <img [src]="child.imageUrl" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
+                        <img [src]="child.imageUrl" [style.object-position]="child | focalPosition" [alt]="" loading="lazy" class="drawer-group-img" aria-hidden="true" />
                       }
                     </div>
                     <div class="drawer-group-tint"></div>
@@ -127,7 +174,7 @@
                       <div class="drawer-chip-thumb"
                            [style.background]="getCategoryBg(link.slug)">
                         @if (link.imageUrl) {
-                          <img [src]="link.imageUrl" [alt]="" loading="lazy" class="drawer-chip-img" aria-hidden="true" />
+                          <img [src]="link.imageUrl" [style.object-position]="link | focalPosition" [alt]="" loading="lazy" class="drawer-chip-img" aria-hidden="true" />
                         }
                       </div>
                       <span class="drawer-chip-label">{{ link.name }}</span>
@@ -164,6 +211,8 @@
               }
 
             </div><!-- /drawer-sub -->
+
+            }
           </div><!-- /drawer-body -->
 
         </div><!-- /drawer-panel -->

@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter, signal, inject, OnChanges, Simp
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { ApiService } from '../../core/services/api.service';
+import { ProductImagePreviewDialogComponent } from './product-image-preview-dialog.component';
 
 @Component({
   selector: 'app-image-upload',
@@ -13,9 +15,13 @@ import { ApiService } from '../../core/services/api.service';
       <p class="section-label">Images <span class="count">{{ images().length }} / 12</span></p>
 
       <div class="thumb-grid">
-        @for (url of images(); track url) {
+        @for (url of images(); track url; let i = $index) {
           <div class="thumb">
-            <img [src]="url" alt="Product image" loading="lazy" />
+            <img [src]="url" alt="Product image" loading="lazy"
+                 (click)="openPreview(i)" title="Preview on storefront (PLP / PDP)" />
+            <div class="thumb-zoom" (click)="openPreview(i)" title="Preview on storefront">
+              <mat-icon>zoom_in</mat-icon>
+            </div>
             <button class="thumb-del" (click)="removeImage(url)" title="Remove">✕</button>
           </div>
         }
@@ -56,7 +62,16 @@ import { ApiService } from '../../core/services/api.service';
       position: relative; width: 80px; height: 80px; border-radius: 6px;
       overflow: hidden; border: 1px solid #e0e0e0; flex-shrink: 0;
     }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
+    .thumb-zoom {
+      position: absolute; bottom: 2px; left: 2px;
+      background: rgba(0,0,0,0.55); color: #fff;
+      border-radius: 4px; width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: zoom-in; opacity: 0; transition: opacity .15s;
+    }
+    .thumb-zoom mat-icon { font-size: 14px; width: 14px; height: 14px; line-height: 14px; }
+    .thumb:hover .thumb-zoom { opacity: 1; }
     .thumb-del {
       position: absolute; top: 2px; right: 2px;
       background: rgba(0,0,0,0.55); color: #fff;
@@ -85,6 +100,7 @@ export class ImageUploadComponent implements OnChanges {
 
   private api = inject(ApiService);
   private snack = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   images = signal<string[]>([]);
   uploading = signal(false);
@@ -136,6 +152,15 @@ export class ImageUploadComponent implements OnChanges {
     }
 
     this.uploading.set(false);
+  }
+
+  openPreview(index: number) {
+    this.dialog.open(ProductImagePreviewDialogComponent, {
+      data: { images: this.images(), index },
+      width: '600px',
+      maxWidth: '94vw',
+      autoFocus: false,
+    });
   }
 
   async removeImage(url: string) {

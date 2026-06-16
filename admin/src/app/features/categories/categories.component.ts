@@ -20,6 +20,8 @@ export interface Category {
   parentId: string | null;
   gender?: ProductGender | null;
   imageUrl?: string | null;
+  focalX?: number | null;
+  focalY?: number | null;
   parent?: { id: string; name: string } | null;
   sizeGuide?: { id: string; name: string } | null;
   _count?: { products: number };

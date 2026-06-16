@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { ApiService } from '../../core/services/api.service';
 import { Category, ProductGender } from './categories.component';
+import { CategoryFocalDialogComponent, FocalDialogResult } from './category-focal-dialog.component';
 
 @Component({
   selector: 'app-category-dialog',
@@ -52,7 +53,11 @@ import { Category, ProductGender } from './categories.component';
           <div class="image-label">Category Image</div>
           <div class="image-row">
             @if (previewUrl()) {
-              <img [src]="previewUrl()!" class="image-preview" alt="Category image preview" />
+              <!-- Thumbnail reflects the chosen focal point via object-position; the full
+                   picker (with live card previews) opens in a dedicated modal. -->
+              <img [src]="previewUrl()!" class="image-preview"
+                   [style.object-position]="focalX() + '% ' + focalY() + '%'"
+                   alt="Category image preview" />
             } @else {
               <div class="image-placeholder"><mat-icon>image</mat-icon></div>
             }
@@ -60,12 +65,20 @@ import { Category, ProductGender } from './categories.component';
               <button type="button" mat-stroked-button (click)="fileInput.click()">
                 <mat-icon>upload</mat-icon> {{ previewUrl() ? 'Replace' : 'Upload' }} Image
               </button>
+              @if (previewUrl()) {
+                <button type="button" mat-stroked-button (click)="openFocalDialog()">
+                  <mat-icon>center_focus_strong</mat-icon> Adjust focal point
+                </button>
+              }
               @if (previewUrl() && (pendingFile() || data.category?.imageUrl)) {
                 <button type="button" mat-button color="warn" (click)="clearImage()">Remove</button>
               }
               <input #fileInput type="file" accept="image/jpeg,image/png,image/webp"
                      style="display:none" (change)="onFileSelected($event)" />
-              <span class="image-hint">JPEG, PNG or WebP · Portrait 3:4, upload ≥ 1200 × 1600px · converted to WebP · smaller looks blurry</span>
+              <span class="image-hint">JPEG, PNG or WebP · Tall portrait preferred (≥ 1200 × 1600px) · converted to WebP · smaller images look blurry</span>
+              @if (previewUrl()) {
+                <span class="image-hint">Focal point {{ focalX() }}% / {{ focalY() }}% — controls how cards crop the image</span>
+              }
             </div>
           </div>
         </div>
@@ -85,7 +98,7 @@ import { Category, ProductGender } from './categories.component';
     .image-section { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
     .image-label { font-size: 12px; color: rgba(0,0,0,.6); }
     .image-row { display: flex; gap: 12px; align-items: flex-start; }
-    .image-preview { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; border: 1px solid #e0e0e0; flex-shrink: 0; }
+    .image-preview { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; border: 1px solid #e0e0e0; flex-shrink: 0; display: block; }
     .image-placeholder { width: 72px; height: 96px; border-radius: 4px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #bbb; }
     .image-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
     .image-hint { font-size: 11px; color: #999; }
@@ -95,6 +108,7 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private api = inject(ApiService);
   private ref = inject(MatDialogRef<CategoryDialogComponent>);
+  private dialog = inject(MatDialog);
   data: { category?: Category; categories: Category[] } = inject(MAT_DIALOG_DATA);
 
   genders: ProductGender[] = ['MEN', 'WOMEN', 'KIDS', 'UNISEX'];
@@ -107,6 +121,9 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
   pendingFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
   removeImage = signal(false);
+  // Focal point (0–100). Defaults reproduce the storefront's previous "top center" framing.
+  focalX = signal(50);
+  focalY = signal(0);
 
   private sub = new Subscription();
 
@@ -120,6 +137,8 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
       if (this.data.category.imageUrl) {
         this.previewUrl.set(this.data.category.imageUrl);
       }
+      this.focalX.set(this.data.category.focalX ?? 50);
+      this.focalY.set(this.data.category.focalY ?? 0);
     }
 
     // Pre-fill gender from parent when parentId is selected (admin can override)
@@ -152,6 +171,23 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
     this.removeImage.set(true);
   }
 
+  // Open the large focal-point picker modal (with live card previews).
+  openFocalDialog() {
+    const url = this.previewUrl();
+    if (!url) return;
+    this.dialog.open(CategoryFocalDialogComponent, {
+      data: { imageUrl: url, focalX: this.focalX(), focalY: this.focalY() },
+      width: '680px',
+      maxWidth: '94vw',
+      autoFocus: false,
+    }).afterClosed().subscribe((res: FocalDialogResult | undefined) => {
+      if (res) {
+        this.focalX.set(res.focalX);
+        this.focalY.set(res.focalY);
+      }
+    });
+  }
+
   save() {
     if (this.form.invalid) return;
     this.loading.set(true);
@@ -162,6 +198,10 @@ export class CategoryDialogComponent implements OnInit, OnDestroy {
       // and actually clears the field. With || undefined the key is dropped and the clear is lost.
       parentId: this.form.value.parentId ?? null,
       gender: this.form.value.gender ?? null,
+      // Always send explicit numbers (never undefined) so the focal point is persisted on
+      // both create and edit — consistent with the null-clear rule used above.
+      focalX: this.focalX(),
+      focalY: this.focalY(),
     };
 
     if (this.data.category) {

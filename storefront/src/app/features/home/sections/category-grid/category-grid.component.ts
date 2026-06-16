@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CategoryService } from '../../../../core/services/category.service';
 import { NavCategory } from '../../../../core/models/category.model';
+import { FocalPositionPipe } from '../../../../core/pipes/focal-position.pipe';
 
 interface GridCategory {
   id: string;
@@ -9,6 +10,8 @@ interface GridCategory {
   slug: string;
   accent: string;
   image: string | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -46,13 +49,15 @@ function toGridCategories(cats: NavCategory[]): GridCategory[] {
     slug:   c.slug,
     image:  c.imageUrl ?? CATEGORY_IMAGES[c.slug] ?? null,
     accent: ACCENTS[i % ACCENTS.length],
+    focalX: c.focalX,
+    focalY: c.focalY,
   }));
 }
 
 @Component({
   selector: 'app-category-grid',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FocalPositionPipe],
   templateUrl: './category-grid.component.html',
   styleUrl: './category-grid.component.scss',
 })

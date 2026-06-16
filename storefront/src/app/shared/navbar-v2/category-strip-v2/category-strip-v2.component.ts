@@ -12,11 +12,12 @@ import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { UpperCasePipe } from '@angular/common';
 import { NavCategory } from '../../../core/models/category.model';
+import { FocalPositionPipe } from '../../../core/pipes/focal-position.pipe';
 
 @Component({
   selector: 'app-category-strip-v2',
   standalone: true,
-  imports: [RouterLink, UpperCasePipe],
+  imports: [RouterLink, UpperCasePipe, FocalPositionPipe],
   templateUrl: './category-strip-v2.component.html',
   styleUrl: './category-strip-v2.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -18,7 +18,7 @@
           [attr.aria-label]="'Shop ' + cat.name"
         >
           @if (cat.image) {
-            <img class="cat-card__img" [src]="cat.image" [alt]="cat.name" loading="lazy" aria-hidden="true" />
+            <img class="cat-card__img" [src]="cat.image" [style.object-position]="cat | focalPosition" [alt]="cat.name" loading="lazy" aria-hidden="true" />
             <div class="cat-card__scrim"></div>
           } @else {
             <div class="cat-card__bg"></div>

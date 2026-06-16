@@ -41,7 +41,7 @@
 .cat-card.skeleton {
   flex: 0 0 22%;
   scroll-snap-align: start;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 4 / 5;   // standardized portrait (was 2/3)
   height: auto;
 
   @media (max-width: 1024px) {
@@ -59,7 +59,7 @@
 
 .cat-card {
   position: relative;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 4 / 5;
   background: var(--surface);
   border: 1px solid rgba(var(--cream-rgb), 0.06);
   overflow: hidden;
