@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "vercel-build": "ng build --configuration=production && node scripts/build-vercel-output.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:storefront": "node dist/storefront/server/server.mjs"
