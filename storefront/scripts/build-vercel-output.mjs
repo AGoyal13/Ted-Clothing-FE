@@ -55,6 +55,14 @@ writeFileSync(
       handler: 'index.mjs',
       launcherType: 'Nodejs',
       supportsResponseStreaming: true,
+      // Vercel sits in front as a proxy and sends x-forwarded-* headers. Angular's
+      // SSR engine deopts to CSR (serves the empty shell) when it receives a
+      // forwarded header it isn't told to trust — and its default trusts only
+      // x-forwarded-host/-proto, NOT x-forwarded-for. Trust the headers Vercel
+      // sends so SSR actually runs. (Safe: these originate from Vercel's edge.)
+      environment: {
+        NG_TRUST_PROXY_HEADERS: 'x-forwarded-host,x-forwarded-proto,x-forwarded-for,x-forwarded-port',
+      },
     },
     null,
     2,
