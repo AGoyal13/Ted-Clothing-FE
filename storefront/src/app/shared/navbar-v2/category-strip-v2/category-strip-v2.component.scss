@@ -23,6 +23,11 @@
       overflow: hidden; /* clips chip-art during height transition */
     }
 
+    /* Mobile: drop the strip's bottom hairline (cleaner against the content below). */
+    @media (max-width: 900px) {
+      .strip-wrap { border-bottom: none; }
+    }
+
     .strip-inner {
       display: flex;
       justify-content: space-evenly;

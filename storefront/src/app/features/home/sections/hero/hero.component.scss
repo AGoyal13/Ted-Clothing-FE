@@ -304,3 +304,20 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(6px); }
     }
+
+    /* Mobile: the absolutely-positioned scroll cue overlapped the stats row ("Unique Pieces").
+       Drop it into normal flow instead — .hero is a flex column and .hero__inner is flex:1, so the
+       cue sits BELOW the stats with a gap and can never overlap them (flow siblings don't collide). */
+    @media (max-width: 900px) {
+      .hero__scroll {
+        position: static;
+        transform: none;
+        margin: 1rem auto 1.5rem;
+        /* Over the editorial image scrim — use on-media (light in EVERY theme). --muted is dark in
+           the ivory theme, which made the cue invisible here. The chevron uses currentColor. */
+        color: var(--on-media);
+      }
+      .hero__scroll-line {
+        background: linear-gradient(to bottom, transparent, var(--on-media));
+      }
+    }

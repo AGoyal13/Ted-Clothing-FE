@@ -160,5 +160,8 @@
       font-family: var(--font-serif);
       font-style: italic;
       font-size: 0.75rem;
-      color: rgba(201, 168, 76, 0.5);
+      /* Theme-aware gold (dark #9a7520 on the ivory surface, light #c9a84c on dark) — was a hardcoded
+         light gold at 0.5, near-invisible on the ivory surface. Soften via opacity, not a baked alpha. */
+      color: var(--gold);
+      opacity: 0.75;
     }
