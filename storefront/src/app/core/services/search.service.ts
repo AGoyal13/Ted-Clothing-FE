@@ -16,6 +16,7 @@ export class SearchService {
     gender?: string;
     sizes?: string[];
     colorNames?: string[];
+    brands?: string[];
     minPrice?: number;
     maxPrice?: number;
     onSale?: boolean;
@@ -28,6 +29,7 @@ export class SearchService {
     if (params.gender)             query['gender']       = params.gender;
     if (params.sizes?.length)      query['sizes']        = params.sizes;
     if (params.colorNames?.length) query['colorNames']   = params.colorNames;
+    if (params.brands?.length)     query['brands']       = params.brands;
     if (params.minPrice !== undefined) query['minPrice'] = params.minPrice;
     if (params.maxPrice !== undefined) query['maxPrice'] = params.maxPrice;
     if (params.onSale)  query['onSale'] = true;
@@ -42,6 +44,7 @@ export class SearchService {
     gender?: string;
     sizes?: string[];
     colorNames?: string[];
+    brands?: string[];
     minPrice?: number;
     maxPrice?: number;
   }): Observable<FacetsResponse> {
@@ -50,6 +53,7 @@ export class SearchService {
     if (params.gender)       query['gender']       = params.gender;
     if (params.sizes?.length)      query['sizes']      = params.sizes;
     if (params.colorNames?.length) query['colorNames'] = params.colorNames;
+    if (params.brands?.length)     query['brands']     = params.brands;
     if (params.minPrice !== undefined) query['minPrice'] = params.minPrice;
     if (params.maxPrice !== undefined) query['maxPrice'] = params.maxPrice;
     return this.api.get<FacetsResponse>('/search/facets', query);

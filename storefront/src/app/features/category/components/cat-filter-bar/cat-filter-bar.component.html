@@ -117,6 +117,35 @@
           <div class="sb-divider"></div>
         }
 
+        <!-- BRAND section -->
+        @if (sortedBrands().length > 0) {
+          <div class="sb-sec" [class.sb-sec--open]="secOpen().brand">
+            <button class="sb-sec__hdr" (click)="toggleSection('brand')">
+              <span class="sb-sec__label">BRAND</span>
+              @if (hasBrandFilter()) { <span class="sb-badge">{{ activeBrands().length }}</span> }
+              <svg class="sb-sec__chevron" [class.sb-sec__chevron--open]="secOpen().brand"
+                width="10" height="7" viewBox="0 0 10 7" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 1l4 4 4-4"/>
+              </svg>
+            </button>
+            <div class="sb-sec__body">
+              <div class="sb-sec__inner">
+                @for (entry of sortedBrands(); track entry.name) {
+                  <button class="sb-cat-opt"
+                    [class.sb-cat-opt--active]="activeBrands().includes(entry.name)"
+                    (click)="toggleBrand(entry.name)">
+                    <span class="sb-check" [class.sb-check--on]="activeBrands().includes(entry.name)"></span>
+                    {{ entry.name }}
+                    <span class="sb-facet-count">({{ entry.count }})</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="sb-divider"></div>
+        }
+
         <!-- PRICE section -->
         @if (facetPriceRange()) {
           <div class="sb-sec" [class.sb-sec--open]="secOpen().price">

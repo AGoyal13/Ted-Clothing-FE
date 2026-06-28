@@ -213,6 +213,33 @@
       }
     }
 
+    /* Square multi-select box for brand options (mirrors .sb-radio) */
+    .sb-check {
+      width: 16px; height: 16px;
+      border-radius: 3px;
+      border: 1.5px solid rgba(var(--cream-rgb),.3);
+      flex-shrink: 0;
+      position: relative;
+      transition: border-color .15s;
+
+      &--on {
+        border-color: var(--gold);
+        &::after {
+          content: '';
+          position: absolute;
+          inset: 3px;
+          border-radius: 1px;
+          background: var(--gold);
+        }
+      }
+    }
+
+    .sb-facet-count {
+      margin-left: auto;
+      font-size: .68rem;
+      color: rgba(var(--cream-rgb),.45);
+    }
+
     /* Size button grid */
     .sb-size-grid {
       display: flex;

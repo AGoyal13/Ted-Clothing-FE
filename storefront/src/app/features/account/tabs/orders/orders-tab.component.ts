@@ -164,6 +164,7 @@ export class OrdersTabComponent implements OnInit {
 
   isReturnable(order: OrderListItem): boolean {
     if (order.status !== 'DELIVERED' || !order.deliveredAt) return false;
+    if (this.returnMode() === 'none') return false;
     const w = this.returnWindowDays();
     if (w <= 0) return false;
     return (Date.now() - new Date(order.deliveredAt).getTime()) / 86400000 <= w;

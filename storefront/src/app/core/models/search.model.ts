@@ -7,6 +7,7 @@ export interface SearchHit {
   categorySlug: string;
   categoryName: string;
   gender: string | null;
+  brand: string | null;
   basePrice: number;
   discountPercent: number;
   createdAt: number;
@@ -37,6 +38,7 @@ export interface SearchResponse {
 export interface FacetsResponse {
   sizes: Record<string, number>;
   colorNames: Record<string, number>;
+  brand: Record<string, number>;
   priceRange: { min: number; max: number } | null;
 }
 

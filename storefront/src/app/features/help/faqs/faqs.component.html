@@ -7,7 +7,7 @@
   </header>
 
   <div class="faqs__list">
-    @for (faq of faqs; track faq.q; let i = $index) {
+    @for (faq of faqs(); track faq.q; let i = $index) {
       <div class="faqs__item" [class.faqs__item--open]="openIndex() === i">
         <button class="faqs__question" (click)="toggle(i)" [attr.aria-expanded]="openIndex() === i">
           <span>{{ faq.q }}</span>

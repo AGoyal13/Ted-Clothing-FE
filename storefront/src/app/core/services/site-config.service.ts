@@ -29,17 +29,20 @@ export class SiteConfigService {
   });
 
   // Four states:
-  //   'none'     — returnWindowDays = 0 (admin disabled both via the window field)
+  //   'none'     — returns & exchanges disabled (return_enabled = 'none', or returnWindowDays = 0)
   //   'return'   — returns only (return_enabled = 'true')
   //   'exchange' — exchanges only (return_enabled = 'false')
   //   'both'     — customer chooses (return_enabled = 'both')
   readonly returnMode = computed((): 'return' | 'exchange' | 'both' | 'none' => {
     const cfg = this._config();
     if (!cfg) return 'return';
-    if (this.returnWindowDays() === 0) return 'none';
     const v = cfg['return_enabled'];
+    if (v === 'none' || this.returnWindowDays() === 0) return 'none';
     if (v === 'false') return 'exchange';
     if (v === 'both') return 'both';
     return 'return';
   });
+
+  /** Convenience: true when either returns or exchanges are available. */
+  readonly returnsEnabled = computed(() => this.returnMode() !== 'none');
 }

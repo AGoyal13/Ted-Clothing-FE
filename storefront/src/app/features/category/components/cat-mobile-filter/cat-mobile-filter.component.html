@@ -155,6 +155,40 @@
               <div class="mob-sec__divider"></div>
             }
 
+            <!-- BRAND accordion -->
+            @if (sortedBrands().length > 0) {
+              <div class="mob-sec" [class.mob-sec--open]="secOpen().brand">
+                <button class="mob-sec__hdr" (click)="toggleSection('brand')">
+                  <span class="mob-sec__label">BRAND</span>
+                  @if (pendingBrands().length > 0) { <span class="mob-badge">{{ pendingBrands().length }}</span> }
+                  <svg class="mob-sec__chevron" [class.mob-sec__chevron--open]="secOpen().brand"
+                    width="10" height="7" viewBox="0 0 10 7" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l4 4 4-4"/>
+                  </svg>
+                </button>
+                <div class="mob-sec__body">
+                  <div class="mob-sec__body-inner">
+                    <div class="cat-page__mob-color-list">
+                      @for (entry of sortedBrands(); track entry.name) {
+                        <button class="cat-page__mob-color-opt"
+                          [class.cat-page__mob-color-opt--active]="pendingBrands().includes(entry.name)"
+                          (click)="togglePendingBrand(entry.name)">
+                          <span class="cat-page__mob-checkbox"
+                            [class.cat-page__mob-checkbox--on]="pendingBrands().includes(entry.name)"></span>
+                          <span class="cat-page__mob-color-name">{{ entry.name }}</span>
+                          @if (entry.count) {
+                            <span class="cat-page__mob-facet-count">({{ entry.count }})</span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mob-sec__divider"></div>
+            }
+
             <!-- PRICE accordion -->
             @if (facetPriceRange()) {
               <div class="mob-sec" [class.mob-sec--open]="secOpen().price">

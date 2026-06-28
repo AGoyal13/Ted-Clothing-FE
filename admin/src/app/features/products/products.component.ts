@@ -37,8 +37,11 @@ export interface Product {
   basePrice: number;
   discountPercent: number;
   category: { id: string; name: string };
+  brand?: { id: string; name: string; slug: string } | null;
   _count: { skus: number };
 }
+
+interface BrandOption { id: string; name: string; }
 
 @Component({
   selector: 'app-products',
@@ -69,6 +72,9 @@ export interface Product {
     </div>
 
     <div class="filters">
+      <input class="search-input" type="search" [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()" placeholder="Search products by name…" aria-label="Search products by name" />
+
       <mat-select [(ngModel)]="statusFilter" (ngModelChange)="page.set(1); pushParams(); load()" placeholder="All statuses">
         <mat-option value="">All statuses</mat-option>
         <mat-option value="DRAFT">Draft</mat-option>
@@ -91,6 +97,13 @@ export interface Product {
           }
         </mat-select>
       }
+
+      <mat-select [(ngModel)]="brandFilter" (ngModelChange)="page.set(1); pushParams(); load()" placeholder="All brands">
+        <mat-option value="">All brands</mat-option>
+        @for (b of brands(); track b.id) {
+          <mat-option [value]="b.id">{{ b.name }}</mat-option>
+        }
+      </mat-select>
     </div>
 
     <!-- Bulk action bar -->
@@ -142,6 +155,10 @@ export interface Product {
         <ng-container matColumnDef="category">
           <th mat-header-cell *matHeaderCellDef>Category</th>
           <td mat-cell *matCellDef="let p">{{ p.category.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="brand">
+          <th mat-header-cell *matHeaderCellDef>Brand</th>
+          <td mat-cell *matCellDef="let p">{{ p.brand?.name || '—' }}</td>
         </ng-container>
         <ng-container matColumnDef="price">
           <th mat-header-cell *matHeaderCellDef>Price</th>
@@ -199,6 +216,8 @@ export interface Product {
     h1 { margin: 0; }
     .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; align-items: center; }
     .filters mat-select { width: 180px; }
+    .search-input { width: 240px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; font: inherit; }
+    .search-input:focus { outline: none; border-color: #3f51b5; }
     .full-width { width: 100%; min-width: 640px; }
     code { font-size: 11px; color: #666; }
     .discount { color: #e53935; font-size: 12px; margin-left: 4px; }
@@ -224,7 +243,7 @@ export class ProductsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
-  cols = ['select', 'title', 'category', 'price', 'status', 'skus', 'actions'];
+  cols = ['select', 'title', 'category', 'brand', 'price', 'status', 'skus', 'actions'];
   products = signal<Product[]>([]);
   loading = signal(false);
   bulkLoading = signal(false);
@@ -235,6 +254,10 @@ export class ProductsComponent implements OnInit {
   statusFilter = '';
   selectedParent = '';
   selectedChild = '';
+  brandFilter = '';
+  searchTerm = '';
+  brands = signal<BrandOption[]>([]);
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   selectedIds = signal<Set<string>>(new Set());
 
@@ -263,14 +286,23 @@ export class ProductsComponent implements OnInit {
     this.statusFilter = q.get('status') ?? '';
     this.selectedParent = q.get('parent') ?? '';
     this.selectedChild = q.get('cat') ?? '';
+    this.searchTerm = q.get('q') ?? '';
+    this.brandFilter = q.get('brand') ?? '';
     this.page.set(Number(q.get('page') ?? '1'));
     this.loadCategories();
+    this.loadBrands();
     this.load();
   }
 
   loadCategories() {
     this.api.get<Category[]>('categories').subscribe({
       next: (cats) => this.allCategories.set(cats),
+    });
+  }
+
+  loadBrands() {
+    this.api.get<BrandOption[]>('brands').subscribe({
+      next: (b) => this.brands.set(b),
     });
   }
 
@@ -281,6 +313,8 @@ export class ProductsComponent implements OnInit {
         status: this.statusFilter || null,
         parent: this.selectedParent || null,
         cat: this.selectedChild || null,
+        brand: this.brandFilter || null,
+        q: this.searchTerm.trim() || null,
         page: this.page() > 1 ? this.page() : null,
       },
       queryParamsHandling: 'merge',
@@ -295,6 +329,16 @@ export class ProductsComponent implements OnInit {
     this.load();
   }
 
+  // Debounce keystrokes so we don't fire a request per character.
+  onSearchChange() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page.set(1);
+      this.pushParams();
+      this.load();
+    }, 350);
+  }
+
   load(bustCache = false) {
     this.loading.set(true);
     this.selectedIds.set(new Set());
@@ -305,6 +349,8 @@ export class ProductsComponent implements OnInit {
     if (this.statusFilter) params['status'] = this.statusFilter;
     const catSlug = this.selectedChild || this.selectedParent;
     if (catSlug) params['categorySlug'] = catSlug;
+    if (this.brandFilter) params['brandId'] = this.brandFilter;
+    if (this.searchTerm.trim()) params['search'] = this.searchTerm.trim();
     if (bustCache) params['_t'] = String(Date.now());
 
     this.api.get<{ items: Product[]; total: number }>('products', params).subscribe({
@@ -357,7 +403,10 @@ export class ProductsComponent implements OnInit {
 
   openCreate() {
     this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: {} })
-      .afterClosed().subscribe(r => { if (r) this.load(true); });
+      .afterClosed().subscribe((r: { id?: string } | undefined) => {
+        // Newly-created product → jump straight to its detail page to add images/SKUs.
+        if (r?.id) this.router.navigate(['/products', r.id]);
+      });
   }
 
   // Rebuild the storefront Meilisearch index from the DB. Fixes stale PLP data

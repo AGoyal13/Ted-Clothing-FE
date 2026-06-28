@@ -1132,6 +1132,17 @@ button {
       gap: 0.125rem;
     }
 
+    .search-result__brand {
+      font-family: var(--font-sans);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .search-result__title {
       font-family: var(--font-sans);
       font-size: 0.82rem;

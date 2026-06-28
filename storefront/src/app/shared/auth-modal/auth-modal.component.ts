@@ -33,6 +33,8 @@ export class AuthModalComponent implements OnDestroy {
   readonly errorMsg = signal('');
   readonly otpCooldown    = signal(0);
   readonly forgotCooldown = signal(0);
+  // True when an OTP-login attempt hit an unregistered email → show sign-up nudge.
+  readonly noAccountForOtp = signal(false);
 
   private otpTimer: ReturnType<typeof setInterval> | null = null;
   private forgotTimer: ReturnType<typeof setInterval> | null = null;
@@ -65,11 +67,19 @@ export class AuthModalComponent implements OnDestroy {
     this.tab.set(tab);
     this.forgotStep.set(null);
     this.errorMsg.set('');
+    this.noAccountForOtp.set(false);
     this.otpStep.set('email');
     this.otpEmail = '';
     this.otpCode = '';
     if (this.otpTimer) { clearInterval(this.otpTimer); this.otpTimer = null; }
     this.otpCooldown.set(0);
+  }
+
+  /** Jump from the OTP "no account" nudge to the register tab, carrying the email over. */
+  goToSignup(): void {
+    const email = this.otpEmail;
+    this.setTab('register');
+    this.regEmail = email;
   }
 
   openForgot(): void {
@@ -178,6 +188,7 @@ export class AuthModalComponent implements OnDestroy {
     if (!this.otpEmail) return;
     this.loading.set(true);
     this.errorMsg.set('');
+    this.noAccountForOtp.set(false);
     this.authService.sendOtp(this.otpEmail).subscribe({
       next: () => {
         this.loading.set(false);
@@ -186,6 +197,13 @@ export class AuthModalComponent implements OnDestroy {
       },
       error: (err: any) => {
         this.loading.set(false);
+        // Unregistered email → stay on the email step and offer sign-up instead
+        // of a pointless resend cooldown.
+        if (err?.status === 404) {
+          this.noAccountForOtp.set(true);
+          this.errorMsg.set('No account found for this email.');
+          return;
+        }
         this.errorMsg.set(err?.error?.error?.message ?? err?.error?.message ?? 'Failed to send OTP');
         this.startOtpCooldown();
       },
@@ -228,6 +246,10 @@ export class AuthModalComponent implements OnDestroy {
     }
     if (this.regPassword.length < 8) {
       this.errorMsg.set('Password must be at least 8 characters');
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(this.regPhone)) {
+      this.errorMsg.set('Enter a valid 10-digit mobile number');
       return;
     }
     this.loading.set(true);

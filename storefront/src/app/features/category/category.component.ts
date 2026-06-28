@@ -32,7 +32,7 @@ type PageType = 'gender' | 'parent' | 'leaf';
 interface FilterOption { label: string; slug: string; }
 interface ActivePill {
   label: string;
-  type: 'cat' | 'size' | 'color' | 'price';
+  type: 'cat' | 'size' | 'color' | 'brand' | 'price';
   value?: string;
 }
 
@@ -104,6 +104,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Facet filter state (from URL) ─────────────────────────────────────────────
   readonly activeSizes    = signal<string[]>([]);
   readonly activeColors   = signal<string[]>([]);
+  readonly activeBrands   = signal<string[]>([]);
   readonly activeMinPrice = signal<number | null>(null);
   readonly activeMaxPrice = signal<number | null>(null);
 
@@ -138,6 +139,9 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     for (const color of this.activeColors()) {
       pills.push({ label: color, type: 'color', value: color });
     }
+    for (const brand of this.activeBrands()) {
+      pills.push({ label: brand, type: 'brand', value: brand });
+    }
     const min = this.activeMinPrice(), max = this.activeMaxPrice();
     if (min !== null || max !== null) {
       let label: string;
@@ -152,6 +156,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Facet data — populated from search response on every fresh load ───────────
   readonly facetSizes      = signal<Record<string, number>>({});
   readonly facetColors     = signal<Record<string, number>>({});
+  readonly facetBrands     = signal<Record<string, number>>({});
   readonly facetPriceRange = signal({ min: 0, max: 30000 });
   readonly colorHexMap     = signal<Record<string, string>>({});
 
@@ -172,6 +177,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       const sortFromUrl = (query['sort'] as SortOption) ?? 'newest';
       const sizesFromUrl  = parseArrayParam(query['size']);
       const colorsFromUrl = parseArrayParam(query['color']);
+      const brandsFromUrl = parseArrayParam(query['brand']);
       const minPriceFromUrl = query['minPrice'] ? parseFloat(query['minPrice']) : null;
       const maxPriceFromUrl = query['maxPrice'] ? parseFloat(query['maxPrice']) : null;
 
@@ -179,6 +185,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.sortBy.set(sortFromUrl);
       this.activeSizes.set(sizesFromUrl);
       this.activeColors.set(colorsFromUrl);
+      this.activeBrands.set(brandsFromUrl);
       this.activeMinPrice.set(minPriceFromUrl);
       this.activeMaxPrice.set(maxPriceFromUrl);
 
@@ -186,7 +193,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const isBrowser  = isPlatformBrowser(this.platformId);
       const isBackNav  = this.initialNavTrigger === 'popstate';
-      const stateKey   = this.buildStateKey(newSlug, catFromUrl, sizesFromUrl, colorsFromUrl, minPriceFromUrl, maxPriceFromUrl);
+      const stateKey   = this.buildStateKey(newSlug, catFromUrl, sizesFromUrl, colorsFromUrl, brandsFromUrl, minPriceFromUrl, maxPriceFromUrl);
       let restoredFromState = false;
 
       if (isBrowser && isBackNav) {
@@ -231,6 +238,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.leafParentName.set('');
           this.facetSizes.set({});
           this.facetColors.set({});
+          this.facetBrands.set({});
         }
         this.loadCategoryMeta();
         this.seo.updateSeo({
@@ -248,10 +256,10 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private buildStateKey(
     slug: string, cat: string,
-    sizes: string[], colors: string[],
+    sizes: string[], colors: string[], brands: string[],
     minPrice: number | null, maxPrice: number | null,
   ): string {
-    return `plp:${slug}:${cat}:${[...sizes].sort().join(',')}:${[...colors].sort().join(',')}:${minPrice ?? ''}:${maxPrice ?? ''}`;
+    return `plp:${slug}:${cat}:${[...sizes].sort().join(',')}:${[...colors].sort().join(',')}:${[...brands].sort().join(',')}:${minPrice ?? ''}:${maxPrice ?? ''}`;
   }
 
   private loadCategoryMeta(): void {
@@ -355,6 +363,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     const activeCat  = this.activeCat();
     const sizes      = this.activeSizes();
     const colors     = this.activeColors();
+    const brands     = this.activeBrands();
     const minPrice   = this.activeMinPrice();
     const maxPrice   = this.activeMaxPrice();
 
@@ -364,6 +373,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       sort:  this.sortBy(),
       ...(sizes.length  ? { sizes }             : {}),
       ...(colors.length ? { colorNames: colors } : {}),
+      ...(brands.length ? { brands }             : {}),
       ...(minPrice !== null ? { minPrice }        : {}),
       ...(maxPrice !== null ? { maxPrice }        : {}),
     };
@@ -405,6 +415,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           // Facets come from the search response — only update on fresh load, not append
           this.facetSizes.set(res.facetDistribution?.['sizes'] ?? {});
           this.facetColors.set(res.facetDistribution?.['colorNames'] ?? {});
+          this.facetBrands.set(res.facetDistribution?.['brand'] ?? {});
           // After DOM settles, check if sentinel is already in view
           // (handles categories with fewer products than a screenful).
           setTimeout(() => {
@@ -466,6 +477,14 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  onBrandsChanged(brands: string[]): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { brand: brands.length ? brands : null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   onPriceChanged(price: { min: number | null; max: number | null }): void {
     this.router.navigate([], {
       relativeTo: this.route,
@@ -482,6 +501,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'cat':   this.onCatSelected('all'); break;
       case 'size':  this.onSizesChanged(this.activeSizes().filter(s => s !== pill.value)); break;
       case 'color': this.onColorsChanged(this.activeColors().filter(c => c !== pill.value)); break;
+      case 'brand': this.onBrandsChanged(this.activeBrands().filter(b => b !== pill.value)); break;
       case 'price': this.onPriceChanged({ min: null, max: null }); break;
     }
   }
@@ -502,6 +522,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
         cat:      isLeaf ? undefined : (filters.cat === 'all' ? null : filters.cat),
         size:     filters.sizes.length  ? filters.sizes  : null,
         color:    filters.colors.length ? filters.colors : null,
+        brand:    filters.brands.length ? filters.brands : null,
         minPrice: filters.minPrice ?? null,
         maxPrice: filters.maxPrice ?? null,
       },
@@ -522,7 +543,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
   onClearAll(): void {
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { cat: null, size: null, color: null, minPrice: null, maxPrice: null },
+      queryParams: { cat: null, size: null, color: null, brand: null, minPrice: null, maxPrice: null },
       queryParamsHandling: 'merge',
     });
   }
@@ -535,6 +556,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       limit: 1, page: 1, sort: this.sortBy(),
       ...(filters.sizes.length  ? { sizes: filters.sizes }                : {}),
       ...(filters.colors.length ? { colorNames: filters.colors }          : {}),
+      ...(filters.brands.length ? { brands: filters.brands }              : {}),
       ...(filters.minPrice !== null ? { minPrice: filters.minPrice }       : {}),
       ...(filters.maxPrice !== null ? { maxPrice: filters.maxPrice }       : {}),
     };
@@ -571,7 +593,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) return;
     const stateKey = this.buildStateKey(
       this.slug(), this.activeCat(),
-      this.activeSizes(), this.activeColors(),
+      this.activeSizes(), this.activeColors(), this.activeBrands(),
       this.activeMinPrice(), this.activeMaxPrice(),
     );
     const state: PlpScrollState = {

@@ -33,10 +33,12 @@ export class CatFilterBarComponent {
 
   readonly facetSizes      = input<Record<string, number>>({});
   readonly facetColors     = input<Record<string, number>>({});
+  readonly facetBrands     = input<Record<string, number>>({});
   readonly facetPriceRange = input<{ min: number; max: number } | null>(null);
   readonly colorHexMap     = input<Record<string, string>>({});
   readonly activeSizes     = input<string[]>([]);
   readonly activeColors    = input<string[]>([]);
+  readonly activeBrands    = input<string[]>([]);
   readonly activeMinPrice  = input<number | null>(null);
   readonly activeMaxPrice  = input<number | null>(null);
 
@@ -48,11 +50,12 @@ export class CatFilterBarComponent {
   readonly catSelected   = output<string>();
   readonly sizesChanged  = output<string[]>();
   readonly colorsChanged = output<string[]>();
+  readonly brandsChanged = output<string[]>();
   readonly priceChanged  = output<{ min: number | null; max: number | null }>();
   readonly clearAll      = output<void>();
 
   // ── Accordion open state (all open by default on desktop) ────────────────────
-  readonly secOpen = signal({ cat: true, size: true, color: true, price: true });
+  readonly secOpen = signal({ cat: true, size: true, color: true, brand: true, price: true });
 
   // ── Price slider pending values (synced from URL via effect) ─────────────────
   readonly pendingMin = signal<number | null>(null);
@@ -69,9 +72,10 @@ export class CatFilterBarComponent {
   readonly hasCatFilter   = computed(() => this.activeCat() !== 'all');
   readonly hasSizeFilter  = computed(() => this.activeSizes().length > 0);
   readonly hasColorFilter = computed(() => this.activeColors().length > 0);
+  readonly hasBrandFilter = computed(() => this.activeBrands().length > 0);
   readonly hasPriceFilter = computed(() => this.activeMinPrice() !== null || this.activeMaxPrice() !== null);
   readonly hasAnyFilter   = computed(() =>
-    this.hasCatFilter() || this.hasSizeFilter() || this.hasColorFilter() || this.hasPriceFilter()
+    this.hasCatFilter() || this.hasSizeFilter() || this.hasColorFilter() || this.hasBrandFilter() || this.hasPriceFilter()
   );
 
   // ── Sorted facet lists ────────────────────────────────────────────────────────
@@ -90,6 +94,12 @@ export class CatFilterBarComponent {
 
   readonly sortedColors = computed(() =>
     Object.entries(this.facetColors())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+  );
+
+  readonly sortedBrands = computed(() =>
+    Object.entries(this.facetBrands())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
   );
@@ -123,7 +133,7 @@ export class CatFilterBarComponent {
   readonly highLabel = computed(() => '₹' + this.sliderHigh().toLocaleString('en-IN'));
 
   // ── Accordion ─────────────────────────────────────────────────────────────────
-  toggleSection(key: 'cat' | 'size' | 'color' | 'price'): void {
+  toggleSection(key: 'cat' | 'size' | 'color' | 'brand' | 'price'): void {
     this.secOpen.update(s => ({ ...s, [key]: !s[key] }));
   }
 
@@ -144,6 +154,14 @@ export class CatFilterBarComponent {
       ? this.activeColors().filter(c => c !== name)
       : [...this.activeColors(), name];
     this.colorsChanged.emit(next);
+  }
+
+  // ── Brand ────────────────────────────────────────────────────────────────────
+  toggleBrand(name: string): void {
+    const next = this.activeBrands().includes(name)
+      ? this.activeBrands().filter(b => b !== name)
+      : [...this.activeBrands(), name];
+    this.brandsChanged.emit(next);
   }
 
   // ── Price slider ──────────────────────────────────────────────────────────────

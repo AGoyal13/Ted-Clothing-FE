@@ -34,6 +34,9 @@
         @if (errorMsg()) {
           <p class="modal__error">{{ errorMsg() }}</p>
         }
+        @if (noAccountForOtp() && tab() === 'login' && loginMethod() === 'otp') {
+          <button type="button" class="modal__link-btn" (click)="goToSignup()">Create an account &rarr;</button>
+        }
 
         <!-- Forgot Password Flow -->
         @if (forgotStep()) {
@@ -206,10 +209,10 @@
                      required autocomplete="email" />
             </div>
             <div class="modal__field">
-              <label class="modal__label" for="reg-phone">Mobile Number</label>
+              <label class="modal__label" for="reg-phone">Mobile Number *</label>
               <input id="reg-phone" class="modal__input" type="tel"
-                     [(ngModel)]="regPhone" name="phone" placeholder="10-digit number (optional)"
-                     maxlength="10" autocomplete="tel" />
+                     [(ngModel)]="regPhone" name="phone" placeholder="10-digit number"
+                     maxlength="10" pattern="[0-9]{10}" inputmode="numeric" required autocomplete="tel" />
             </div>
             <div class="modal__field">
               <label class="modal__label" for="reg-password">Password *</label>

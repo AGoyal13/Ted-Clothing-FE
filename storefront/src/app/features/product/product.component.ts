@@ -59,6 +59,7 @@ export class ProductComponent implements OnInit, OnDestroy {
 
   readonly etdLabel = this.shippingService.etdLabel;
   readonly returnWindowDays = this.siteConfig.returnWindowDays;
+  readonly returnMode = this.siteConfig.returnMode;
 
   // Admin-promoted coupon offer line (shared one-fetch signal).
   readonly promoCoupon = computed(() => {

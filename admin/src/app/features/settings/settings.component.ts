@@ -93,8 +93,9 @@ import { AuthService } from '../../core/services/auth.service';
             <div class="fields">
               <mat-form-field appearance="outline">
                 <mat-label>Return / Exchange Window (days)</mat-label>
-                <input matInput type="number" [(ngModel)]="returnWindowDays" placeholder="2" min="0" max="30" />
-                <mat-hint>Set to 0 to disable. Applies to both returns and exchanges.</mat-hint>
+                <input matInput type="number" [(ngModel)]="returnWindowDays" placeholder="2" min="0" max="30"
+                  [disabled]="returnMode === 'none'" />
+                <mat-hint>Days after delivery a request can be raised. Ignored while Disabled.</mat-hint>
               </mat-form-field>
               <div class="toggle-row">
                 <label class="toggle-label">Return &amp; Exchange Mode</label>
@@ -102,10 +103,12 @@ import { AuthService } from '../../core/services/auth.service';
                   <mat-button-toggle value="true">Returns only</mat-button-toggle>
                   <mat-button-toggle value="both">Customer chooses</mat-button-toggle>
                   <mat-button-toggle value="false">Exchanges only</mat-button-toggle>
+                  <mat-button-toggle value="none">Disabled</mat-button-toggle>
                 </mat-button-toggle-group>
                 <span class="toggle-hint">
                   @if (returnMode === 'true') { Customers see "Return" only — no size swap option. }
                   @else if (returnMode === 'false') { Customers see "Exchange" only — must select a replacement size. }
+                  @else if (returnMode === 'none') { Returns &amp; exchanges are turned off everywhere on the storefront, and the API rejects requests. }
                   @else { Customers pick Return or Exchange themselves at the start of the request form. }
                 </span>
               </div>
@@ -251,7 +254,7 @@ export class SettingsComponent implements OnInit {
   freeShippingMin = 999;
   shippingCharge = 99;
   returnWindowDays = 2;
-  returnMode: 'true' | 'false' | 'both' = 'true';
+  returnMode: 'true' | 'false' | 'both' | 'none' = 'true';
 
   ngOnInit() {
     this.auth.getMfaStatus().subscribe({
@@ -267,7 +270,7 @@ export class SettingsComponent implements OnInit {
         this.shippingCharge = parseInt(cfg['shipping_charge'] ?? '99', 10);
         this.returnWindowDays = parseInt(cfg['return_window_days'] ?? '2', 10);
         const rv = cfg['return_enabled'];
-        this.returnMode = (rv === 'false' || rv === 'both') ? rv : 'true';
+        this.returnMode = (rv === 'false' || rv === 'both' || rv === 'none') ? rv : 'true';
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); },

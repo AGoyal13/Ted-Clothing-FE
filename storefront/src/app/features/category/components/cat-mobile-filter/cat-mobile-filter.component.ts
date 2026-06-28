@@ -22,6 +22,7 @@ export interface MobileFilters {
   cat: string;
   sizes: string[];
   colors: string[];
+  brands: string[];
   minPrice: number | null;
   maxPrice: number | null;
 }
@@ -44,10 +45,12 @@ export class CatMobileFilterComponent {
 
   readonly facetSizes      = input<Record<string, number>>({});
   readonly facetColors     = input<Record<string, number>>({});
+  readonly facetBrands     = input<Record<string, number>>({});
   readonly facetPriceRange = input<{ min: number; max: number } | null>(null);
   readonly colorHexMap     = input<Record<string, string>>({});
   readonly activeSizes     = input<string[]>([]);
   readonly activeColors    = input<string[]>([]);
+  readonly activeBrands    = input<string[]>([]);
   readonly activeMinPrice  = input<number | null>(null);
   readonly activeMaxPrice  = input<number | null>(null);
   readonly previewCount    = input<number>(0);
@@ -64,11 +67,12 @@ export class CatMobileFilterComponent {
   readonly pendingCat    = signal<string>('all');
   readonly pendingSizes  = signal<string[]>([]);
   readonly pendingColors = signal<string[]>([]);
+  readonly pendingBrands = signal<string[]>([]);
   readonly pendingMin    = signal<number | null>(null);
   readonly pendingMax    = signal<number | null>(null);
 
   // ── Accordion open state for filter drawer (collapsed by default on mobile) ──
-  readonly secOpen = signal({ cat: false, size: false, color: false, price: false });
+  readonly secOpen = signal({ cat: false, size: false, color: false, brand: false, price: false });
 
   private previewDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -90,6 +94,7 @@ export class CatMobileFilterComponent {
   readonly hasFacetFilter = computed(() =>
     this.activeSizes().length > 0 ||
     this.activeColors().length > 0 ||
+    this.activeBrands().length > 0 ||
     this.activeMinPrice() !== null ||
     this.activeMaxPrice() !== null ||
     this.activeCat() !== 'all'
@@ -100,6 +105,7 @@ export class CatMobileFilterComponent {
     if (this.activeCat() !== 'all')    n++;
     if (this.activeSizes().length)     n += this.activeSizes().length;
     if (this.activeColors().length)    n += this.activeColors().length;
+    if (this.activeBrands().length)    n += this.activeBrands().length;
     if (this.activeMinPrice() !== null || this.activeMaxPrice() !== null) n++;
     return n;
   });
@@ -126,6 +132,12 @@ export class CatMobileFilterComponent {
 
   readonly sortedColors = computed(() =>
     Object.entries(this.facetColors())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+  );
+
+  readonly sortedBrands = computed(() =>
+    Object.entries(this.facetBrands())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
   );
@@ -165,9 +177,10 @@ export class CatMobileFilterComponent {
     this.pendingCat.set(this.selectedCat());
     this.pendingSizes.set([...this.activeSizes()]);
     this.pendingColors.set([...this.activeColors()]);
+    this.pendingBrands.set([...this.activeBrands()]);
     this.pendingMin.set(this.activeMinPrice());
     this.pendingMax.set(this.activeMaxPrice());
-    this.secOpen.set({ cat: false, size: false, color: false, price: false });
+    this.secOpen.set({ cat: false, size: false, color: false, brand: false, price: false });
     this.sheetOpen.set('filter');
     this.schedulePreview();
   }
@@ -175,7 +188,7 @@ export class CatMobileFilterComponent {
   closeSheet(): void { this.sheetOpen.set('none'); }
 
   // ── Accordion ─────────────────────────────────────────────────────────────────
-  toggleSection(key: 'cat' | 'size' | 'color' | 'price'): void {
+  toggleSection(key: 'cat' | 'size' | 'color' | 'brand' | 'price'): void {
     this.secOpen.update(s => ({ ...s, [key]: !s[key] }));
   }
 
@@ -207,6 +220,14 @@ export class CatMobileFilterComponent {
     this.schedulePreview();
   }
 
+  togglePendingBrand(name: string): void {
+    const curr = this.pendingBrands();
+    this.pendingBrands.set(
+      curr.includes(name) ? curr.filter(b => b !== name) : [...curr, name]
+    );
+    this.schedulePreview();
+  }
+
   onSliderLow(e: Event): void {
     const range = this.facetPriceRange();
     if (!range) return;
@@ -234,6 +255,7 @@ export class CatMobileFilterComponent {
     this.pendingCat.set(this.parentLabel() ? this.selectedCat() : 'all');
     this.pendingSizes.set([]);
     this.pendingColors.set([]);
+    this.pendingBrands.set([]);
     this.pendingMin.set(null);
     this.pendingMax.set(null);
     this.schedulePreview();
@@ -245,6 +267,7 @@ export class CatMobileFilterComponent {
       cat:      this.pendingCat(),
       sizes:    this.pendingSizes(),
       colors:   this.pendingColors(),
+      brands:   this.pendingBrands(),
       minPrice: this.pendingMin(),
       maxPrice: this.pendingMax(),
     });
@@ -258,6 +281,7 @@ export class CatMobileFilterComponent {
         cat:      this.pendingCat(),
         sizes:    this.pendingSizes(),
         colors:   this.pendingColors(),
+        brands:   this.pendingBrands(),
         minPrice: this.pendingMin(),
         maxPrice: this.pendingMax(),
       });

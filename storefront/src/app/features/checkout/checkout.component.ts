@@ -189,8 +189,21 @@ export class CheckoutComponent implements OnInit {
       this.router.navigate(['/cart']);
       return;
     }
+    this.seedRecipient();
     this.addressService.load();
     this.cartService.loadCart();
+  }
+
+  /**
+   * Prefill recipient name + phone from the logged-in user. Reads the cached
+   * `currentUser()` signal (already hydrated from the prior page load) — no API
+   * call. Only fills empty fields, so a user-entered override is never clobbered.
+   */
+  private seedRecipient() {
+    const u = this.currentUser();
+    if (!u) return;
+    if (!this.newAddress.name) this.newAddress.name = u.name ?? '';
+    if (!this.newAddress.phone) this.newAddress.phone = u.phone ?? '';
   }
 
   selectAddress(id: string) {
@@ -200,7 +213,10 @@ export class CheckoutComponent implements OnInit {
 
   toggleAddForm() {
     this.showAddForm.update(v => !v);
-    if (this.showAddForm()) this.selectedAddressId.set(null);
+    if (this.showAddForm()) {
+      this.selectedAddressId.set(null);
+      this.seedRecipient();
+    }
   }
 
   onPincodeChange(pincode: string) {
@@ -229,6 +245,7 @@ export class CheckoutComponent implements OnInit {
           name: '', phone: '', line1: '', line2: '', landmark: '',
           city: '', state: '', pincode: '', isDefault: false,
         });
+        this.seedRecipient();
       },
       error: () => this.savingAddress.set(false),
     });
