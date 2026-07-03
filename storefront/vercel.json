@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "https://ted-be-dev.fly.dev/api/v1/sitemap.xml"
+      "destination": "https://api.tedclothing.in/api/v1/sitemap.xml"
     }
   ]
 }
