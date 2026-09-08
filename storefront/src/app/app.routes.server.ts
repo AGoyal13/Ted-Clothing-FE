@@ -1,7 +1,13 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
-  { path: '', renderMode: RenderMode.Prerender },
+  // Home was Prerender — but the navbar, category grid and featured products all
+  // read live catalog data, and a prerendered page bakes those API responses into
+  // static HTML (plus the hydration transfer cache, so the client never refetches).
+  // A new category or product then stayed invisible on '/' until the next deploy,
+  // while /category/:slug already showed it. SSR + s-maxage in server.ts keeps the
+  // edge-cached speed and bounds staleness to ~60s.
+  { path: '', renderMode: RenderMode.Server },
   { path: 'category/:slug', renderMode: RenderMode.Server },
   { path: 'product/:slug', renderMode: RenderMode.Server },
   { path: 'cart', renderMode: RenderMode.Client },

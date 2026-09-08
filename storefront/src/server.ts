@@ -42,6 +42,15 @@ app.use(
 // WARNING: any Set-Cookie on these responses will cause Vercel's edge to silently
 // skip caching entirely (permanent MISS). These routes make no auth calls during
 // SSR (auth interceptor + tryRefresh() are both browser-only), so no cookies are set.
+// Home is SSR (not prerendered) so new categories/products appear without a
+// redeploy. Without this header every hit would be an uncached function call —
+// app.use('/') would match every path, so match the exact path instead.
+app.use((req, res, next) => {
+  if (req.path === '/') {
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=3600');
+  }
+  next();
+});
 app.use('/product/:slug', (_req, res, next) => {
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=3600');
   next();
