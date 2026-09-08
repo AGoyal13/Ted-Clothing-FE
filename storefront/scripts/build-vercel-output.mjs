@@ -79,6 +79,12 @@ writeFileSync(
     {
       version: 3,
       routes: [
+        // '/' MUST be routed before the filesystem handler. Angular's server build
+        // emits `index.csr.html` (the empty CSR shell) into browser/, and Vercel
+        // resolves a bare '/' to it at the filesystem step — so the home page was
+        // served unrendered while /index.html correctly hit SSR. Verified in prod
+        // 2026-09-08: '/' returned the 16 KB shell, '/index.html' the 95 KB SSR page.
+        { src: '^/$', dest: '/ssr' },
         { handle: 'filesystem' },
         { src: '^/sitemap\\.xml$', dest: SITEMAP_ORIGIN, check: true },
         { src: '/(.*)', dest: '/ssr' },
