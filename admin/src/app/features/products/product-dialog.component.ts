@@ -31,7 +31,7 @@ interface Brand { id: string; name: string; }
           <input matInput formControlName="title" />
         </mat-form-field>
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Description</mat-label>
+          <mat-label>Description (optional)</mat-label>
           <textarea matInput formControlName="description" rows="3"></textarea>
         </mat-form-field>
         <mat-form-field appearance="outline" class="full-width">
@@ -121,7 +121,7 @@ export class ProductDialogComponent implements OnInit {
 
   form = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(2)]],
-    description: ['', [Validators.required, Validators.minLength(10)]],
+    description: [''],   // optional — backend column is nullable
     categoryId: ['', Validators.required],
     brandName: [''],
     basePrice: [0, [Validators.required, Validators.min(0)]],

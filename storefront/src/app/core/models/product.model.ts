@@ -65,7 +65,7 @@ export interface Product {
 }
 
 export interface ProductDetail extends Omit<Product, 'skus'> {
-  description: string;
+  description: string | null;
   skus: ProductSku[];
   sizeGuide: SizeGuide | null;
   // Optional review aggregate for JSON-LD aggregateRating. Not currently in the

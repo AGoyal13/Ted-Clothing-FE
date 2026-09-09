@@ -264,13 +264,22 @@ export class ProductComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Description is optional on a product. Falling back to an empty meta
+   *  description / JSON-LD description is an SEO regression, so synthesise one
+   *  from the facts we always have. */
+  private seoDescription(product: ProductDetail): string {
+    const written = product.description?.trim();
+    if (written) return written;
+    return `Shop the ${product.title} in ${product.category.name} at Ted Clothing. Premium handcrafted Indian clothing with easy returns.`;
+  }
+
   // ── SEO: meta tags + JSON-LD structured data (SSR-rendered) ──────────────────
   private applySeo(product: ProductDetail): void {
     const path = `/product/${product.slug}`;
     const title = `${product.title} — Ted Clothing`;
     this.seo.updateSeo({
       title,
-      description: product.description ?? '',
+      description: this.seoDescription(product),
       path,
       image: getFirstImage(product),
       type: 'product',
@@ -293,7 +302,7 @@ export class ProductComponent implements OnInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.title,
-      description: product.description ?? '',
+      description: this.seoDescription(product),
       image: images,
       brand: { '@type': 'Brand', name: 'Ted Clothing' },
       offers: {

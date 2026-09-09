@@ -38,6 +38,7 @@ export interface Product {
   discountPercent: number;
   category: { id: string; name: string };
   brand?: { id: string; name: string; slug: string } | null;
+  colors?: { id: string; images: string[] }[];
   _count: { skus: number };
 }
 
@@ -145,6 +146,22 @@ interface BrandOption { id: string; name: string; }
           </td>
         </ng-container>
 
+        <!-- Thumbnail — first image of the first colour. The list API already
+             returns colors in full (PRODUCT_LIST_INCLUDE), so this costs no
+             extra request. A missing image doubles as a "needs photos" flag. -->
+        <ng-container matColumnDef="thumb">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let p">
+            @if (firstImage(p); as img) {
+              <img [src]="img" class="row-thumb" [alt]="p.title" loading="lazy" />
+            } @else {
+              <div class="row-thumb row-thumb--empty" title="No image yet">
+                <mat-icon>image_not_supported</mat-icon>
+              </div>
+            }
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="title">
           <th mat-header-cell *matHeaderCellDef>Product</th>
           <td mat-cell *matCellDef="let p">
@@ -219,6 +236,9 @@ interface BrandOption { id: string; name: string; }
     .search-input { width: 240px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; font: inherit; }
     .search-input:focus { outline: none; border-color: #3f51b5; }
     .full-width { width: 100%; min-width: 640px; }
+    .row-thumb { width: 40px; height: 53px; object-fit: cover; border-radius: 3px; border: 1px solid #e0e0e0; display: block; background: #fafafa; }
+    .row-thumb--empty { display: flex; align-items: center; justify-content: center; border-style: dashed; color: #c0c0c0; }
+    .row-thumb--empty mat-icon { font-size: 18px; width: 18px; height: 18px; }
     code { font-size: 11px; color: #666; }
     .discount { color: #e53935; font-size: 12px; margin-left: 4px; }
     .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
@@ -243,7 +263,7 @@ export class ProductsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
-  cols = ['select', 'title', 'category', 'brand', 'price', 'status', 'skus', 'actions'];
+  cols = ['select', 'thumb', 'title', 'category', 'brand', 'price', 'status', 'skus', 'actions'];
   products = signal<Product[]>([]);
   loading = signal(false);
   bulkLoading = signal(false);
@@ -400,6 +420,12 @@ export class ProductsComponent implements OnInit {
   }
 
   go(p: Product) { this.router.navigate(['/products', p.id]); }
+
+  /** First image of the first colour that actually has one — colours can be
+   *  created before their photos are uploaded, so don't assume colors[0]. */
+  firstImage(p: Product): string | null {
+    return p.colors?.find(c => c.images?.length)?.images[0] ?? null;
+  }
 
   openCreate() {
     this.dialog.open(ProductDialogComponent, { width: '480px', maxWidth: '95vw', data: {} })

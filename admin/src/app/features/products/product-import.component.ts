@@ -358,7 +358,7 @@ export class ProductImportComponent {
       const statusRaw = r['STATUS'] ? String(r['STATUS']).trim().toUpperCase() : '';
       const base = {
         title:              String(r['TITLE'] ?? '').trim(),
-        description:        String(r['DESCRIPTION'] ?? '').trim(),
+        description:        String(r['DESCRIPTION'] ?? '').trim() || undefined,  // blank -> omit, so the column stays null
         categorySlug:       String(r['CATEGORY_SLUG'] ?? '').trim(),
         gender:             r['GENDER'] ? String(r['GENDER']).trim().toUpperCase() : undefined,
         status:             ['DRAFT','ACTIVE','ARCHIVED'].includes(statusRaw) ? statusRaw : 'DRAFT',
@@ -394,7 +394,7 @@ export class ProductImportComponent {
     const instructions = [
       ['Column', 'Required?', 'Notes'],
       ['TITLE',               'Yes',      'Product name. Same title = same product (upserted). Add multiple rows for multiple colours.'],
-      ['DESCRIPTION',         'Yes',      'Short product description.'],
+      ['DESCRIPTION',         'No',      'Short product description. Optional — leave blank to skip.'],
       ['CATEGORY_SLUG',       'Yes',      'Leaf category slug — copy from the "Categories Reference" sheet.'],
       ['GENDER',              'Yes',      'MEN | WOMEN | KIDS | UNISEX — copy from the "Categories Reference" sheet.'],
       ['STATUS',              'Optional', 'DRAFT | ACTIVE | ARCHIVED — leave blank or DRAFT to review before going live. Set ACTIVE to publish immediately.'],
