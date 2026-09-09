@@ -62,6 +62,7 @@ const CATEGORY_REFERENCE: string[][] = [
   ['men-jackets',       'men',         'MEN',    'Men — Jackets & Outerwear'],
   ['men-bottoms',       'men',         'MEN',    'Men — Bottoms (Jeans, Shorts, Trousers)'],
   ['men-footwear',      'men',         'MEN',    'Men — Footwear'],
+  ['men-coord-sets',    'men',         'MEN',    'Men — Co-ord Sets'],
   // ── Women ─────────────────────────────────────────────────────
   ['women-tshirts',     'women',       'WOMEN',  'Women — Round Neck T-Shirts'],
   ['women-polos',       'women',       'WOMEN',  'Women — Polo Shirts'],
@@ -77,10 +78,14 @@ const CATEGORY_REFERENCE: string[][] = [
   ['kids-coord-sets',   'kids',        'KIDS',   'Kids — Co-ord Sets'],
   ['kids-dresses',      'kids',        'KIDS',   'Kids — Dresses'],
   ['kids-winter',       'kids',        'KIDS',   'Kids — Winter Wear'],
+  ['kids-bottoms',      'kids',        'KIDS',   'Kids — Bottoms'],
+  ['kids-hoodies',      'kids',        'KIDS',   'Kids — Hoodies & Sweatshirts'],
+  ['kids-nightwear',    'kids',        'KIDS',   'Kids — Nightwear'],
   // ── Bags ──────────────────────────────────────────────────────
   ['backpacks',         'bags',        'UNISEX', 'Bags — Backpacks'],
   ['laptop-bags',       'bags',        'UNISEX', 'Bags — Laptop Bags'],
   ['travel-pouches',    'bags',        'UNISEX', 'Bags — Travel Pouches'],
+  ['duffle-bags',       'bags',        'UNISEX', 'Bags — Duffle Bags'],
   ['women-bags',        'bags',        'WOMEN',  'Bags — Women\'s Handbags'],
   // ── Accessories ───────────────────────────────────────────────
   ['belts',             'accessories', 'UNISEX', 'Accessories — Belts'],
@@ -90,6 +95,8 @@ const CATEGORY_REFERENCE: string[][] = [
   ['ties',              'accessories', 'MEN',    'Accessories — Ties'],
   ['stoles',            'accessories', 'WOMEN',  'Accessories — Stoles'],
   ['watches',           'accessories', 'UNISEX', 'Accessories — Watches'],
+  ['bracelets',         'accessories', 'UNISEX', 'Accessories — Bracelets'],
+  ['hair-accessories',  'accessories', 'WOMEN',  'Accessories — Hair Accessories'],
   ['men-sunglasses',    'accessories', 'MEN',    'Accessories — Men\'s Sunglasses'],
   ['women-sunglasses',  'accessories', 'WOMEN',  'Accessories — Women\'s Sunglasses'],
   // ── Beauty ────────────────────────────────────────────────────
