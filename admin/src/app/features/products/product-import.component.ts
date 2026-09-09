@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,7 @@ import { ApiService } from '../../core/services/api.service';
 import * as XLSX from 'xlsx';
 
 interface RowResult {
+  sheetRow?: number;
   title: string; colorName: string; size: string; skuCode: string;
   productAction: 'created' | 'updated' | 'error';
   colorAction: 'created' | 'updated' | 'error';
@@ -28,26 +29,26 @@ interface BulkResult {
   results: RowResult[];
 }
 
-const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'GENDER', 'STATUS', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
+const TEMPLATE_HEADERS = ['TITLE', 'DESCRIPTION', 'CATEGORY_SLUG', 'GENDER', 'BRAND', 'STATUS', 'BASE_PRICE', 'DISCOUNT_PCT', 'COLOR_NAME', 'COLOR_HEX', 'SIZE', 'STOCK_QTY', 'PRICE_OVERRIDE'];
 // SIZE: single value "M" OR comma-separated "S,M,L,XL"
 // STOCK_QTY: single value applied to all sizes, OR comma-separated matching SIZE count
 // GENDER values: MEN | WOMEN | KIDS | UNISEX
 // STATUS values: DRAFT | ACTIVE | ARCHIVED  — leave blank or DRAFT to review before going live
 const TEMPLATE_SAMPLE = [
   // Men's clothing — two colour variants, comma-separated sizes
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'DRAFT', 1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
-  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'DRAFT', 1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'Ted Classics',    'DRAFT', 1499, 10, 'Navy Blue',    '#1a237e', 'S,M,L,XL',     '20,30,25,15', ''],
+  ['Slim Fit Oxford Shirt',       'A premium cotton Oxford shirt.',             'men-shirts',       'MEN',    'Ted Classics',    'DRAFT', 1499, 10, 'Olive Green',  '#556B2F', 'S,M,L,XL',     '10,20,15,10', ''],
   // Women's clothing
-  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'WOMEN',  'DRAFT', 1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
+  ['Floral Wrap Dress',           'Lightweight floral wrap dress.',             'women-dresses',    'WOMEN',  'Ted Studio',  'DRAFT', 1999,  0, 'Pink Floral',  '#f06292', 'XS,S,M,L',     '15,20,20,10', ''],
   // Kids
-  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'KIDS',   'DRAFT',  699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
+  ['Kids Dinosaur T-Shirt',       'Fun dino print kids tee.',                  'kids-tshirts',     'KIDS',   'Ted Kids',   'DRAFT',  699,  0, 'Blue',         '#1565c0', '3-4Y,5-6Y,7-8Y','25,25,20',   ''],
   // Bags
-  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'UNISEX', 'DRAFT', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
+  ['Classic Leather Backpack',    'Durable full-grain leather backpack.',       'backpacks',        'UNISEX', 'Ted Leather', 'DRAFT', 3499,  5, 'Tan',          '#c8a97e', 'Free Size',     '30',          ''],
   // Accessories — free size, single stock
-  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'UNISEX', 'DRAFT',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
-  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'MEN',    'DRAFT', 1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
+  ['Genuine Leather Belt',        'Full-grain leather belt with pin buckle.',  'belts',            'UNISEX', 'Ted Leather', 'DRAFT',  799,  0, 'Black',        '#212121', 'Free Size',     '50',          ''],
+  ['Classic Aviator Sunglasses',  'UV400 aviator sunglasses.',                 'men-sunglasses',   'MEN',    'Ted Optics',    'DRAFT', 1299,  0, 'Gold / Green', '#bfa76a', 'Free Size',     '40',          ''],
   // Beauty
-  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'WOMEN',  'DRAFT',  899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
+  ['Matte Lip Kit',               'Long-wear matte lip colour + liner.',        'makeup',           'WOMEN',  'Ted Beauty',  'DRAFT',  899,  0, 'Berry Red',    '#8b0000', 'Free Size',     '60',          ''],
 ];
 
 // All valid category combinations — used to populate the "Categories" reference sheet in the template
@@ -114,7 +115,7 @@ const CATEGORY_REFERENCE: string[][] = [
     <mat-card class="info-card">
       <mat-card-content>
         <p class="info">Each row is one colour variant. Repeat the row for each colour. Use comma-separated sizes in SIZE (e.g. <code>S,M,L,XL</code>) and matching stocks in STOCK_QTY (e.g. <code>20,30,25,15</code>) — or a single stock value for all sizes. Products are matched and upserted by title.</p>
-        <p class="info">Download the template below — it includes a <strong>Categories Reference</strong> sheet with all valid <code>CATEGORY_SLUG</code> / <code>GENDER</code> values, and an <strong>Instructions</strong> sheet explaining every column.</p>
+        <p class="info">Download the template below — it includes a <strong>Categories Reference</strong> sheet with all valid <code>CATEGORY_SLUG</code> / <code>GENDER</code> values, a <strong>Brands Reference</strong> sheet listing existing brands, and an <strong>Instructions</strong> sheet explaining every column.</p>
         <p class="cols">Columns: <code>{{ HEADERS }}</code></p>
       </mat-card-content>
     </mat-card>
@@ -153,6 +154,10 @@ const CATEGORY_REFERENCE: string[][] = [
         <mat-card-content>
           <div class="table-wrap">
             <table mat-table [dataSource]="preview()!.results" class="full-table">
+              <ng-container matColumnDef="sheetRow">
+                <th mat-header-cell *matHeaderCellDef>Row</th>
+                <td mat-cell *matCellDef="let r"><code>{{ r.sheetRow ?? '—' }}</code></td>
+              </ng-container>
               <ng-container matColumnDef="title">
                 <th mat-header-cell *matHeaderCellDef>Product</th>
                 <td mat-cell *matCellDef="let r">{{ r.title }}</td>
@@ -247,12 +252,21 @@ const CATEGORY_REFERENCE: string[][] = [
     }
   `],
 })
-export class ProductImportComponent {
+export class ProductImportComponent implements OnInit {
   private api = inject(ApiService);
+
+  /** Existing brands, listed in the downloaded template's "Brands Reference"
+   *  sheet so typists pick a brand instead of inventing a near-duplicate. */
+  brands = signal<{ id: string; name: string }[]>([]);
+
+  ngOnInit() {
+    this.api.get<{ id: string; name: string }[]>('brands')
+      .subscribe({ next: b => this.brands.set(b), error: () => this.brands.set([]) });
+  }
   private snack = inject(MatSnackBar);
 
   readonly HEADERS = TEMPLATE_HEADERS.join(', ');
-  cols = ['title', 'colorName', 'size', 'skuCode', 'productAction', 'skuAction', 'error'];
+  cols = ['sheetRow', 'title', 'colorName', 'size', 'skuCode', 'productAction', 'skuAction', 'error'];
 
   fileName = signal('');
   loading = signal(false);
@@ -312,9 +326,14 @@ export class ProductImportComponent {
         if (rows.length > 2000) { this.snack.open('Max 2000 rows allowed', '', { duration: 3000 }); this.loading.set(false); return; }
 
         this.parsedRows = rows;
-        const payload = this.toPayload(rows);
+        const { payload, dropped } = this.toPayload(rows);
+        if (!payload.length) {
+          this.preview.set(this.emptyResultWith(dropped));
+          this.loading.set(false);
+          return;
+        }
         const res = await this.api.post<BulkResult>('products/bulk-upsert', { dryRun: true, rows: payload }).toPromise();
-        this.preview.set(res ?? null);
+        this.preview.set(res ? this.mergeDropped(res, dropped) : null);
       } catch (err: any) {
         console.error('[ProductImport] preview error', err);
         const body = err?.error;
@@ -332,9 +351,9 @@ export class ProductImportComponent {
   async commit() {
     this.committing.set(true);
     try {
-      const payload = this.toPayload(this.parsedRows);
+      const { payload, dropped } = this.toPayload(this.parsedRows);
       const res = await this.api.post<BulkResult>('products/bulk-upsert', { dryRun: false, rows: payload }).toPromise();
-      this.committed.set(res ?? null);
+      this.committed.set(res ? this.mergeDropped(res, dropped) : null);
     } catch (err: any) {
       console.error('[ProductImport] commit error', err);
       const body = err?.error;
@@ -347,19 +366,57 @@ export class ProductImportComponent {
     this.committing.set(false);
   }
 
-  private toPayload(rows: Record<string, string | number>[]) {
-    const result: any[] = [];
+  /** Fold client-side rejects into the server result so the preview shows every
+   *  row of the file, and the error count covers both sides. Errors first — they
+   *  are what needs acting on. */
+  private mergeDropped(res: BulkResult, dropped: RowResult[]): BulkResult {
+    if (!dropped.length) return res;
+    return {
+      ...res,
+      errors: res.errors + dropped.length,
+      results: [...dropped, ...res.results],
+    };
+  }
 
-    for (const r of rows) {
+  /** Every row was rejected client-side — nothing to send, but still show why. */
+  private emptyResultWith(dropped: RowResult[]): BulkResult {
+    return {
+      dryRun: true,
+      products: { created: 0, updated: 0 },
+      skus: { created: 0, updated: 0 },
+      errors: dropped.length,
+      autoCreatedCategories: [],
+      orphanCategories: [],
+      results: dropped,
+    };
+  }
+
+  /**
+   * Expand sheet rows (one per colour, with comma-separated sizes) into one
+   * payload row per SKU.
+   *
+   * Rows that can't be imported are RETURNED as errors rather than dropped. This
+   * used to end in `.filter(r => r.title && r.colorName && r.size)`, so a blank
+   * SIZE cell made the row disappear with no warning — the preview just showed a
+   * smaller count than the file and nobody could tell which line was missing.
+   */
+  private toPayload(rows: Record<string, string | number>[]): { payload: any[]; dropped: RowResult[] } {
+    const result: any[] = [];
+    const dropped: RowResult[] = [];
+
+    for (const [idx, r] of rows.entries()) {
+      const sheetRow = idx + 2;   // 1-based, and row 1 is the header
       const sizes = String(r['SIZE'] ?? '').split(',').map(s => s.trim()).filter(Boolean);
       const stocks = String(r['STOCK_QTY'] ?? '0').split(',').map(s => parseInt(s.trim(), 10) || 0);
       const prices = String(r['PRICE_OVERRIDE'] ?? '').split(',').map(s => s.trim());
 
       const statusRaw = r['STATUS'] ? String(r['STATUS']).trim().toUpperCase() : '';
       const base = {
+        sheetRow,
         title:              String(r['TITLE'] ?? '').trim(),
         description:        String(r['DESCRIPTION'] ?? '').trim() || undefined,  // blank -> omit, so the column stays null
         categorySlug:       String(r['CATEGORY_SLUG'] ?? '').trim(),
+        brandName:          String(r['BRAND'] ?? '').trim() || undefined,
         gender:             r['GENDER'] ? String(r['GENDER']).trim().toUpperCase() : undefined,
         status:             ['DRAFT','ACTIVE','ARCHIVED'].includes(statusRaw) ? statusRaw : 'DRAFT',
         basePrice:          Number(r['BASE_PRICE'] ?? 0),
@@ -367,6 +424,19 @@ export class ProductImportComponent {
         colorName:          String(r['COLOR_NAME'] ?? '').trim(),
         colorHex:           r['COLOR_HEX'] ? String(r['COLOR_HEX']).trim() : undefined,
       };
+
+      const missing: string[] = [];
+      if (!base.title)      missing.push('TITLE');
+      if (!base.colorName)  missing.push('COLOR_NAME');
+      if (!sizes.length)    missing.push('SIZE');
+      if (missing.length) {
+        dropped.push({
+          sheetRow, title: base.title, colorName: base.colorName, size: '', skuCode: '',
+          productAction: 'error', colorAction: 'error', skuAction: 'error',
+          error: `Missing required ${missing.length === 1 ? 'column' : 'columns'}: ${missing.join(', ')}`,
+        });
+        continue;
+      }
 
       for (let i = 0; i < sizes.length; i++) {
         // if stocks has only one value, apply it to all sizes; otherwise pair by index
@@ -376,7 +446,7 @@ export class ProductImportComponent {
       }
     }
 
-    return result.filter(r => r.title && r.colorName && r.size);
+    return { payload: result, dropped };
   }
 
   downloadTemplate() {
@@ -390,13 +460,20 @@ export class ProductImportComponent {
     const catWs = XLSX.utils.aoa_to_sheet(CATEGORY_REFERENCE);
     XLSX.utils.book_append_sheet(wb, catWs, 'Categories Reference');
 
-    // Sheet 3 — Instructions
+    // Sheet 3 — Brands reference (live list, so typists pick instead of inventing)
+    const brandRows: string[][] = [['BRAND'], ...this.brands().map(b => [b.name])];
+    if (brandRows.length === 1) brandRows.push(['(no brands yet — type a new name to create one)']);
+    const brandWs = XLSX.utils.aoa_to_sheet(brandRows);
+    XLSX.utils.book_append_sheet(wb, brandWs, 'Brands Reference');
+
+    // Sheet 4 — Instructions
     const instructions = [
       ['Column', 'Required?', 'Notes'],
       ['TITLE',               'Yes',      'Product name. Same title = same product (upserted). Add multiple rows for multiple colours.'],
       ['DESCRIPTION',         'No',      'Short product description. Optional — leave blank to skip.'],
       ['CATEGORY_SLUG',       'Yes',      'Leaf category slug — copy from the "Categories Reference" sheet.'],
       ['GENDER',              'Yes',      'MEN | WOMEN | KIDS | UNISEX — copy from the "Categories Reference" sheet.'],
+      ['BRAND',               'Optional', 'Brand name (e.g. Ted Classics). Matched case-insensitively against existing brands and created if new — copy from the "Brands Reference" sheet to avoid duplicates.'],
       ['STATUS',              'Optional', 'DRAFT | ACTIVE | ARCHIVED — leave blank or DRAFT to review before going live. Set ACTIVE to publish immediately.'],
       ['BASE_PRICE',          'Yes',      'Selling price in INR (e.g. 1499). No commas or currency symbol.'],
       ['DISCOUNT_PCT',        'Optional', 'Discount percentage 0–100. Leave blank or 0 for no discount.'],
@@ -411,6 +488,7 @@ export class ProductImportComponent {
       ['• Repeat the row with the same TITLE for each colour variant.', '', ''],
       ['• Products are matched by TITLE slug — editing the title creates a new product.', '', ''],
       ['• CATEGORY_SLUG must match the "Categories Reference" sheet exactly.', '', ''],
+      ['• BRAND is matched case-insensitively; pick from "Brands Reference" so you do not create near-duplicates.', '', ''],
     ];
     const instrWs = XLSX.utils.aoa_to_sheet(instructions);
     XLSX.utils.book_append_sheet(wb, instrWs, 'Instructions');
