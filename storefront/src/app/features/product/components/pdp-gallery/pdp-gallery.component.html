@@ -11,7 +11,8 @@
               [class.pdp__thumb--active]="selectedThumbIndex() === i"
               (click)="selectThumb(i)"
               [attr.aria-label]="'View image ' + (i + 1)">
-              <img [src]="img" [alt]="'Product image ' + (i + 1)" loading="lazy" width="80" height="106" />
+              <img [src]="img" [alt]="'Product image ' + (i + 1)" loading="lazy" width="80" height="106"
+                   draggable="false" (contextmenu)="$event.preventDefault()" />
             </button>
           }
         </div>
@@ -30,6 +31,8 @@
               loading="eager"
               width="600"
               height="800"
+              draggable="false"
+              (contextmenu)="$event.preventDefault()"
             />
           } @else {
             <div class="pdp__img-placeholder">
@@ -69,7 +72,8 @@
              (click)="$event.stopPropagation()"
              (touchstart)="onTouchStart($event)"
              (touchend)="onTouchEnd($event)">
-          <img class="pdp__lb-img" [src]="currentImage()" [alt]="title" />
+          <img class="pdp__lb-img" [src]="currentImage()" [alt]="title"
+               draggable="false" (contextmenu)="$event.preventDefault()" />
         </div>
 
         @if (imgs().length > 1) {

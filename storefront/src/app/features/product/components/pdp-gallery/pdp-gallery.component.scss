@@ -1,4 +1,17 @@
 
+    /* Casual-save deterrents on every product image (thumbs, main, lightbox).
+       Suppresses the iOS long-press "Save Image" sheet — the main real-world
+       leak on mobile — and drag-to-desktop. Deliberately NOT pointer-events:
+       none, which would swallow the lightbox open/swipe handlers. This is a
+       deterrent only: the R2 URL is public and visible in the DOM. */
+    .pdp__thumb img,
+    .pdp__main-image img,
+    .pdp__lb-img {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
     /* Gallery — Option A: vertical thumb column left + main image right */
     .pdp__gallery {
       display: grid;

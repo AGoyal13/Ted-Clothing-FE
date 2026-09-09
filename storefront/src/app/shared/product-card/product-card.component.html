@@ -41,6 +41,8 @@
               width="400"
               height="533"
               class="card__img"
+              draggable="false"
+              (contextmenu)="$event.preventDefault()"
             />
           } @else {
             <div class="card__img-placeholder">
