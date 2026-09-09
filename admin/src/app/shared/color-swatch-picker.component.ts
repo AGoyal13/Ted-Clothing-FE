@@ -1,6 +1,11 @@
-import { Component, Input, Output, EventEmitter, HostListener, ElementRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener, ElementRef, OnDestroy, inject } from '@angular/core';
 
 interface Swatch { hex: string; name: string; }
+
+// Panel geometry — must match .csp__panel width in styles below.
+const PANEL_WIDTH = 266;
+const EDGE_MARGIN = 8;
+const TRIGGER_GAP = 6;
 
 const PALETTE: Swatch[] = [
   // Whites & Creams
@@ -224,7 +229,7 @@ const PALETTE: Swatch[] = [
     }
   `],
 })
-export class ColorSwatchPickerComponent {
+export class ColorSwatchPickerComponent implements OnDestroy {
   // Separate internal state from @Input() so Angular's CD cannot clobber
   // local mutations (select / onInput) by re-applying the parent binding.
   _hex = '';
@@ -239,18 +244,66 @@ export class ColorSwatchPickerComponent {
   private readonly el = inject(ElementRef);
 
   toggle(): void {
-    if (!this.open) {
-      const trigger = (this.el.nativeElement as HTMLElement).querySelector('.csp__trigger')!;
-      const rect = trigger.getBoundingClientRect();
-      this.panelPos = { top: rect.bottom + 6, left: rect.left };
+    if (this.open) { this.close(); return; }
+    this.open = true;
+    this.position();                                    // provisional, pre-render
+    requestAnimationFrame(() => this.position());       // again, now it can be measured
+    // The picker lives inside a scrolling mat-dialog-content, so window:scroll
+    // never fires. Capture-phase catches scrolls on any ancestor.
+    document.addEventListener('scroll', this.reposition, true);
+    window.addEventListener('resize', this.reposition);
+  }
+
+  private close(): void {
+    this.open = false;
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
+  }
+
+  private readonly reposition = (): void => { if (this.open) this.position(); };
+
+  /**
+   * Keep the fixed-position panel inside the viewport.
+   *
+   * It used to be placed at exactly `{ top: rect.bottom + 6, left: rect.left }`
+   * with no clamping. In the Add Color dialog the trigger sits in the right-hand
+   * column, so on a narrow screen `left + 266` ran off the edge and the palette
+   * was cut off — and a trigger low on the page pushed it off the bottom.
+   */
+  private position(): void {
+    const host = this.el.nativeElement as HTMLElement;
+    const trigger = host.querySelector('.csp__trigger') as HTMLElement | null;
+    if (!trigger) return;
+
+    const panel = host.querySelector('.csp__panel') as HTMLElement | null;
+    const rect = trigger.getBoundingClientRect();
+    const width  = panel?.offsetWidth  || PANEL_WIDTH;
+    const height = panel?.offsetHeight || 0;   // 0 before first render
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Prefer left-aligned to the trigger; clamp so neither edge escapes.
+    const left = Math.max(EDGE_MARGIN, Math.min(rect.left, vw - width - EDGE_MARGIN));
+
+    // Prefer below the trigger; flip above when that would overflow the bottom.
+    let top = rect.bottom + TRIGGER_GAP;
+    if (height && top + height + EDGE_MARGIN > vh) {
+      const above = rect.top - TRIGGER_GAP - height;
+      top = above >= EDGE_MARGIN ? above : Math.max(EDGE_MARGIN, vh - height - EDGE_MARGIN);
     }
-    this.open = !this.open;
+
+    this.panelPos = { top, left };
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
   }
 
   select(value: string): void {
     this._hex = value;
     this.hexChange.emit(value);
-    this.open = false;
+    this.close();
   }
 
   onInput(value: string): void {
@@ -265,12 +318,12 @@ export class ColorSwatchPickerComponent {
   @HostListener('document:click', ['$event'])
   onOutsideClick(e: MouseEvent): void {
     if (this.open && !(this.el.nativeElement as HTMLElement).contains(e.target as Node)) {
-      this.open = false;
+      this.close();
     }
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.open) this.open = false;
+    if (this.open) this.close();
   }
 }
