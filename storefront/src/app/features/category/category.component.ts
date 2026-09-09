@@ -43,7 +43,22 @@ interface PlpScrollState {
   total: number;
   sortBy: SortOption;
   scrollToId: string;
+  // Facet counts come from the /search response, which a back-navigation restore
+  // never re-fetches — so they must ride along in the snapshot or the SIZE/COLOR/
+  // BRAND pills render empty after a back. (CATEGORY/PRICE/SORT don't, hence the
+  // "only some filters disappear" symptom.)
+  facetSizes: Record<string, number>;
+  facetColors: Record<string, number>;
+  facetBrands: Record<string, number>;
+  savedAt: number;
 }
+
+// A restore repaints frozen products — stock and price included — and re-saves that
+// frozen array on the next product click, so without an expiry it can persist for a
+// whole browsing session. Purchases are safe regardless (the PLP has no cart action
+// and the PDP always fetches fresh), but this bounds how long a stale price or a
+// stale OUT OF STOCK badge can be shown. Expired snapshot === no snapshot.
+const PLP_SNAPSHOT_TTL_MS = 5 * 60_000;
 
 const GENDER_SLUGS: Record<string, 'MEN' | 'WOMEN' | 'KIDS'> = {
   men: 'MEN', women: 'WOMEN', kids: 'KIDS',
@@ -162,6 +177,10 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private prevSlug = '';
   private loadSeq  = 0; // incremented on every fresh (non-append) load; guards stale responses
+  // When the currently-held products were actually fetched from /search. Carried
+  // through snapshot restores rather than reset, so re-saving a restored (frozen)
+  // list can't keep renewing its own TTL and pin stale data for a whole session.
+  private dataFetchedAt = 0;
 
   readonly skeletons = [1,2,3,4,5,6,7,8];
 
@@ -202,17 +221,24 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           try {
             const state: PlpScrollState = JSON.parse(raw);
             sessionStorage.removeItem(stateKey);
-            this.sortBy.set(state.sortBy);
-            this.products.set(state.products);
-            this.currentPage.set(state.currentPage);
-            this.totalPages.set(state.totalPages);
-            this.total.set(state.total);
-            this.loading.set(false);
-            restoredFromState = true;
-            setTimeout(() => {
-              document.getElementById(state.scrollToId)
-                ?.scrollIntoView({ block: 'center', behavior: 'instant' });
-            }, 0);
+            // Stale beyond the TTL — drop it and fall through to a normal load.
+            if (Date.now() - (state.savedAt ?? 0) <= PLP_SNAPSHOT_TTL_MS) {
+              this.sortBy.set(state.sortBy);
+              this.products.set(state.products);
+              this.currentPage.set(state.currentPage);
+              this.totalPages.set(state.totalPages);
+              this.total.set(state.total);
+              this.facetSizes.set(state.facetSizes ?? {});
+              this.facetColors.set(state.facetColors ?? {});
+              this.facetBrands.set(state.facetBrands ?? {});
+              this.dataFetchedAt = state.savedAt ?? 0; // inherit age, don't reset it
+              this.loading.set(false);
+              restoredFromState = true;
+              setTimeout(() => {
+                document.getElementById(state.scrollToId)
+                  ?.scrollIntoView({ block: 'center', behavior: 'instant' });
+              }, 0);
+            }
           } catch { /* corrupt JSON — fall through to normal load */ }
         }
       }
@@ -411,6 +437,7 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
           this.loadingMore.set(false);
         } else {
           this.products.set(items);
+          this.dataFetchedAt = Date.now();
           this.loading.set(false);
           // Facets come from the search response — only update on fresh load, not append
           this.facetSizes.set(res.facetDistribution?.['sizes'] ?? {});
@@ -603,6 +630,10 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
       total:       this.total(),
       sortBy:      this.sortBy(),
       scrollToId:  `plp-${productId}`,
+      facetSizes:  this.facetSizes(),
+      facetColors: this.facetColors(),
+      facetBrands: this.facetBrands(),
+      savedAt:     this.dataFetchedAt,
     };
     try {
       sessionStorage.setItem(stateKey, JSON.stringify(state));
