@@ -434,6 +434,11 @@ export class CategoryComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (append) {
           this.products.update(prev => [...prev, ...items]);
+          // An append is a real network round trip, so renewing the TTL here is
+          // earned — it can't loop without hitting the server, which is the failure
+          // that ruled out stamping on save. Without this a deep scroller (~7 pages)
+          // who lingers past the TTL loses their restore and lands back on page 1.
+          this.dataFetchedAt = Date.now();
           this.loadingMore.set(false);
         } else {
           this.products.set(items);
